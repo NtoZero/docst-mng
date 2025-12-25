@@ -1,11 +1,11 @@
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM gradle:8.7-jdk21 AS build
 WORKDIR /app
-COPY pom.xml .
+COPY build.gradle.kts settings.gradle.kts ./
 COPY src ./src
-RUN mvn -q -DskipTests package
+RUN gradle --no-daemon bootJar
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/target/docmesh-backend-0.1.0.jar app.jar
+COPY --from=build /app/build/libs/docmesh-backend-0.1.0.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
