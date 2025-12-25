@@ -7,28 +7,33 @@ import com.docst.mcp.McpModels.*;
 import com.docst.service.DocumentService;
 import com.docst.service.SearchService;
 import com.docst.service.SyncService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * MCP (Model Context Protocol) 도구 컨트롤러.
+ * AI 에이전트가 문서 관리 기능에 접근하기 위한 API 엔드포인트를 제공한다.
+ */
 @RestController
 @RequestMapping("/mcp/tools")
+@RequiredArgsConstructor
 public class McpController {
 
     private final DocumentService documentService;
     private final SearchService searchService;
     private final SyncService syncService;
 
-    public McpController(DocumentService documentService,
-                          SearchService searchService,
-                          SyncService syncService) {
-        this.documentService = documentService;
-        this.searchService = searchService;
-        this.syncService = syncService;
-    }
-
+    /**
+     * 문서 목록을 조회한다.
+     * repositoryId 또는 projectId 중 하나는 필수이다.
+     *
+     * @param input 조회 조건
+     * @return 문서 요약 목록
+     */
     @PostMapping("/list_documents")
     public ResponseEntity<McpResponse<ListDocumentsResult>> listDocuments(
             @RequestBody ListDocumentsInput input
@@ -66,6 +71,12 @@ public class McpController {
         }
     }
 
+    /**
+     * 문서 상세 정보와 내용을 조회한다.
+     *
+     * @param input 문서 ID와 선택적 커밋 SHA
+     * @return 문서 상세 정보
+     */
     @PostMapping("/get_document")
     public ResponseEntity<McpResponse<GetDocumentResult>> getDocument(
             @RequestBody GetDocumentInput input
@@ -109,6 +120,12 @@ public class McpController {
         }
     }
 
+    /**
+     * 문서의 버전 이력을 조회한다.
+     *
+     * @param input 문서 ID
+     * @return 버전 요약 목록
+     */
     @PostMapping("/list_document_versions")
     public ResponseEntity<McpResponse<ListDocumentVersionsResult>> listDocumentVersions(
             @RequestBody ListDocumentVersionsInput input
@@ -132,6 +149,12 @@ public class McpController {
         }
     }
 
+    /**
+     * 두 버전 간의 문서 차이를 비교한다.
+     *
+     * @param input 문서 ID와 비교할 커밋 SHA 쌍
+     * @return diff 문자열
+     */
     @PostMapping("/diff_document")
     public ResponseEntity<McpResponse<DiffDocumentResult>> diffDocument(
             @RequestBody DiffDocumentInput input
@@ -160,6 +183,13 @@ public class McpController {
         }
     }
 
+    /**
+     * 프로젝트 내 문서를 검색한다.
+     * Phase 1에서는 키워드 검색만 지원한다.
+     *
+     * @param input 검색 조건
+     * @return 검색 결과 및 메타데이터
+     */
     @PostMapping("/search_documents")
     public ResponseEntity<McpResponse<SearchDocumentsResult>> searchDocuments(
             @RequestBody SearchDocumentsInput input
@@ -199,6 +229,12 @@ public class McpController {
         }
     }
 
+    /**
+     * 레포지토리 동기화를 시작한다.
+     *
+     * @param input 레포지토리 ID와 선택적 브랜치
+     * @return 동기화 작업 정보
+     */
     @PostMapping("/sync_repository")
     public ResponseEntity<McpResponse<SyncRepositoryResult>> syncRepository(
             @RequestBody SyncRepositoryInput input
@@ -216,6 +252,9 @@ public class McpController {
         }
     }
 
+    /**
+     * 두 버전의 내용을 비교하여 간단한 diff를 생성한다.
+     */
     private String buildDiff(String from, String to, String fromSha, String toSha) {
         List<String> fromLines = from == null ? List.of() : List.of(from.split("\\n", -1));
         List<String> toLines = to == null ? List.of() : List.of(to.split("\\n", -1));

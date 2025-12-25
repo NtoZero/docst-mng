@@ -1,51 +1,75 @@
 package com.docst.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * 동기화 작업 엔티티.
+ * 레포지토리 동기화 작업의 상태와 결과를 추적한다.
+ */
 @Entity
 @Table(name = "dm_sync_job")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SyncJob {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /** 대상 레포지토리 */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "repository_id", nullable = false)
     private Repository repository;
 
+    /** 작업 상태 */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SyncStatus status;
 
+    /** 대상 브랜치 */
     @Column(name = "target_branch")
     private String targetBranch;
 
+    /** 마지막 동기화된 커밋 SHA */
     @Column(name = "last_synced_commit")
     private String lastSyncedCommit;
 
+    /** 에러 메시지 (실패 시) */
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
+    /** 작업 시작 시각 */
     @Column(name = "started_at")
     private Instant startedAt;
 
+    /** 작업 완료 시각 */
     @Column(name = "finished_at")
     private Instant finishedAt;
 
+    /** 레코드 생성 시각 */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    // Sync progress tracking
+    /** 진행률 추적용 - 전체 문서 수 */
     @Transient
     private int totalDocuments;
+
+    /** 진행률 추적용 - 처리된 문서 수 */
     @Transient
     private int processedDocuments;
 
-    protected SyncJob() {}
-
+    /**
+     * 동기화 작업 생성자.
+     *
+     * @param repository 대상 레포지토리
+     * @param targetBranch 대상 브랜치
+     */
     public SyncJob(Repository repository, String targetBranch) {
         this.repository = repository;
         this.targetBranch = targetBranch;
@@ -53,41 +77,56 @@ public class SyncJob {
         this.createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public Repository getRepository() { return repository; }
-    public SyncStatus getStatus() { return status; }
-    public String getTargetBranch() { return targetBranch; }
-    public String getLastSyncedCommit() { return lastSyncedCommit; }
-    public String getErrorMessage() { return errorMessage; }
-    public Instant getStartedAt() { return startedAt; }
-    public Instant getFinishedAt() { return finishedAt; }
-    public Instant getCreatedAt() { return createdAt; }
-    public int getTotalDocuments() { return totalDocuments; }
-    public int getProcessedDocuments() { return processedDocuments; }
-
+    /**
+     * 작업을 시작 상태로 전환한다.
+     */
     public void start() {
         this.status = SyncStatus.RUNNING;
         this.startedAt = Instant.now();
     }
 
+    /**
+     * 작업을 성공 상태로 완료한다.
+     *
+     * @param lastCommit 마지막 동기화된 커밋 SHA
+     */
     public void complete(String lastCommit) {
         this.status = SyncStatus.SUCCEEDED;
         this.lastSyncedCommit = lastCommit;
         this.finishedAt = Instant.now();
     }
 
+    /**
+     * 작업을 실패 상태로 종료한다.
+     *
+     * @param errorMessage 에러 메시지
+     */
     public void fail(String errorMessage) {
         this.status = SyncStatus.FAILED;
         this.errorMessage = errorMessage;
         this.finishedAt = Instant.now();
     }
 
+    /**
+     * 진행률을 업데이트한다.
+     *
+     * @param total 전체 문서 수
+     * @param processed 처리된 문서 수
+     */
     public void updateProgress(int total, int processed) {
         this.totalDocuments = total;
         this.processedDocuments = processed;
     }
 
+    /** 동기화 작업 상태 */
     public enum SyncStatus {
-        PENDING, RUNNING, SUCCEEDED, FAILED
+        /** 대기 중 */
+        PENDING,
+        /** 실행 중 */
+        RUNNING,
+        /** 성공 */
+        SUCCEEDED,
+        /** 실패 */
+        FAILED
     }
 }

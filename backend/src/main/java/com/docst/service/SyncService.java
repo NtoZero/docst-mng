@@ -5,8 +5,8 @@ import com.docst.domain.SyncJob;
 import com.docst.domain.SyncJob.SyncStatus;
 import com.docst.repository.RepositoryRepository;
 import com.docst.repository.SyncJobRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,31 +14,49 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * 동기화 서비스.
+ * 레포지토리 동기화 작업을 관리하고 비동기로 실행한다.
+ */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class SyncService {
-
-    private static final Logger log = LoggerFactory.getLogger(SyncService.class);
 
     private final SyncJobRepository syncJobRepository;
     private final RepositoryRepository repositoryRepository;
     private final GitSyncService gitSyncService;
 
-    public SyncService(SyncJobRepository syncJobRepository,
-                       RepositoryRepository repositoryRepository,
-                       GitSyncService gitSyncService) {
-        this.syncJobRepository = syncJobRepository;
-        this.repositoryRepository = repositoryRepository;
-        this.gitSyncService = gitSyncService;
-    }
-
+    /**
+     * ID로 동기화 작업을 조회한다.
+     *
+     * @param jobId 작업 ID
+     * @return 동기화 작업 (존재하지 않으면 empty)
+     */
     public Optional<SyncJob> findById(UUID jobId) {
         return syncJobRepository.findById(jobId);
     }
 
+    /**
+     * 레포지토리의 가장 최근 동기화 작업을 조회한다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @return 최근 동기화 작업 (존재하지 않으면 empty)
+     */
     public Optional<SyncJob> findLatestByRepositoryId(UUID repositoryId) {
         return syncJobRepository.findFirstByRepositoryIdOrderByCreatedAtDesc(repositoryId);
     }
 
+    /**
+     * 레포지토리 동기화를 시작한다.
+     * 비동기로 동기화를 실행하며, 동시에 하나의 작업만 실행될 수 있다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch 대상 브랜치 (null이면 기본 브랜치 사용)
+     * @return 생성된 동기화 작업
+     * @throws IllegalArgumentException 레포지토리가 존재하지 않을 경우
+     * @throws IllegalStateException 이미 동기화가 진행 중일 경우
+     */
     @Transactional
     public SyncJob startSync(UUID repositoryId, String branch) {
         Repository repo = repositoryRepository.findById(repositoryId)
@@ -60,6 +78,12 @@ public class SyncService {
         return job;
     }
 
+    /**
+     * 동기화 작업을 실행한다.
+     * 내부적으로 GitSyncService를 호출하여 실제 Git 동기화를 수행한다.
+     *
+     * @param jobId 동기화 작업 ID
+     */
     private void executeSync(UUID jobId) {
         SyncJob job = syncJobRepository.findById(jobId).orElse(null);
         if (job == null) {

@@ -1,61 +1,84 @@
 package com.docst.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 프로젝트 엔티티.
+ * 여러 레포지토리를 하나의 논리적 단위로 그룹화한다.
+ */
 @Entity
 @Table(name = "dm_project")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /** 프로젝트 이름 */
+    @Setter
     @Column(nullable = false)
     private String name;
 
+    /** 프로젝트 설명 */
+    @Setter
     private String description;
 
+    /** 활성화 상태 */
+    @Setter
     @Column(nullable = false)
     private boolean active = true;
 
+    /** 생성 시각 */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** 프로젝트 멤버 목록 */
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProjectMember> members = new ArrayList<>();
 
+    /** 연결된 레포지토리 목록 */
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Repository> repositories = new ArrayList<>();
 
-    protected Project() {}
-
+    /**
+     * 프로젝트 생성자.
+     *
+     * @param name 프로젝트 이름
+     * @param description 프로젝트 설명
+     */
     public Project(String name, String description) {
         this.name = name;
         this.description = description;
         this.createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
-    public boolean isActive() { return active; }
-    public Instant getCreatedAt() { return createdAt; }
-    public List<ProjectMember> getMembers() { return members; }
-    public List<Repository> getRepositories() { return repositories; }
-
-    public void setName(String name) { this.name = name; }
-    public void setDescription(String description) { this.description = description; }
-    public void setActive(boolean active) { this.active = active; }
-
+    /**
+     * 프로젝트에 멤버를 추가한다.
+     *
+     * @param user 추가할 사용자
+     * @param role 부여할 역할
+     */
     public void addMember(User user, ProjectRole role) {
         ProjectMember member = new ProjectMember(this, user, role);
         members.add(member);
     }
 
+    /**
+     * 프로젝트에 레포지토리를 추가한다.
+     *
+     * @param repository 추가할 레포지토리
+     */
     public void addRepository(Repository repository) {
         repositories.add(repository);
         repository.setProject(this);

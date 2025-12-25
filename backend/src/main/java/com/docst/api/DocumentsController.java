@@ -4,6 +4,7 @@ import com.docst.api.ApiModels.*;
 import com.docst.domain.Document;
 import com.docst.domain.DocumentVersion;
 import com.docst.service.DocumentService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,16 +13,25 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * 문서 컨트롤러.
+ * 문서 조회, 버전 관리, diff 기능을 제공한다.
+ */
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class DocumentsController {
 
     private final DocumentService documentService;
 
-    public DocumentsController(DocumentService documentService) {
-        this.documentService = documentService;
-    }
-
+    /**
+     * 레포지토리의 문서 목록을 조회한다.
+     *
+     * @param repoId 레포지토리 ID
+     * @param pathPrefix 경로 접두사 필터 (선택)
+     * @param type 문서 타입 필터 (선택)
+     * @return 문서 목록
+     */
     @GetMapping("/repositories/{repoId}/documents")
     public List<DocumentResponse> listDocuments(
             @PathVariable UUID repoId,
@@ -33,6 +43,12 @@ public class DocumentsController {
                 .toList();
     }
 
+    /**
+     * 문서 상세 정보를 조회한다 (최신 버전 내용 포함).
+     *
+     * @param docId 문서 ID
+     * @return 문서 상세 정보 (없으면 404)
+     */
     @GetMapping("/documents/{docId}")
     public ResponseEntity<DocumentDetailResponse> getDocument(@PathVariable UUID docId) {
         Optional<Document> docOpt = documentService.findById(docId);
@@ -60,6 +76,12 @@ public class DocumentsController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * 문서의 버전 이력을 조회한다.
+     *
+     * @param docId 문서 ID
+     * @return 버전 목록 (최신순)
+     */
     @GetMapping("/documents/{docId}/versions")
     public List<DocumentVersionResponse> listVersions(@PathVariable UUID docId) {
         return documentService.findVersions(docId).stream()
@@ -67,6 +89,13 @@ public class DocumentsController {
                 .toList();
     }
 
+    /**
+     * 문서의 특정 버전을 조회한다.
+     *
+     * @param docId 문서 ID
+     * @param commitSha 커밋 SHA
+     * @return 버전 상세 정보 (없으면 404)
+     */
     @GetMapping("/documents/{docId}/versions/{commitSha}")
     public ResponseEntity<DocumentVersionDetailResponse> getVersion(
             @PathVariable UUID docId,
@@ -78,6 +107,15 @@ public class DocumentsController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * 두 버전 간의 문서 차이를 비교한다.
+     *
+     * @param docId 문서 ID
+     * @param from 시작 커밋 SHA
+     * @param to 종료 커밋 SHA
+     * @param format diff 형식 (기본값: unified)
+     * @return diff 문자열 (버전이 없으면 404)
+     */
     @GetMapping(value = "/documents/{docId}/diff", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> diffDocument(
             @PathVariable UUID docId,
@@ -101,6 +139,9 @@ public class DocumentsController {
         return ResponseEntity.ok(diff);
     }
 
+    /**
+     * 두 버전의 내용을 비교하여 unified diff를 생성한다.
+     */
     private String buildUnifiedDiff(String fromContent, String toContent, String fromSha, String toSha) {
         List<String> fromLines = fromContent == null ? List.of() : List.of(fromContent.split("\\n", -1));
         List<String> toLines = toContent == null ? List.of() : List.of(toContent.split("\\n", -1));
@@ -128,6 +169,9 @@ public class DocumentsController {
         return builder.toString();
     }
 
+    /**
+     * Document 엔티티를 요약 응답 DTO로 변환한다.
+     */
     private DocumentResponse toResponse(Document doc) {
         return new DocumentResponse(
                 doc.getId(),
@@ -140,6 +184,9 @@ public class DocumentsController {
         );
     }
 
+    /**
+     * DocumentVersion 엔티티를 요약 응답 DTO로 변환한다.
+     */
     private DocumentVersionResponse toVersionResponse(DocumentVersion version) {
         return new DocumentVersionResponse(
                 version.getId(),
@@ -153,6 +200,9 @@ public class DocumentsController {
         );
     }
 
+    /**
+     * DocumentVersion 엔티티를 상세 응답 DTO로 변환한다.
+     */
     private DocumentVersionDetailResponse toVersionDetailResponse(DocumentVersion version) {
         return new DocumentVersionDetailResponse(
                 version.getId(),

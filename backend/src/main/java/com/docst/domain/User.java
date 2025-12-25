@@ -1,36 +1,60 @@
 package com.docst.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * 사용자 엔티티.
+ * GitHub OAuth 또는 로컬 인증을 통해 생성된 사용자 정보를 저장한다.
+ */
 @Entity
 @Table(name = "dm_user", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"provider", "provider_user_id"})
 })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /** 인증 제공자 (GITHUB, LOCAL) */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AuthProvider provider;
 
+    /** 인증 제공자에서의 사용자 ID */
     @Column(name = "provider_user_id", nullable = false)
     private String providerUserId;
 
+    /** 이메일 주소 */
+    @Setter
     private String email;
 
+    /** 표시 이름 */
+    @Setter
     @Column(name = "display_name")
     private String displayName;
 
+    /** 생성 시각 */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected User() {}
-
+    /**
+     * 사용자 생성자.
+     *
+     * @param provider 인증 제공자
+     * @param providerUserId 제공자 사용자 ID
+     * @param email 이메일
+     * @param displayName 표시 이름
+     */
     public User(AuthProvider provider, String providerUserId, String email, String displayName) {
         this.provider = provider;
         this.providerUserId = providerUserId;
@@ -39,16 +63,7 @@ public class User {
         this.createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public AuthProvider getProvider() { return provider; }
-    public String getProviderUserId() { return providerUserId; }
-    public String getEmail() { return email; }
-    public String getDisplayName() { return displayName; }
-    public Instant getCreatedAt() { return createdAt; }
-
-    public void setEmail(String email) { this.email = email; }
-    public void setDisplayName(String displayName) { this.displayName = displayName; }
-
+    /** 인증 제공자 타입 */
     public enum AuthProvider {
         GITHUB, LOCAL
     }

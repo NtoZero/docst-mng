@@ -38,6 +38,12 @@ dependencies {
   // Utilities
   implementation("com.vladsch.flexmark:flexmark-all:0.64.8") // Markdown parsing
 
+  // Lombok
+  compileOnly("org.projectlombok:lombok")
+  annotationProcessor("org.projectlombok:lombok")
+  testCompileOnly("org.projectlombok:lombok")
+  testAnnotationProcessor("org.projectlombok:lombok")
+
   // Test
   testImplementation("org.springframework.boot:spring-boot-starter-test")
   testRuntimeOnly("com.h2database:h2")

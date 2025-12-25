@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: docst
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -28,7 +28,7 @@ services:
     volumes:
       - gitdata:/data/git
     ports:
-      - "8080:8080"
+      - "8342:8342"
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,9 +36,9 @@ services:
   frontend:
     build: ./frontend
     environment:
-      NEXT_PUBLIC_API_BASE: http://localhost:8080
+      NEXT_PUBLIC_API_BASE: http://localhost:8342
     ports:
-      - "3000:3000"
+      - "3002:3000"
     depends_on:
       - backend
 

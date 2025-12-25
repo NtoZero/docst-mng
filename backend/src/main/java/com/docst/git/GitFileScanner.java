@@ -1,13 +1,12 @@
 package com.docst.git;
 
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -15,11 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+/**
+ * Git 파일 스캐너.
+ * Git 레포지토리에서 문서 파일을 스캔하여 추출한다.
+ */
 @Component
+@Slf4j
 public class GitFileScanner {
 
-    private static final Logger log = LoggerFactory.getLogger(GitFileScanner.class);
-
+    /**
+     * 문서 파일로 인식할 패턴 목록.
+     * README, docs 디렉토리, ADR, OpenAPI 등을 포함한다.
+     */
     private static final List<Pattern> DOC_PATTERNS = List.of(
             Pattern.compile("^README\\.md$", Pattern.CASE_INSENSITIVE),
             Pattern.compile("^readme\\.md$", Pattern.CASE_INSENSITIVE),
@@ -35,6 +41,14 @@ public class GitFileScanner {
             Pattern.compile("^CONTRIBUTING\\.md$", Pattern.CASE_INSENSITIVE)
     );
 
+    /**
+     * 특정 커밋에서 문서 파일 목록을 스캔한다.
+     *
+     * @param git Git 인스턴스
+     * @param commitSha 커밋 SHA
+     * @return 문서 파일 경로 목록
+     * @throws IOException I/O 오류 발생 시
+     */
     public List<String> scanDocumentFiles(Git git, String commitSha) throws IOException {
         List<String> documentPaths = new ArrayList<>();
 
@@ -66,6 +80,12 @@ public class GitFileScanner {
         return documentPaths;
     }
 
+    /**
+     * 파일 경로가 문서 파일인지 확인한다.
+     *
+     * @param path 파일 경로
+     * @return 문서 파일이면 true
+     */
     public boolean isDocumentFile(String path) {
         for (Pattern pattern : DOC_PATTERNS) {
             if (pattern.matcher(path).matches()) {
@@ -75,6 +95,11 @@ public class GitFileScanner {
         return false;
     }
 
+    /**
+     * 문서 파일 패턴 목록을 반환한다.
+     *
+     * @return 패턴 목록 (불변)
+     */
     public List<Pattern> getDocPatterns() {
         return DOC_PATTERNS;
     }

@@ -6,10 +6,10 @@ import com.docst.git.GitFileScanner;
 import com.docst.git.GitService;
 import com.docst.git.GitService.CommitInfo;
 import com.docst.repository.RepositoryRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +19,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Git 동기화 서비스.
+ * JGit을 사용하여 실제 Git 레포지토리 동기화를 수행한다.
+ */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class GitSyncService {
-
-    private static final Logger log = LoggerFactory.getLogger(GitSyncService.class);
 
     private final GitService gitService;
     private final GitFileScanner gitFileScanner;
@@ -30,18 +34,16 @@ public class GitSyncService {
     private final DocumentService documentService;
     private final RepositoryRepository repositoryRepository;
 
-    public GitSyncService(GitService gitService,
-                          GitFileScanner gitFileScanner,
-                          DocumentParser documentParser,
-                          DocumentService documentService,
-                          RepositoryRepository repositoryRepository) {
-        this.gitService = gitService;
-        this.gitFileScanner = gitFileScanner;
-        this.documentParser = documentParser;
-        this.documentService = documentService;
-        this.repositoryRepository = repositoryRepository;
-    }
-
+    /**
+     * 레포지토리를 동기화한다.
+     * Git clone/fetch를 수행하고 문서 파일을 스캔하여 DB에 저장한다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch 대상 브랜치
+     * @return 최신 커밋 SHA
+     * @throws IllegalArgumentException 레포지토리가 존재하지 않을 경우
+     * @throws RuntimeException Git 작업 실패 시
+     */
     @Transactional
     public String syncRepository(UUID repositoryId, String branch) {
         Repository repo = repositoryRepository.findById(repositoryId)
@@ -80,6 +82,16 @@ public class GitSyncService {
         }
     }
 
+    /**
+     * 개별 문서 파일을 처리한다.
+     * Git에서 파일 내용을 읽어 파싱하고 DB에 저장한다.
+     *
+     * @param git Git 인스턴스
+     * @param repo 레포지토리 엔티티
+     * @param path 파일 경로
+     * @param commitSha 커밋 SHA
+     * @param commitInfo 커밋 정보
+     */
     private void processDocument(Git git, Repository repo, String path,
                                    String commitSha, CommitInfo commitInfo) {
         try {
