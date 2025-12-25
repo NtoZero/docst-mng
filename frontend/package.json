@@ -1,5 +1,5 @@
 {
-  "name": "docmesh-frontend",
+  "name": "docst-frontend",
   "private": true,
   "scripts": {
     "dev": "next dev",

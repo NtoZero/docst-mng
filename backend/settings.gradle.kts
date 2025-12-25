@@ -1,1 +1,1 @@
-rootProject.name = "docmesh-backend"
+rootProject.name = "docst-backend"

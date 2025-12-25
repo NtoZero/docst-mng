@@ -1,4 +1,4 @@
-package com.docmesh.store;
+package com.docst.store;
 
 import java.time.Instant;
 import java.util.UUID;

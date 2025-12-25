@@ -1,4 +1,4 @@
-package com.docmesh.store;
+package com.docst.store;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -220,7 +220,7 @@ public class InMemoryStore {
 
   private void seedDocument(Repository repository) {
     UUID docId = UUID.randomUUID();
-    String content = "# " + repository.name() + "\n\nDocMesh sample document for " + repository.owner();
+    String content = "# " + repository.name() + "\n\nDocst sample document for " + repository.owner();
     String commitSha = randomCommitSha();
     Document doc = new Document(
         docId,
@@ -237,8 +237,8 @@ public class InMemoryStore {
         UUID.randomUUID(),
         docId,
         commitSha,
-        "DocMesh",
-        "docmesh@example.com",
+        "Docst",
+        "docst@example.com",
         Instant.now(),
         "Initial import",
         hashContent(content),

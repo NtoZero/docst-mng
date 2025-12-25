@@ -1,4 +1,4 @@
-# DocMesh PRD & 설계 패키지 (대화 요약본)
+# Docst PRD & 설계 패키지 (대화 요약본)
 
 > 목적: 여러 레포지토리에 나눠져 있는 백엔드, 프론트엔드, 아키텍처, QA, 기획 문서들의 **버전 관리 및 통합 조회**  
 > 핵심: **통합 문서관리 + Git 기반 버전관리 + MCP Server 접근 규준**  
@@ -9,7 +9,7 @@
 ## 1. 제품 개요 (PRD)
 
 ### 1.1 제품명(Working Title)
-**DocMesh**  
+**Docst**
 분산된 레포지토리 문서를 하나의 지식 인덱스로 묶는 통합 문서 관리 플랫폼
 
 ### 1.2 문제 정의 (Problem Statement)
@@ -235,7 +235,7 @@ erDiagram
 ```yaml
 openapi: 3.1.0
 info:
-  title: DocMesh API
+  title: Docst API
   version: 0.1.0
   description: >
     통합 문서관리 + Git 기반 버전조회 + 검색 + 동기화(SSE) API.
@@ -1203,7 +1203,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
-      POSTGRES_DB: docmesh
+      POSTGRES_DB: docst
     ports:
       - "5432:5432"
     volumes:
@@ -1212,11 +1212,11 @@ services:
   backend:
     build: ./backend
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/docmesh
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/docst
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      DOCMESH_GIT_ROOT: /data/git
-      DOCMESH_AUTH_MODE: github # or local
+      DOCST_GIT_ROOT: /data/git
+      DOCST_AUTH_MODE: github # or local
     volumes:
       - gitdata:/data/git
     ports:

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export const metadata = {
-  title: "DocMesh",
+  title: "Docst",
   description: "Unified documentation hub",
 };
 

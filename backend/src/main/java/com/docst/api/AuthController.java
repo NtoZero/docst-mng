@@ -1,4 +1,4 @@
-package com.docmesh.api;
+package com.docst.api;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.docmesh.api.ApiModels.AuthTokenResponse;
-import com.docmesh.api.ApiModels.UserResponse;
+import com.docst.api.ApiModels.AuthTokenResponse;
+import com.docst.api.ApiModels.UserResponse;
 
 @RestController
 @RequestMapping("/api/auth")

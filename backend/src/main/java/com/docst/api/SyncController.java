@@ -1,4 +1,4 @@
-package com.docmesh.api;
+package com.docst.api;
 
 import java.io.IOException;
 import java.util.Map;
@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.docmesh.api.ApiModels.SyncJobResponse;
-import com.docmesh.api.ApiModels.SyncRequest;
-import com.docmesh.store.InMemoryStore;
+import com.docst.api.ApiModels.SyncJobResponse;
+import com.docst.api.ApiModels.SyncRequest;
+import com.docst.store.InMemoryStore;
 
 @RestController
 @RequestMapping("/api/repositories/{repoId}/sync")

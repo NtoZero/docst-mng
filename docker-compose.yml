@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
-      POSTGRES_DB: docmesh
+      POSTGRES_DB: docst
     ports:
       - "5432:5432"
     volumes:
@@ -13,11 +13,11 @@ services:
   backend:
     build: ./backend
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/docmesh
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/docst
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      DOCMESH_GIT_ROOT: /data/git
-      DOCMESH_AUTH_MODE: local
+      DOCST_GIT_ROOT: /data/git
+      DOCST_AUTH_MODE: local
     volumes:
       - gitdata:/data/git
     ports:

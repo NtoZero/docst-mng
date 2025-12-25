@@ -1,4 +1,4 @@
-package com.docmesh.api;
+package com.docst.api;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.docmesh.api.ApiModels.DocumentDetailResponse;
-import com.docmesh.api.ApiModels.DocumentResponse;
-import com.docmesh.api.ApiModels.DocumentVersionDetailResponse;
-import com.docmesh.api.ApiModels.DocumentVersionResponse;
-import com.docmesh.store.DocumentVersion;
-import com.docmesh.store.InMemoryStore;
+import com.docst.api.ApiModels.DocumentDetailResponse;
+import com.docst.api.ApiModels.DocumentResponse;
+import com.docst.api.ApiModels.DocumentVersionDetailResponse;
+import com.docst.api.ApiModels.DocumentVersionResponse;
+import com.docst.store.DocumentVersion;
+import com.docst.store.InMemoryStore;
 
 @RestController
 @RequestMapping("/api")

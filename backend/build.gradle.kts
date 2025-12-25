@@ -4,7 +4,7 @@ plugins {
   java
 }
 
-group = "com.docmesh"
+group = "com.docst"
 version = "0.1.0"
 
 data class DependencyVersions(val java: Int = 21)

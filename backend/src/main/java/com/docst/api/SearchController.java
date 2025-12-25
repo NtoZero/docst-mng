@@ -1,4 +1,4 @@
-package com.docmesh.api;
+package com.docst.api;
 
 import java.util.List;
 import java.util.UUID;
@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.docmesh.api.ApiModels.SearchResultResponse;
-import com.docmesh.store.Document;
-import com.docmesh.store.DocumentVersion;
-import com.docmesh.store.InMemoryStore;
+import com.docst.api.ApiModels.SearchResultResponse;
+import com.docst.store.Document;
+import com.docst.store.DocumentVersion;
+import com.docst.store.InMemoryStore;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/search")

@@ -1,7 +1,7 @@
 export default function HomePage() {
   return (
     <main style={{ padding: "48px", maxWidth: 960, margin: "0 auto" }}>
-      <h1>DocMesh</h1>
+      <h1>Docst</h1>
       <p>
         Phase 1 MVP scaffolding is online. Connect repositories, browse documents, and review
         versions through the API.
