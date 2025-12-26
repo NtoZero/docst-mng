@@ -18,7 +18,7 @@ import type {
   SyncRequest,
 } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
 
 class ApiError extends Error {
   constructor(

@@ -5,7 +5,8 @@
       "Bash(dir \"C:\\\\Dev\\\\project\\\\docst-mng\\\\docs\")",
       "Bash(npm install:*)",
       "Bash(npm run lint)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(docker compose:*)"
     ]
   }
 }
