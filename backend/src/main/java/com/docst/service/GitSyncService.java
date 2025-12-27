@@ -33,11 +33,13 @@ public class GitSyncService {
     private final DocumentParser documentParser;
     private final DocumentService documentService;
     private final RepositoryRepository repositoryRepository;
+    private final SyncProgressTracker progressTracker;
 
     /**
      * 레포지토리를 동기화한다.
      * Git clone/fetch를 수행하고 문서 파일을 스캔하여 DB에 저장한다.
      *
+     * @param jobId 동기화 작업 ID
      * @param repositoryId 레포지토리 ID
      * @param branch 대상 브랜치
      * @return 최신 커밋 SHA
@@ -45,7 +47,7 @@ public class GitSyncService {
      * @throws RuntimeException Git 작업 실패 시
      */
     @Transactional
-    public String syncRepository(UUID repositoryId, String branch) {
+    public String syncRepository(UUID jobId, UUID repositoryId, String branch) {
         Repository repo = repositoryRepository.findById(repositoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
 
@@ -56,7 +58,7 @@ public class GitSyncService {
             repositoryRepository.save(repo);
 
             // Fetch and checkout
-            gitService.fetch(git, branch);
+            gitService.fetch(git, repo, branch);
             gitService.checkout(git, branch);
 
             // Get latest commit
@@ -69,11 +71,17 @@ public class GitSyncService {
             List<String> documentPaths = gitFileScanner.scanDocumentFiles(git, latestCommit);
             log.info("Found {} document files", documentPaths.size());
 
+            // Update progress tracker
+            progressTracker.setTotal(jobId, documentPaths.size());
+
             // Process each document
-            for (String path : documentPaths) {
+            for (int i = 0; i < documentPaths.size(); i++) {
+                String path = documentPaths.get(i);
                 processDocument(git, repo, path, latestCommit, commitInfo);
+                progressTracker.update(jobId, i + 1, path);
             }
 
+            progressTracker.complete(jobId, "Sync completed: " + documentPaths.size() + " documents");
             return latestCommit;
 
         } catch (GitAPIException | IOException e) {

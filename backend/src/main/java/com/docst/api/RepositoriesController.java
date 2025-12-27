@@ -2,9 +2,12 @@ package com.docst.api;
 
 import com.docst.api.ApiModels.CreateRepositoryRequest;
 import com.docst.api.ApiModels.RepositoryResponse;
+import com.docst.api.ApiModels.SetCredentialRequest;
 import com.docst.api.ApiModels.UpdateRepositoryRequest;
+import com.docst.domain.Credential;
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
+import com.docst.repository.CredentialRepository;
 import com.docst.service.RepositoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +27,7 @@ import java.util.UUID;
 public class RepositoriesController {
 
     private final RepositoryService repositoryService;
+    private final CredentialRepository credentialRepository;
 
     /**
      * 프로젝트의 모든 레포지토리를 조회한다.
@@ -105,6 +109,33 @@ public class RepositoriesController {
     public ResponseEntity<Void> deleteRepository(@PathVariable UUID repoId) {
         repositoryService.delete(repoId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 레포지토리에 자격증명을 연결한다.
+     *
+     * @param repoId 레포지토리 ID
+     * @param request 자격증명 연결 요청
+     * @return 업데이트된 레포지토리
+     */
+    @PutMapping("/repositories/{repoId}/credential")
+    public ResponseEntity<RepositoryResponse> setCredential(
+            @PathVariable UUID repoId,
+            @RequestBody SetCredentialRequest request
+    ) {
+        return repositoryService.findById(repoId)
+                .map(repo -> {
+                    if (request.credentialId() != null) {
+                        Credential credential = credentialRepository.findById(request.credentialId())
+                                .orElseThrow(() -> new IllegalArgumentException("Credential not found"));
+                        repo.setCredential(credential);
+                    } else {
+                        repo.setCredential(null);
+                    }
+                    Repository updated = repositoryService.save(repo);
+                    return ResponseEntity.ok(toResponse(updated));
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**

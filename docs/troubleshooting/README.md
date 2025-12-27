@@ -7,7 +7,9 @@
 ```
 troubleshooting/
 ├── be/                    # Backend 관련 이슈
-│   └── lazy-initialization-async.md
+│   ├── lazy-initialization-async.md
+│   ├── sync-document-not-loaded.md
+│   └── polling-inefficiency.md
 ├── fe/                    # Frontend 관련 이슈
 │   └── sync-polling-issue.md
 └── README.md
@@ -24,6 +26,8 @@ troubleshooting/
 | 문서 | 설명 |
 |------|------|
 | [lazy-initialization-async.md](./be/lazy-initialization-async.md) | 비동기 스레드에서 LazyInitializationException 발생 |
+| [sync-document-not-loaded.md](./be/sync-document-not-loaded.md) | Sync 완료 후 Document가 로드되지 않는 문제 |
+| [polling-inefficiency.md](./be/polling-inefficiency.md) | SSE/Polling 비효율성 문제 분석 |
 
 ## 공통 이슈
 

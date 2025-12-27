@@ -3,6 +3,7 @@ package com.docst.api;
 import com.docst.api.ApiModels.SyncJobResponse;
 import com.docst.api.ApiModels.SyncRequest;
 import com.docst.domain.SyncJob;
+import com.docst.service.SyncProgressTracker;
 import com.docst.service.SyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -11,10 +12,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -27,7 +30,8 @@ import java.util.concurrent.TimeUnit;
 public class SyncController {
 
     private final SyncService syncService;
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final SyncProgressTracker progressTracker;
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
     /**
      * 레포지토리 동기화를 시작한다.
@@ -69,21 +73,28 @@ public class SyncController {
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@PathVariable UUID repoId) {
-        SseEmitter emitter = new SseEmitter(60000L); // 60 second timeout
+        SseEmitter emitter = new SseEmitter(120000L); // 120 second timeout
 
-        // Poll for status updates
-        scheduler.scheduleAtFixedRate(() -> {
+        // Poll for status updates - 500ms 간격으로 더 빠르게
+        ScheduledFuture<?> scheduledTask = scheduler.scheduleAtFixedRate(() -> {
             try {
                 syncService.findLatestByRepositoryId(repoId).ifPresent(job -> {
                     try {
+                        // 진행 상황 정보 가져오기
+                        SyncProgressTracker.Progress progress = progressTracker.getProgress(job.getId());
+
+                        Map<String, Object> data = new HashMap<>();
+                        data.put("jobId", job.getId().toString());
+                        data.put("repositoryId", repoId.toString());
+                        data.put("status", job.getStatus().name());
+                        data.put("message", progress != null ? progress.getMessage() : getStatusMessage(job));
+                        data.put("totalDocs", progress != null ? progress.getTotalDocs() : 0);
+                        data.put("processedDocs", progress != null ? progress.getProcessedDocs() : 0);
+                        data.put("progress", progress != null ? progress.getProgressPercent() : 0);
+
                         emitter.send(SseEmitter.event()
-                                .name("status")
-                                .data(Map.of(
-                                        "jobId", job.getId(),
-                                        "repositoryId", repoId,
-                                        "status", job.getStatus().name(),
-                                        "message", getStatusMessage(job)
-                                )));
+                                .name("message")
+                                .data(data));
 
                         if (job.getStatus().name().equals("SUCCEEDED") ||
                             job.getStatus().name().equals("FAILED")) {
@@ -96,10 +107,15 @@ public class SyncController {
             } catch (Exception e) {
                 emitter.completeWithError(e);
             }
-        }, 0, 1, TimeUnit.SECONDS);
+        }, 0, 500, TimeUnit.MILLISECONDS);
 
-        emitter.onCompletion(() -> {});
-        emitter.onTimeout(emitter::complete);
+        // Scheduler 누수 방지: 완료/타임아웃/에러 시 task 취소
+        emitter.onCompletion(() -> scheduledTask.cancel(true));
+        emitter.onTimeout(() -> {
+            scheduledTask.cancel(true);
+            emitter.complete();
+        });
+        emitter.onError(e -> scheduledTask.cancel(true));
 
         return emitter;
     }

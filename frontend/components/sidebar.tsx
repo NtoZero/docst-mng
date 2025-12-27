@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderGit2, Settings, Plus, ChevronRight, Home } from 'lucide-react';
+import { FolderGit2, Settings, Plus, ChevronRight, Home, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import { useProjects } from '@/hooks/use-api';
@@ -86,7 +86,17 @@ export function Sidebar() {
           </nav>
         </div>
 
-        <div className="border-t p-4">
+        <div className="border-t p-4 space-y-1">
+          <Link
+            href="/credentials"
+            className={cn(
+              'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent',
+              pathname === '/credentials' && 'bg-accent'
+            )}
+          >
+            <Key className="h-4 w-4" />
+            Credentials
+          </Link>
           <Link
             href="/settings"
             className={cn(

@@ -117,10 +117,12 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
                 setError(data.message || 'Sync failed');
                 optionsRef.current.onError?.(data.message || 'Sync failed');
               } else {
-                // Fetch the final job status
-                repositoriesApi.getSyncStatus(repositoryId).then((finalJob) => {
-                  optionsRef.current.onComplete?.(finalJob);
-                });
+                // DB 트랜잭션 커밋 완료를 보장하기 위해 약간의 지연 후 콜백 호출
+                setTimeout(() => {
+                  repositoriesApi.getSyncStatus(repositoryId).then((finalJob) => {
+                    optionsRef.current.onComplete?.(finalJob);
+                  });
+                }, 300);
               }
             }
           } catch (e) {

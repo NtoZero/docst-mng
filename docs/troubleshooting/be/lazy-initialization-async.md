@@ -1,6 +1,8 @@
-# LazyInitializationException in Async Context
+# 비동기 컨텍스트에서의 JPA 문제
 
-## 증상
+## 문제 1: LazyInitializationException
+
+### 증상
 
 `SyncService.startSync()` 호출 시 비동기 스레드에서 다음 예외 발생:
 
@@ -114,6 +116,83 @@ public class SyncExecutor {
 1. **비동기 스레드는 원래 트랜잭션을 상속받지 않음**
 2. **Lazy 프록시는 세션이 열려 있을 때만 초기화 가능**
 3. **비동기 컨텍스트에서는 필요한 데이터를 미리 로드하거나, 새 트랜잭션에서 다시 조회해야 함**
+
+---
+
+## 문제 2: Sync job not found (트랜잭션 커밋 전 비동기 실행)
+
+### 증상
+
+```
+INSERT into dm_sync_job ... values (...)
+ERROR - Sync job not found: f4487e4f-6cc6-45e7-911e-c312a4edad01
+```
+
+SyncJob이 저장되었는데도 비동기 스레드에서 찾지 못함.
+
+### 원인
+
+`@Transactional` 메서드 내에서 `CompletableFuture.runAsync()`를 호출하면, **트랜잭션이 커밋되기 전에** 비동기 스레드가 실행될 수 있습니다.
+
+```
+startSync() [@Transactional]
+    │
+    ├── syncJobRepository.save(job)  ← DB에 INSERT (아직 커밋 안 됨)
+    │
+    ├── CompletableFuture.runAsync()  ← 비동기 스레드 시작
+    │       │
+    │       └── executeSync()
+    │               │
+    │               └── findByIdWithRepository(jobId)  ← 커밋 안 된 데이터 조회 불가!
+    │
+    └── 메서드 종료 → 트랜잭션 커밋
+```
+
+### 해결 방법: TransactionSynchronization 사용
+
+트랜잭션 커밋 후에 비동기 작업을 시작하도록 `afterCommit()` 콜백 사용:
+
+```java
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+@Transactional
+public SyncJob startSync(UUID repositoryId, String branch) {
+    // ... SyncJob 생성 및 저장
+    SyncJob job = syncJobRepository.save(job);
+
+    // 트랜잭션 커밋 후에 비동기 작업 시작
+    final UUID jobId = job.getId();
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+        @Override
+        public void afterCommit() {
+            CompletableFuture.runAsync(() -> executeSync(jobId));
+        }
+    });
+
+    return job;
+}
+```
+
+### 수정 후 흐름
+
+```
+startSync() [@Transactional]
+    │
+    ├── syncJobRepository.save(job)
+    │
+    ├── registerSynchronization(afterCommit callback)
+    │
+    └── 메서드 종료 → 트랜잭션 커밋
+                            │
+                            └── afterCommit() 호출
+                                    │
+                                    └── CompletableFuture.runAsync()
+                                            │
+                                            └── executeSync()  ← 이제 데이터 조회 가능!
+```
+
+---
 
 ## 관련 파일
 

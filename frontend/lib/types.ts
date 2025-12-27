@@ -54,6 +54,7 @@ export interface Repository {
   localMirrorPath: string;
   active: boolean;
   createdAt: string;
+  credentialId?: string | null;
 }
 
 export interface CreateRepositoryRequest {
@@ -149,4 +150,37 @@ export interface SyncEvent {
   progress: number;
   totalDocs: number;
   processedDocs: number;
+}
+
+// ===== Credential =====
+export type CredentialType = 'GITHUB_PAT' | 'BASIC_AUTH' | 'SSH_KEY';
+
+export interface Credential {
+  id: string;
+  name: string;
+  type: CredentialType;
+  username: string | null;
+  description: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateCredentialRequest {
+  name: string;
+  type: CredentialType;
+  username?: string;
+  secret: string;
+  description?: string;
+}
+
+export interface UpdateCredentialRequest {
+  username?: string;
+  secret?: string;
+  description?: string;
+  active?: boolean;
+}
+
+export interface SetCredentialRequest {
+  credentialId: string | null;
 }

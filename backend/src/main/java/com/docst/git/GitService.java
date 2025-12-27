@@ -1,9 +1,13 @@
 package com.docst.git;
 
+import com.docst.domain.Credential;
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
 import com.docst.repository.RepositoryRepository;
+import com.docst.service.CredentialService;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jgit.api.CloneCommand;
+import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
@@ -12,6 +16,8 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,17 +40,21 @@ import java.util.UUID;
 public class GitService {
 
     private final RepositoryRepository repositoryRepository;
+    private final CredentialService credentialService;
     private final Path gitRootPath;
 
     /**
      * GitService 생성자.
      *
      * @param repositoryRepository 레포지토리 리포지토리
+     * @param credentialService 자격증명 서비스
      * @param gitRootPath Git 로컬 저장소 루트 경로
      */
     public GitService(RepositoryRepository repositoryRepository,
+                      CredentialService credentialService,
                       @Value("${docst.git.root-path:/data/git}") String gitRootPath) {
         this.repositoryRepository = repositoryRepository;
+        this.credentialService = credentialService;
         this.gitRootPath = Path.of(gitRootPath);
     }
 
@@ -78,20 +88,51 @@ public class GitService {
         String cloneUrl = getCloneUrl(repo);
         log.info("Cloning repository: {} to {}", cloneUrl, localPath);
 
-        return Git.cloneRepository()
+        CloneCommand cloneCommand = Git.cloneRepository()
                 .setURI(cloneUrl)
                 .setDirectory(localDir)
-                .setBare(false)
-                .call();
+                .setBare(false);
+
+        // 자격증명 설정
+        CredentialsProvider credProvider = getCredentialsProvider(repo);
+        if (credProvider != null) {
+            cloneCommand.setCredentialsProvider(credProvider);
+        }
+
+        return cloneCommand.call();
     }
 
     /**
      * 원격 레포지토리에서 변경사항을 가져온다.
      *
      * @param git Git 인스턴스
+     * @param repo 레포지토리 엔티티 (자격증명 조회용)
      * @param branch 브랜치명
      * @throws GitAPIException Git 작업 실패 시
      */
+    public void fetch(Git git, Repository repo, String branch) throws GitAPIException {
+        log.info("Fetching branch: {}", branch);
+        FetchCommand fetchCommand = git.fetch()
+                .setRemote("origin");
+
+        // 자격증명 설정
+        CredentialsProvider credProvider = getCredentialsProvider(repo);
+        if (credProvider != null) {
+            fetchCommand.setCredentialsProvider(credProvider);
+        }
+
+        fetchCommand.call();
+    }
+
+    /**
+     * 원격 레포지토리에서 변경사항을 가져온다. (자격증명 없이)
+     *
+     * @param git Git 인스턴스
+     * @param branch 브랜치명
+     * @throws GitAPIException Git 작업 실패 시
+     * @deprecated Use fetch(Git, Repository, String) instead for authenticated access
+     */
+    @Deprecated
     public void fetch(Git git, String branch) throws GitAPIException {
         log.info("Fetching branch: {}", branch);
         git.fetch()
@@ -203,6 +244,35 @@ public class GitService {
             return repo.getLocalMirrorPath();
         }
         return repo.getCloneUrl();
+    }
+
+    /**
+     * 레포지토리에 연결된 자격증명으로 CredentialsProvider를 생성한다.
+     *
+     * @param repo 레포지토리 엔티티
+     * @return CredentialsProvider (자격증명이 없으면 null)
+     */
+    private CredentialsProvider getCredentialsProvider(Repository repo) {
+        Credential credential = repo.getCredential();
+        if (credential == null || !credential.isActive()) {
+            return null;
+        }
+
+        try {
+            String secret = credentialService.getDecryptedSecret(credential.getId());
+            String username = credential.getUsername();
+
+            // GitHub PAT의 경우 username은 아무 값이나 가능 (토큰이 중요)
+            if (username == null || username.isBlank()) {
+                username = "x-access-token"; // GitHub 권장 값
+            }
+
+            log.debug("Using credential '{}' for repository {}", credential.getName(), repo.getFullName());
+            return new UsernamePasswordCredentialsProvider(username, secret);
+        } catch (Exception e) {
+            log.error("Failed to get credentials for repository {}: {}", repo.getFullName(), e.getMessage());
+            return null;
+        }
     }
 
     /**

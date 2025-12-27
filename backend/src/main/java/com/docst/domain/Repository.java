@@ -83,6 +83,12 @@ public class Repository {
     @OneToMany(mappedBy = "repository", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SyncJob> syncJobs = new ArrayList<>();
 
+    /** 인증 자격증명 (선택) */
+    @Setter
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "credential_id")
+    private Credential credential;
+
     /**
      * 레포지토리 생성자.
      *

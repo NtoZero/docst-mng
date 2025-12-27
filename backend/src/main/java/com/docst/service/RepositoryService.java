@@ -112,6 +112,17 @@ public class RepositoryService {
     }
 
     /**
+     * 레포지토리를 저장한다.
+     *
+     * @param repository 저장할 레포지토리
+     * @return 저장된 레포지토리
+     */
+    @Transactional
+    public Repository save(Repository repository) {
+        return repositoryRepository.save(repository);
+    }
+
+    /**
      * 레포지토리의 로컬 미러 경로를 업데이트한다.
      *
      * @param id 레포지토리 ID

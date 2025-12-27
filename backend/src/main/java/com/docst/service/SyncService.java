@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +29,7 @@ public class SyncService {
     private final SyncJobRepository syncJobRepository;
     private final RepositoryRepository repositoryRepository;
     private final GitSyncService gitSyncService;
+    private final SyncProgressTracker progressTracker;
 
     /**
      * ID로 동기화 작업을 조회한다.
@@ -71,9 +75,14 @@ public class SyncService {
         SyncJob job = new SyncJob(repo, targetBranch);
         job = syncJobRepository.save(job);
 
-        // Start async sync
-        final SyncJob savedJob = job;
-        CompletableFuture.runAsync(() -> executeSync(savedJob.getId()));
+        // 트랜잭션 커밋 후에 비동기 작업 시작 (job이 DB에 확실히 저장된 후 실행)
+        final UUID jobId = job.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                CompletableFuture.runAsync(() -> executeSync(jobId));
+            }
+        });
 
         return job;
     }
@@ -92,15 +101,19 @@ public class SyncService {
             return;
         }
 
+        Repository repo = job.getRepository();
+
         try {
             job.start();
             syncJobRepository.save(job);
 
-            Repository repo = job.getRepository();
+            // 진행 상황 추적 시작
+            progressTracker.start(jobId, repo.getId());
+
             log.info("Starting sync for repository: {} branch: {}", repo.getFullName(), job.getTargetBranch());
 
-            // Execute git sync
-            String lastCommit = gitSyncService.syncRepository(repo.getId(), job.getTargetBranch());
+            // Execute git sync (jobId를 전달하여 진행 상황 추적)
+            String lastCommit = gitSyncService.syncRepository(jobId, repo.getId(), job.getTargetBranch());
 
             job.complete(lastCommit);
             syncJobRepository.save(job);
@@ -110,6 +123,14 @@ public class SyncService {
             log.error("Sync failed for job: {}", jobId, e);
             job.fail(e.getMessage());
             syncJobRepository.save(job);
+        } finally {
+            // 완료 후 약간의 지연 후 진행 상황 정리 (SSE가 마지막 상태를 읽을 시간 확보)
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+            progressTracker.remove(jobId);
         }
     }
 }

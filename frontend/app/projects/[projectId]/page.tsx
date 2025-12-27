@@ -14,15 +14,24 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Key,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useProject, useRepositories, useSyncStatus, queryKeys } from '@/hooks/use-api';
+import {
+  useProject,
+  useRepositories,
+  useSyncStatus,
+  useCredentials,
+  useSetRepositoryCredential,
+  queryKeys,
+} from '@/hooks/use-api';
 import { useSync } from '@/hooks/use-sync';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import type { Repository, SyncStatus } from '@/lib/types';
+import type { Repository, SyncStatus, Credential } from '@/lib/types';
 
 function getSyncStatusBadge(status: SyncStatus | undefined) {
   if (!status) return <Badge variant="secondary">Unknown</Badge>;
@@ -41,15 +50,34 @@ function getSyncStatusBadge(status: SyncStatus | undefined) {
   }
 }
 
-function RepositoryCard({ repo, projectId }: { repo: Repository; projectId: string }) {
+function RepositoryCard({
+  repo,
+  projectId,
+  credentials,
+}: {
+  repo: Repository;
+  projectId: string;
+  credentials: Credential[];
+}) {
   const queryClient = useQueryClient();
   const [showProgress, setShowProgress] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const setCredential = useSetRepositoryCredential();
 
   const handleSyncComplete = useCallback(() => {
     // Invalidate queries to refresh data - use correct queryKeys
     void queryClient.invalidateQueries({ queryKey: queryKeys.repositories.syncStatus(repo.id) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.documents.byRepository(repo.id) });
   }, [queryClient, repo.id]);
+
+  const handleCredentialChange = async (credentialId: string | null) => {
+    await setCredential.mutateAsync({
+      repoId: repo.id,
+      data: { credentialId },
+    });
+  };
+
+  const currentCredential = credentials.find((c) => c.id === repo.credentialId);
 
   // Memoize options to prevent unnecessary re-renders
   const syncOptions = useMemo(
@@ -130,6 +158,20 @@ function RepositoryCard({ repo, projectId }: { repo: Repository; projectId: stri
             </Button>
           </div>
           <div className="flex items-center gap-1">
+            {currentCredential && (
+              <Badge variant="outline" className="gap-1">
+                <Key className="h-3 w-3" />
+                {currentCredential.name}
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSettings(!showSettings)}
+              className="h-8 w-8"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
             {repo.cloneUrl && (
               <Button variant="ghost" size="icon" asChild>
                 <a href={repo.cloneUrl} target="_blank" rel="noopener noreferrer">
@@ -153,6 +195,36 @@ function RepositoryCard({ repo, projectId }: { repo: Repository; projectId: stri
             )}
           </div>
         </div>
+
+        {/* Settings Section */}
+        {showSettings && (
+          <div className="space-y-3 rounded-lg border bg-muted/50 p-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Authentication</label>
+              <select
+                value={repo.credentialId || ''}
+                onChange={(e) => handleCredentialChange(e.target.value || null)}
+                disabled={setCredential.isPending}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">No credential (public repository)</option>
+                {credentials.map((cred) => (
+                  <option key={cred.id} value={cred.id}>
+                    {cred.name} ({cred.type})
+                  </option>
+                ))}
+              </select>
+              {credentials.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No credentials available.{' '}
+                  <Link href="/credentials" className="text-primary hover:underline">
+                    Add one
+                  </Link>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Sync Progress Section */}
         {showProgress && (isActive || syncEvent) && (
@@ -218,6 +290,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
 
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
   const { data: repositories, isLoading: reposLoading } = useRepositories(projectId);
+  const { data: credentials = [] } = useCredentials();
 
   useEffect(() => {
     if (!user) {
@@ -300,7 +373,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
         ) : repositories && repositories.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
             {repositories.map((repo) => (
-              <RepositoryCard key={repo.id} repo={repo} projectId={projectId} />
+              <RepositoryCard
+                key={repo.id}
+                repo={repo}
+                projectId={projectId}
+                credentials={credentials}
+              />
             ))}
           </div>
         ) : (

@@ -16,6 +16,10 @@ import type {
   SearchRequest,
   SyncJob,
   SyncRequest,
+  Credential,
+  CreateCredentialRequest,
+  UpdateCredentialRequest,
+  SetCredentialRequest,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
@@ -147,6 +151,12 @@ export const repositoriesApi = {
   getSyncStatus: (id: string): Promise<SyncJob> => request(`/api/repositories/${id}/sync/status`),
 
   getSyncStreamUrl: (id: string): string => `${API_BASE}/api/repositories/${id}/sync/stream`,
+
+  setCredential: (id: string, data: SetCredentialRequest): Promise<Repository> =>
+    request(`/api/repositories/${id}/credential`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 
 // ===== Documents API =====
@@ -165,6 +175,30 @@ export const documentsApi = {
     const query = new URLSearchParams({ from, to });
     return request(`/api/documents/${id}/diff?${query.toString()}`);
   },
+};
+
+// ===== Credentials API =====
+export const credentialsApi = {
+  list: (): Promise<Credential[]> => request('/api/credentials'),
+
+  get: (id: string): Promise<Credential> => request(`/api/credentials/${id}`),
+
+  create: (data: CreateCredentialRequest): Promise<Credential> =>
+    request('/api/credentials', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: string, data: UpdateCredentialRequest): Promise<Credential> =>
+    request(`/api/credentials/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: string): Promise<void> =>
+    request(`/api/credentials/${id}`, {
+      method: 'DELETE',
+    }),
 };
 
 export { ApiError };

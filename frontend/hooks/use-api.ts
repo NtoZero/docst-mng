@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { authApi, projectsApi, repositoriesApi, documentsApi } from '@/lib/api';
+import { authApi, projectsApi, repositoriesApi, documentsApi, credentialsApi } from '@/lib/api';
 import type {
   CreateProjectRequest,
   UpdateProjectRequest,
@@ -10,6 +10,9 @@ import type {
   SearchRequest,
   SyncRequest,
   LoginRequest,
+  CreateCredentialRequest,
+  UpdateCredentialRequest,
+  SetCredentialRequest,
 } from '@/lib/types';
 import { useAuthStore } from '@/lib/store';
 
@@ -34,6 +37,10 @@ export const queryKeys = {
     versions: (id: string) => ['documents', id, 'versions'] as const,
     version: (id: string, commitSha: string) => ['documents', id, 'versions', commitSha] as const,
     diff: (id: string, from: string, to: string) => ['documents', id, 'diff', from, to] as const,
+  },
+  credentials: {
+    all: ['credentials'] as const,
+    detail: (id: string) => ['credentials', id] as const,
   },
 };
 
@@ -265,5 +272,71 @@ export function useDocumentDiff(documentId: string, from: string, to: string) {
     queryKey: queryKeys.documents.diff(documentId, from, to),
     queryFn: () => documentsApi.getDiff(documentId, from, to),
     enabled: !!documentId && !!from && !!to,
+  });
+}
+
+// ===== Credentials Hooks =====
+export function useCredentials() {
+  return useQuery({
+    queryKey: queryKeys.credentials.all,
+    queryFn: () => credentialsApi.list(),
+  });
+}
+
+export function useCredential(id: string) {
+  return useQuery({
+    queryKey: queryKeys.credentials.detail(id),
+    queryFn: () => credentialsApi.get(id),
+    enabled: !!id,
+  });
+}
+
+export function useCreateCredential() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateCredentialRequest) => credentialsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
+    },
+  });
+}
+
+export function useUpdateCredential() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateCredentialRequest }) =>
+      credentialsApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credentials.detail(id) });
+    },
+  });
+}
+
+export function useDeleteCredential() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => credentialsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
+    },
+  });
+}
+
+export function useSetRepositoryCredential() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ repoId, data }: { repoId: string; data: SetCredentialRequest }) =>
+      repositoriesApi.setCredential(repoId, data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.repositories.detail(result.id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.repositories.byProject(result.projectId),
+      });
+    },
   });
 }

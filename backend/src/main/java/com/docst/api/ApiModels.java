@@ -272,4 +272,68 @@ public final class ApiModels {
      * @param topK 결과 개수 제한
      */
     public record SearchRequest(String q, String mode, Integer topK) {}
+
+    // ===== Credential =====
+
+    /**
+     * 자격증명 응답.
+     *
+     * @param id 자격증명 ID
+     * @param name 자격증명 이름
+     * @param type 자격증명 타입
+     * @param username 사용자명
+     * @param description 설명
+     * @param active 활성화 상태
+     * @param createdAt 생성 시각
+     * @param updatedAt 수정 시각
+     */
+    public record CredentialResponse(
+            UUID id,
+            String name,
+            String type,
+            String username,
+            String description,
+            boolean active,
+            Instant createdAt,
+            Instant updatedAt
+    ) {}
+
+    /**
+     * 자격증명 생성 요청.
+     *
+     * @param name 자격증명 이름
+     * @param type 자격증명 타입 (GITHUB_PAT, BASIC_AUTH)
+     * @param username 사용자명 (선택)
+     * @param secret 비밀 (PAT 또는 비밀번호)
+     * @param description 설명 (선택)
+     */
+    public record CreateCredentialRequest(
+            String name,
+            String type,
+            String username,
+            String secret,
+            String description
+    ) {}
+
+    /**
+     * 자격증명 수정 요청.
+     *
+     * @param username 새 사용자명 (선택)
+     * @param secret 새 비밀 (선택)
+     * @param description 새 설명 (선택)
+     * @param active 활성화 상태 (선택)
+     */
+    public record UpdateCredentialRequest(
+            String username,
+            String secret,
+            String description,
+            Boolean active
+    ) {}
+
+    /**
+     * 레포지토리에 자격증명 연결 요청.
+     *
+     * @param credentialId 자격증명 ID (null이면 연결 해제)
+     */
+    public record SetCredentialRequest(UUID credentialId) {}
 }
