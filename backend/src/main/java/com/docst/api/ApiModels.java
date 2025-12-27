@@ -218,6 +218,7 @@ public final class ApiModels {
      * @param path 파일 경로
      * @param commitSha 커밋 SHA
      * @param chunkId 청크 ID (Phase 2)
+     * @param headingPath 헤딩 경로 (Phase 2-C: "# Title > ## Section")
      * @param score 관련도 점수
      * @param snippet 스니펫
      * @param highlightedSnippet 하이라이트된 스니펫
@@ -228,6 +229,7 @@ public final class ApiModels {
             String path,
             String commitSha,
             UUID chunkId,
+            String headingPath,
             double score,
             String snippet,
             String highlightedSnippet

@@ -6,6 +6,8 @@ import com.docst.domain.SyncJob;
 import com.docst.mcp.McpModels.*;
 import com.docst.service.DocumentService;
 import com.docst.service.SearchService;
+import com.docst.service.SemanticSearchService;
+import com.docst.service.HybridSearchService;
 import com.docst.service.SyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,8 @@ public class McpController {
 
     private final DocumentService documentService;
     private final SearchService searchService;
+    private final SemanticSearchService semanticSearchService;
+    private final HybridSearchService hybridSearchService;
     private final SyncService syncService;
 
     /**
@@ -185,7 +189,7 @@ public class McpController {
 
     /**
      * 프로젝트 내 문서를 검색한다.
-     * Phase 1에서는 키워드 검색만 지원한다.
+     * Phase 2-C: 키워드, 의미, 하이브리드 검색 지원
      *
      * @param input 검색 조건
      * @return 검색 결과 및 메타데이터
@@ -199,16 +203,19 @@ public class McpController {
             int topK = input.topK() != null ? input.topK() : 10;
             String mode = input.mode() != null ? input.mode() : "keyword";
 
-            // TODO: Implement semantic search in Phase 2
-            List<SearchService.SearchResult> results = searchService.searchByKeyword(
-                    input.projectId(), input.query(), topK);
+            // 검색 모드에 따라 다른 서비스 호출
+            List<SearchService.SearchResult> results = switch (mode.toLowerCase()) {
+                case "semantic" -> semanticSearchService.searchSemantic(input.projectId(), input.query(), topK);
+                case "hybrid" -> hybridSearchService.hybridSearch(input.projectId(), input.query(), topK);
+                default -> searchService.searchByKeyword(input.projectId(), input.query(), topK);
+            };
 
             List<SearchHit> hits = results.stream()
                     .map(r -> new SearchHit(
                             r.documentId(),
                             r.path(),
                             null, // title - could be fetched
-                            null, // headingPath - Phase 2
+                            r.headingPath(),
                             r.score(),
                             r.snippet(),
                             null  // content - optional

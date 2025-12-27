@@ -179,7 +179,7 @@ public final class McpModels {
      *
      * @param projectId 프로젝트 ID
      * @param query 검색어
-     * @param mode 검색 모드 (keyword, semantic)
+     * @param mode 검색 모드 (keyword, semantic, hybrid)
      * @param topK 결과 개수 제한
      */
     public record SearchDocumentsInput(UUID projectId, String query, String mode, Integer topK) {}

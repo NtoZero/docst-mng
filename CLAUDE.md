@@ -256,21 +256,75 @@ dm_sync_job (id, repository_id, status, target_branch,
 
 ## Configuration
 
-### Backend (application.yml)
+### Backend Environment Variables
+
+**필수 설정 (.env 파일 생성)**
+```bash
+# .env.example을 복사하여 .env 파일 생성
+cp .env.example .env
+
+# OpenAI API Key 설정 (필수)
+OPENAI_API_KEY=sk-proj-your-api-key-here
+
+# 기타 설정은 기본값 사용 가능
+```
+
+**환경 변수 목록**
+```bash
+# Database
+DB_HOST=localhost
+DB_PORT=5434
+DB_NAME=docst
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+
+# OpenAI (기본 임베딩 제공자)
+OPENAI_API_KEY=sk-proj-...              # 필수
+OPENAI_EMBEDDING_ENABLED=true
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small  # 1536 dims
+EMBEDDING_DIMENSIONS=1536
+
+# Ollama (선택적, 로컬 사용 시)
+OLLAMA_EMBEDDING_ENABLED=false          # 기본값: 비활성화
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text # 768 dims
+
+# Git Storage
+DOCST_GIT_ROOT=/data/git
+
+# Authentication
+DOCST_AUTH_MODE=local  # local, github
+JWT_SECRET=your-secret-key
+
+# Encryption
+DOCST_ENCRYPTION_KEY=your-encryption-key
+```
+
+### application.yml (자동 적용)
 ```yaml
 spring:
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:docst}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+  ai:
+    # OpenAI (기본)
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      embedding:
+        enabled: ${OPENAI_EMBEDDING_ENABLED:true}
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
 
-docst:
-  git:
-    root-path: ${DOCST_GIT_ROOT:/data/git}
-  auth:
-    mode: ${DOCST_AUTH_MODE:local}  # local, github
-  embedding:
-    provider: ${DOCST_EMBEDDING_PROVIDER:ollama}  # ollama, openai, local
+    # Ollama (선택)
+    ollama:
+      embedding:
+        enabled: ${OLLAMA_EMBEDDING_ENABLED:false}
+      init:
+        pull-model-strategy: never  # 자동 다운로드 방지
+
+    # Vector Store
+    vectorstore:
+      pgvector:
+        dimensions: ${EMBEDDING_DIMENSIONS:1536}
+        distance-type: COSINE_DISTANCE
+        index-type: HNSW
 ```
 
 ### Frontend (.env.local)
@@ -282,20 +336,49 @@ NEXT_PUBLIC_API_BASE=http://localhost:8080
 
 ## Running Locally
 
-### With Docker Compose
+### 1. 환경 변수 설정 (필수)
 ```bash
-docker-compose up -d
-# Backend: http://localhost:8080
-# Frontend: http://localhost:3000
+# .env 파일 생성
+cp .env.example .env
+
+# .env 파일 편집
+# OPENAI_API_KEY=sk-proj-... 설정 필수
+nano .env  # 또는 원하는 에디터 사용
 ```
 
-### Development
+**OpenAI API Key 발급**
+1. https://platform.openai.com/api-keys 접속
+2. "Create new secret key" 클릭
+3. 생성된 키를 `.env` 파일의 `OPENAI_API_KEY`에 설정
+
+### 2. With Docker Compose
+```bash
+docker-compose up -d
+
+# Backend: http://localhost:8342
+# Frontend: http://localhost:3000 (추후)
+# PostgreSQL: localhost:5434
+```
+
+### 3. Development
 ```bash
 # Backend
 cd backend && ./gradlew bootRun
 
-# Frontend
+# Frontend (추후)
 cd frontend && npm run dev
+```
+
+### Ollama 사용 (선택)
+로컬에서 Ollama를 사용하려면:
+```bash
+# .env 파일 수정
+OPENAI_EMBEDDING_ENABLED=false
+OLLAMA_EMBEDDING_ENABLED=true
+EMBEDDING_DIMENSIONS=768
+
+# Ollama 모델 다운로드
+docker exec -it docst-mng-ollama-1 ollama pull nomic-embed-text
 ```
 
 ---

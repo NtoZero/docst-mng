@@ -18,14 +18,27 @@ java {
 
 repositories {
   mavenCentral()
+  maven { url = uri("https://repo.spring.io/milestone") }
 }
 
 dependencies {
+  // Spring AI BOM
+  implementation(platform("org.springframework.ai:spring-ai-bom:1.0.0-M5"))
+
   // Spring Boot Starters
   implementation("org.springframework.boot:spring-boot-starter-web")
   implementation("org.springframework.boot:spring-boot-starter-validation")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.springframework.boot:spring-boot-starter-actuator")
+
+  // Spring AI - PgVector VectorStore
+  implementation("org.springframework.ai:spring-ai-pgvector-store-spring-boot-starter")
+
+  // Spring AI - OpenAI Embedding Model (Default)
+  implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter")
+
+  // Spring AI - Ollama Embedding Model (Optional)
+  implementation("org.springframework.ai:spring-ai-ollama-spring-boot-starter")
 
   // Database
   runtimeOnly("org.postgresql:postgresql")
@@ -37,6 +50,7 @@ dependencies {
 
   // Utilities
   implementation("com.vladsch.flexmark:flexmark-all:0.64.8") // Markdown parsing
+  implementation("com.knuddels:jtokkit:1.0.0") // Token counting (tiktoken compatible)
 
   // Lombok
   compileOnly("org.projectlombok:lombok")

@@ -46,6 +46,7 @@ public class SearchService {
                             doc != null ? doc.getPath() : null,
                             version.getCommitSha(),
                             null, // chunkId (Phase 2)
+                            null, // headingPath (Phase 2-C)
                             0.9,  // score placeholder
                             snippet,
                             highlightSnippet(snippet, query)
@@ -96,6 +97,7 @@ public class SearchService {
      * @param path 파일 경로
      * @param commitSha 커밋 SHA
      * @param chunkId 청크 ID (Phase 2에서 사용)
+     * @param headingPath 헤딩 경로 (Phase 2-C: "# Title > ## Section")
      * @param score 관련도 점수
      * @param snippet 스니펫
      * @param highlightedSnippet 하이라이트된 스니펫
@@ -106,6 +108,7 @@ public class SearchService {
             String path,
             String commitSha,
             UUID chunkId,
+            String headingPath,
             double score,
             String snippet,
             String highlightedSnippet

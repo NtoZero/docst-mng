@@ -25,6 +25,40 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  # Spring AI Configuration
+  ai:
+    # OpenAI Embedding Model (Default)
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      embedding:
+        enabled: ${OPENAI_EMBEDDING_ENABLED:true}
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}  # text-embedding-3-small (1536 dims), text-embedding-ada-002 (1536 dims)
+
+    # Ollama Embedding Model (Optional - disabled by default)
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      embedding:
+        enabled: ${OLLAMA_EMBEDDING_ENABLED:false}
+        options:
+          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}  # 768 dimensions
+      chat:
+        enabled: false  # Disable chat model to prevent mistral auto-pull
+      init:
+        pull-model-strategy: never  # never, always, when_missing
+
+    # PgVector VectorStore
+    vectorstore:
+      pgvector:
+        index-type: HNSW  # HNSW or IVFFLAT
+        distance-type: COSINE_DISTANCE  # COSINE_DISTANCE, EUCLIDEAN_DISTANCE, NEGATIVE_INNER_PRODUCT
+        dimensions: ${EMBEDDING_DIMENSIONS:1536}  # OpenAI text-embedding-3-small: 1536, nomic-embed-text: 768
+        remove-existing-vector-store-table: false
+        initialize-schema: true
+        schema-name: public
+        table-name: vector_store
+        schema-validation: true
+
 docst:
   git:
     root-path: ${DOCST_GIT_ROOT:/data/git}
@@ -33,6 +67,16 @@ docst:
     jwt:
       secret: ${JWT_SECRET:docst-dev-secret-key-change-in-production}
       expiration-seconds: 86400
+  # Chunking Configuration
+  chunking:
+    max-tokens: 512
+    overlap-tokens: 50
+    min-tokens: 100
+    heading-path-separator: " > "
+  # Embedding Configuration
+  embedding:
+    batch-size: 32
+    enabled: true
 
 logging:
   level:

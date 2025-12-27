@@ -6,7 +6,9 @@
       "Bash(npm install:*)",
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "mcp__context7__resolve-library-id",
+      "Bash(./gradlew test:*)"
     ]
   }
 }

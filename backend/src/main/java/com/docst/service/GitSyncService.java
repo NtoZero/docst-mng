@@ -38,6 +38,8 @@ public class GitSyncService {
     private final DocumentService documentService;
     private final RepositoryRepository repositoryRepository;
     private final SyncProgressTracker progressTracker;
+    private final com.docst.chunking.ChunkingService chunkingService;
+    private final com.docst.embedding.DocstEmbeddingService embeddingService;
 
     /**
      * 레포지토리를 동기화한다.
@@ -227,7 +229,7 @@ public class GitSyncService {
             String content = contentOpt.get();
             DocumentParser.ParsedDocument parsed = documentParser.parse(content);
 
-            documentService.upsertDocument(
+            com.docst.domain.DocumentVersion newVersion = documentService.upsertDocument(
                     repo.getId(),
                     path,
                     commitSha,
@@ -237,6 +239,24 @@ public class GitSyncService {
                     commitInfo.committedAt(),
                     commitInfo.message()
             );
+
+            // Chunk and embed the newly created document version
+            if (newVersion != null) {
+                try {
+                    // Step 1: Chunking
+                    chunkingService.chunkAndSave(newVersion);
+                    log.debug("Chunked document version: {} for {}", newVersion.getId(), path);
+
+                    // Step 2: Embedding (Spring AI VectorStore)
+                    int embeddedCount = embeddingService.embedDocumentVersion(newVersion);
+                    log.debug("Embedded {} chunks for document version: {} ({})",
+                        embeddedCount, newVersion.getId(), path);
+
+                } catch (Exception error) {
+                    log.error("Failed to chunk/embed document: {}", path, error);
+                    // Continue processing even if chunking/embedding fails
+                }
+            }
 
             log.debug("Processed document: {} (title: {})", path, parsed.title());
 

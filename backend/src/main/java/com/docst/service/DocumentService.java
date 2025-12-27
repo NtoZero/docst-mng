@@ -131,11 +131,11 @@ public class DocumentService {
      * @param authorEmail 작성자 이메일
      * @param committedAt 커밋 시각
      * @param message 커밋 메시지
-     * @return 생성 또는 업데이트된 문서
+     * @return 새로 생성된 문서 버전 (기존과 동일한 내용이면 null)
      * @throws IllegalArgumentException 레포지토리가 존재하지 않을 경우
      */
     @Transactional
-    public Document upsertDocument(UUID repositoryId, String path, String commitSha,
+    public DocumentVersion upsertDocument(UUID repositoryId, String path, String commitSha,
                                     String content, String authorName, String authorEmail,
                                     Instant committedAt, String message) {
         Repository repo = repositoryRepository.findById(repositoryId)
@@ -153,6 +153,8 @@ public class DocumentService {
                 })
                 .orElseGet(() -> new Document(repo, path, title, docType));
 
+        DocumentVersion newVersion = null;
+
         // Check if this exact content already exists
         if (!documentVersionRepository.existsByDocumentIdAndContentHash(document.getId(), contentHash)) {
             DocumentVersion version = new DocumentVersion(document, commitSha);
@@ -164,11 +166,13 @@ public class DocumentService {
             version.setContent(content);
 
             document.addVersion(version);
+            newVersion = version;
         } else {
             document.setLatestCommitSha(commitSha);
         }
 
-        return documentRepository.save(document);
+        documentRepository.save(document);
+        return newVersion;
     }
 
     /**

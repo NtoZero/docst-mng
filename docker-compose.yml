@@ -15,6 +15,26 @@ services:
       timeout: 5s
       retries: 5
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # GPU support (optional, uncomment if you have NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
   backend:
     build: ./backend
     environment:
@@ -25,12 +45,16 @@ services:
       DB_PASSWORD: postgres
       DOCST_GIT_ROOT: /data/git
       DOCST_AUTH_MODE: local
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
     volumes:
       - gitdata:/data/git
     ports:
       - "8342:8342"
     depends_on:
       postgres:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
 
   frontend:
@@ -45,3 +69,4 @@ services:
 volumes:
   pgdata:
   gitdata:
+  ollama:

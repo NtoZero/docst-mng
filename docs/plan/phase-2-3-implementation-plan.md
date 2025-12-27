@@ -1,8 +1,46 @@
-# Phase 2-3: 미구현 기능 통합 구현 계획
+# Phase 2-3: 미구현 기능 통합 구현 계획 (Spring AI 기반)
 
 > **작성일**: 2025-12-27
-> **현재 상태**: Phase 1 MVP 완료, Phase 2-3 기능 0% 구현
+> **수정일**: 2025-12-27 (Spring AI 1.1.0+ 통합 전략 반영)
+> **현재 상태**: Phase 1 MVP 완료, Phase 2-A 청킹 완료, Phase 2-B/C 0% 구현
 > **목표**: 의미 검색, OAuth, Webhook, 문서 그래프 기능 구현
+
+---
+
+## 🔄 전략 변경: Spring AI 통합
+
+**기존 계획**: pgvector 라이브러리 직접 사용, 커스텀 EmbeddingProvider 구현
+**변경 계획**: **Spring AI 1.1.0+** 를 베이스로 pgvector + 임베딩 모델 통합
+
+### Spring AI 도입 이유
+
+1. **표준화된 추상화**
+   - `VectorStore` 인터페이스: pgvector, Pinecone, Chroma 등 통일된 API
+   - `EmbeddingModel` 인터페이스: Ollama, OpenAI, Azure 등 자동 전환
+   - `Document` 모델: 벡터 DB용 표준 도메인 객체
+
+2. **Phase 4 Graph RAG 일관성**
+   - Neo4j VectorStore도 Spring AI로 제공
+   - 하이브리드 RAG 구현 시 일관된 아키텍처 유지
+
+3. **Spring 생태계 통합**
+   - Auto-configuration: `PgVectorStore` 빈 자동 생성
+   - `@ConfigurationProperties`: YAML 기반 설정
+   - Transaction 관리, Connection Pool 자동 처리
+
+4. **유지보수성**
+   - Spring 팀이 pgvector 드라이버 업데이트 대응
+   - 커뮤니티 레퍼런스 풍부
+
+### 아키텍처 변경점
+
+| 계층 | 기존 계획 | Spring AI 계획 |
+|------|----------|---------------|
+| **의존성** | pgvector:0.1.6, webflux | spring-ai-pgvector-store-spring-boot-starter |
+| **임베딩** | 커스텀 `OllamaEmbeddingProvider` | `OllamaEmbeddingModel` 자동 주입 |
+| **VectorStore** | Native SQL + JPA Repository | Spring AI `VectorStore` 인터페이스 |
+| **청킹** | 커스텀 `MarkdownChunker` | `MarkdownChunker` 유지 + `TokenTextSplitter` 옵션 |
+| **검색** | Native Query | `VectorStore.similaritySearch()` |
 
 ---
 
@@ -61,15 +99,25 @@
 
 ---
 
-## Phase 2-A: 청킹 시스템 구현
+## Phase 2-A: 청킹 시스템 구현 ✅ (완료)
 
-### 1. 의존성 추가
+> **상태**: 구현 완료 (2025-12-27)
+> **옵션**: Spring AI `TokenTextSplitter` 대체 가능 (Phase 2-B 이후)
+
+### 1. 의존성 추가 ✅
 
 **build.gradle.kts**:
 ```kotlin
 dependencies {
     // Tokenization (tiktoken 호환)
     implementation("com.knuddels:jtokkit:1.0.0")
+}
+```
+
+**참고**: Phase 2-B 이후 Spring AI `TokenTextSplitter`로 대체 가능
+```kotlin
+dependencies {
+    implementation("org.springframework.ai:spring-ai-transformers-spring-boot-starter")
 }
 ```
 
@@ -151,156 +199,243 @@ CREATE INDEX idx_chunk_docver_id ON dm_doc_chunk(document_version_id);
 
 ---
 
-## Phase 2-B: 임베딩 시스템 구현
+## Phase 2-B: 임베딩 시스템 구현 (Spring AI 기반)
 
-### 1. 의존성 추가
+> **전략 변경**: Spring AI 1.1.0+을 활용하여 pgvector, 임베딩 모델, 벡터 스토어를 통합
+
+### 1. Spring AI 의존성 추가
 
 **build.gradle.kts**:
 ```kotlin
 dependencies {
-    // pgvector
-    implementation("org.postgresql:postgresql:42.7.0")
-    implementation("com.pgvector:pgvector:0.1.6")
+    // Spring AI BOM
+    implementation(platform("org.springframework.ai:spring-ai-bom:1.0.0-M5"))
 
-    // HTTP client for Ollama/OpenAI
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    // Spring AI 핵심 모듈
+    implementation("org.springframework.ai:spring-ai-pgvector-store-spring-boot-starter")
+    implementation("org.springframework.ai:spring-ai-ollama-spring-boot-starter")
+
+    // 선택: OpenAI 지원
+    // implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter")
 }
 ```
 
-### 2. DocEmbedding 엔티티
+### 2. 아키텍처 개요
 
-**위치**: `backend/src/main/java/com/docst/domain/DocEmbedding.java`
+Spring AI는 다음을 제공:
+- **자동 설정**: `PgVectorStore` 빈 자동 생성
+- **EmbeddingModel 추상화**: Ollama/OpenAI 등 통일된 인터페이스
+- **VectorStore 인터페이스**: `add()`, `similaritySearch()` 등 표준 API
+- **Document/Metadata 모델**: 벡터 DB용 표준 도메인 객체
 
-```java
-@Entity
-@Table(name = "dm_doc_embedding")
-public class DocEmbedding {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+**우리의 통합 전략**:
+1. **DocChunk** 엔티티는 유지 (문서 구조 추적용)
+2. Spring AI의 `VectorStore`를 활용하여 임베딩 저장/검색
+3. Spring AI의 `Document`와 우리의 `DocChunk` 매핑
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "doc_chunk_id", nullable = false)
-    private DocChunk docChunk;
+### 3. Flyway 마이그레이션
 
-    @Column(nullable = false)
-    private String model;
+**파일**: `V6__add_spring_ai_vector_store.sql`
 
-    @Column(nullable = false, columnDefinition = "vector(1536)")
-    private float[] embedding;
+```sql
+-- pgvector 확장 활성화
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS hstore;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
-}
+-- Spring AI VectorStore 테이블 (기본 스키마)
+CREATE TABLE IF NOT EXISTS vector_store (
+    id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+    content text,
+    metadata json,
+    embedding vector(768)  -- nomic-embed-text 기본 차원
+);
+
+-- HNSW 인덱스 (cosine distance)
+CREATE INDEX ON vector_store USING HNSW (embedding vector_cosine_ops);
+
+-- DocChunk와 VectorStore 연결용 확장
+-- metadata JSON에 doc_chunk_id를 저장하여 연결
+COMMENT ON TABLE vector_store IS 'Spring AI VectorStore table. metadata.doc_chunk_id links to dm_doc_chunk.id';
 ```
 
-### 3. 임베딩 서비스 구조
+### 4. application.yml 설정
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/docst
+    username: postgres
+    password: postgres
+
+  ai:
+    # Ollama 임베딩 설정
+    ollama:
+      base-url: http://localhost:11434
+      embedding:
+        options:
+          model: nomic-embed-text  # 768 dimensions
+      init:
+        pull-model-strategy: when_missing
+        embedding:
+          additional-models:
+            - mxbai-embed-large  # 1024 dimensions
+
+    # PgVector 벡터 스토어 설정
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 768  # nomic-embed-text 기본값
+        remove-existing-vector-store-table: false
+        schema-name: public
+        table-name: vector_store
+
+# 커스텀 설정
+docst:
+  embedding:
+    batch-size: 32
+    enabled: true
+```
+
+### 5. 서비스 구조 (Spring AI 기반)
 
 **위치**: `backend/src/main/java/com/docst/embedding/`
 
 ```
 embedding/
-├── EmbeddingProvider.java          # 인터페이스
-├── EmbeddingConfig.java            # 설정 클래스
-├── OllamaEmbeddingProvider.java    # Ollama 구현
-├── OpenAiEmbeddingProvider.java    # OpenAI 구현
-├── EmbeddingService.java           # 오케스트레이션
-└── EmbeddingJobService.java        # 비동기 배치 처리
+├── EmbeddingConfig.java           # VectorStore 커스터마이징 (선택)
+├── DocstEmbeddingService.java     # DocChunk → Spring AI Document 변환
+└── EmbeddingJobService.java       # 비동기 배치 임베딩
 ```
 
-### 4. 설정
+### 6. EmbeddingService 구현 예시
 
-**application.yml 추가**:
-```yaml
-docst:
-  embedding:
-    provider: ollama  # ollama, openai
-    model: nomic-embed-text
-    dimension: 768
-    batch-size: 32
+```java
+@Service
+@RequiredArgsConstructor
+public class DocstEmbeddingService {
 
-  ollama:
-    base-url: http://localhost:11434
+    private final VectorStore vectorStore;  // Spring AI 자동 주입
+    private final DocChunkRepository docChunkRepository;
 
-  openai:
-    api-key: ${OPENAI_API_KEY:}
-    model: text-embedding-3-small
+    /**
+     * DocChunk를 임베딩하여 VectorStore에 저장
+     */
+    @Transactional
+    public void embedChunks(List<DocChunk> chunks) {
+        // DocChunk를 Spring AI Document로 변환
+        List<org.springframework.ai.document.Document> documents = chunks.stream()
+            .map(chunk -> new org.springframework.ai.document.Document(
+                chunk.getId().toString(),  // ID
+                chunk.getContent(),         // 임베딩할 텍스트
+                Map.of(
+                    "doc_chunk_id", chunk.getId().toString(),
+                    "heading_path", chunk.getHeadingPath(),
+                    "document_version_id", chunk.getDocumentVersion().getId().toString(),
+                    "token_count", chunk.getTokenCount()
+                )
+            ))
+            .toList();
+
+        // Spring AI VectorStore에 자동 임베딩 및 저장
+        vectorStore.add(documents);
+    }
+
+    /**
+     * 의미 검색 수행
+     */
+    public List<DocChunk> semanticSearch(String query, int topK) {
+        // Spring AI의 VectorStore 검색
+        List<org.springframework.ai.document.Document> results =
+            vectorStore.similaritySearch(
+                SearchRequest.builder()
+                    .query(query)
+                    .topK(topK)
+                    .similarityThreshold(0.7)
+                    .build()
+            );
+
+        // Spring AI Document → DocChunk 변환
+        List<UUID> chunkIds = results.stream()
+            .map(doc -> UUID.fromString(doc.getMetadata().get("doc_chunk_id").toString()))
+            .toList();
+
+        return docChunkRepository.findAllById(chunkIds);
+    }
+}
 ```
 
-### 5. Flyway 마이그레이션
+### 7. 작업 목록
 
-**파일**: `V6__add_doc_embedding.sql`
-
-```sql
--- pgvector 확장 활성화
-CREATE EXTENSION IF NOT EXISTS vector;
-
-CREATE TABLE dm_doc_embedding (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    doc_chunk_id uuid NOT NULL REFERENCES dm_doc_chunk(id) ON DELETE CASCADE,
-    model text NOT NULL,
-    embedding vector(1536) NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (doc_chunk_id, model)
-);
-
--- IVFFlat 인덱스
-CREATE INDEX idx_embedding_ivfflat
-    ON dm_doc_embedding
-    USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
-```
-
-### 6. 작업 목록
-
-- [ ] DocEmbedding 엔티티 생성
-- [ ] DocEmbeddingRepository 생성 (벡터 검색 쿼리 포함)
-- [ ] EmbeddingProvider 인터페이스 정의
-- [ ] OllamaEmbeddingProvider 구현
-- [ ] OpenAiEmbeddingProvider 구현 (선택)
-- [ ] EmbeddingService 구현
+- [ ] Spring AI BOM 및 스타터 의존성 추가
+- [ ] V6__add_spring_ai_vector_store.sql 마이그레이션 작성
+- [ ] application.yml에 Spring AI 설정 추가
+- [ ] DocstEmbeddingService 구현
 - [ ] EmbeddingJobService 구현 (비동기 배치)
-- [ ] V6__add_doc_embedding.sql 마이그레이션
-- [ ] application.yml 설정 추가
-- [ ] SyncService에 임베딩 파이프라인 통합
-- [ ] docker-compose.yml에 Ollama 서비스 추가 (선택)
+- [ ] GitSyncService에 임베딩 파이프라인 통합
+- [ ] docker-compose.yml에 Ollama 서비스 추가
+- [ ] Ollama 모델 자동 pull 설정 테스트
+
+### 8. Spring AI vs 직접 구현 비교
+
+| 항목 | Spring AI 방식 | 직접 구현 방식 |
+|------|---------------|--------------|
+| **VectorStore** | 자동 설정, 표준 API | 수동 Repository + Native Query |
+| **임베딩** | EmbeddingModel 자동 주입 | HTTP 클라이언트 직접 구현 |
+| **Provider 전환** | 설정 변경만으로 Ollama ↔ OpenAI | 코드 수정 필요 |
+| **Document 모델** | Spring AI 표준 | 커스텀 DTO |
+| **유지보수** | Spring 생태계 통합 | 독립적 관리 |
+| **유연성** | 중간 (추상화 제약) | 높음 (완전 제어) |
+
+**선택 이유**: Phase 4 Graph RAG에서 Neo4j VectorStore도 Spring AI로 통합할 예정이므로, 일관된 아키텍처 유지
 
 ---
 
-## Phase 2-C: 의미/하이브리드 검색 구현
+## Phase 2-C: 의미/하이브리드 검색 구현 (Spring AI 기반)
 
-### 1. 벡터 검색 쿼리
+### 1. 의미 검색 (Spring AI VectorStore)
 
-**DocEmbeddingRepository.java**:
+Spring AI의 `VectorStore.similaritySearch()`를 활용하여 Native Query 없이 벡터 검색 수행:
+
 ```java
-@Query(value = """
-    SELECT
-        d.id AS document_id,
-        d.path,
-        c.id AS chunk_id,
-        c.heading_path,
-        1 - (e.embedding <=> CAST(:queryEmbedding AS vector)) AS score,
-        LEFT(c.content, 300) AS snippet
-    FROM dm_doc_embedding e
-    JOIN dm_doc_chunk c ON c.id = e.doc_chunk_id
-    JOIN dm_document_version dv ON dv.id = c.document_version_id
-    JOIN dm_document d ON d.id = dv.document_id
-    JOIN dm_repository r ON r.id = d.repository_id
-    WHERE r.project_id = :projectId
-      AND e.model = :model
-      AND dv.commit_sha = d.latest_commit_sha
-    ORDER BY e.embedding <=> CAST(:queryEmbedding AS vector)
-    LIMIT :topK
-    """, nativeQuery = true)
-List<SemanticSearchResult> searchSemantic(
-    UUID projectId,
-    String model,
-    float[] queryEmbedding,
-    int topK
-);
+@Service
+@RequiredArgsConstructor
+public class SemanticSearchService {
+
+    private final VectorStore vectorStore;
+
+    public List<SearchResult> searchSemantic(UUID projectId, String query, int topK) {
+        // Spring AI SearchRequest 구성
+        SearchRequest request = SearchRequest.builder()
+            .query(query)
+            .topK(topK)
+            .similarityThreshold(0.7)
+            // Project 필터링
+            .filterExpression(Filter.builder()
+                .key("project_id")
+                .value(projectId.toString())
+                .build())
+            .build();
+
+        // 벡터 검색 실행
+        List<org.springframework.ai.document.Document> results =
+            vectorStore.similaritySearch(request);
+
+        // SearchResult DTO로 변환
+        return results.stream()
+            .map(doc -> new SearchResult(
+                UUID.fromString(doc.getMetadata().get("doc_chunk_id").toString()),
+                doc.getContent(),
+                doc.getMetadata().get("heading_path").toString(),
+                (Double) doc.getMetadata().get("distance")  // 유사도 점수
+            ))
+            .toList();
+    }
+}
 ```
 
-### 2. HybridSearchService
+### 2. HybridSearchService (RRF 융합)
 
 **위치**: `backend/src/main/java/com/docst/service/HybridSearchService.java`
 
@@ -308,6 +443,56 @@ RRF (Reciprocal Rank Fusion) 기반 점수 병합:
 - 키워드 결과 + 의미 결과 병합
 - `score = sum(1 / (k + rank))` 공식 적용
 - k = 60 상수 사용
+
+```java
+@Service
+@RequiredArgsConstructor
+public class HybridSearchService {
+
+    private final KeywordSearchService keywordSearchService;
+    private final SemanticSearchService semanticSearchService;
+
+    private static final int RRF_K = 60;
+
+    public List<SearchResult> hybridSearch(UUID projectId, String query, int topK) {
+        // 키워드 검색
+        List<SearchResult> keywordResults =
+            keywordSearchService.search(projectId, query, topK * 2);
+
+        // 의미 검색
+        List<SearchResult> semanticResults =
+            semanticSearchService.searchSemantic(projectId, query, topK * 2);
+
+        // RRF 점수 계산 및 병합
+        Map<UUID, Double> rrfScores = new HashMap<>();
+
+        // 키워드 결과 점수 추가
+        for (int i = 0; i < keywordResults.size(); i++) {
+            UUID chunkId = keywordResults.get(i).chunkId();
+            double score = 1.0 / (RRF_K + i + 1);
+            rrfScores.merge(chunkId, score, Double::sum);
+        }
+
+        // 의미 결과 점수 추가
+        for (int i = 0; i < semanticResults.size(); i++) {
+            UUID chunkId = semanticResults.get(i).chunkId();
+            double score = 1.0 / (RRF_K + i + 1);
+            rrfScores.merge(chunkId, score, Double::sum);
+        }
+
+        // 점수 기준 정렬 및 상위 topK 반환
+        return rrfScores.entrySet().stream()
+            .sorted(Map.Entry.<UUID, Double>comparingByValue().reversed())
+            .limit(topK)
+            .map(entry -> findResultByChunkId(
+                entry.getKey(),
+                keywordResults,
+                semanticResults
+            ))
+            .toList();
+    }
+}
+```
 
 ### 3. 프론트엔드 검색 모드 UI
 
@@ -317,29 +502,90 @@ RRF (Reciprocal Rank Fusion) 기반 점수 병합:
 // 검색 모드 선택 추가
 <Select value={mode} onValueChange={setMode}>
   <SelectItem value="keyword">Keyword</SelectItem>
-  <SelectItem value="semantic">Semantic</SelectItem>
+  <SelectItem value="semantic">Semantic (AI)</SelectItem>
   <SelectItem value="hybrid">Hybrid (Recommended)</SelectItem>
 </Select>
+
+// 검색 결과에 headingPath 표시
+{results.map(result => (
+  <div key={result.chunkId}>
+    <div className="text-sm text-muted-foreground">
+      {result.headingPath}
+    </div>
+    <div>{result.content}</div>
+    <div className="text-xs">Score: {result.score.toFixed(3)}</div>
+  </div>
+))}
 ```
 
 ### 4. MCP search_documents 확장
 
 **수정 파일**: `McpController.java`
 
-- `mode` 파라미터 실제 처리
-- semantic/hybrid 모드 시 HybridSearchService 호출
-- 응답에 `headingPath`, `chunkId` 포함
+```java
+@PostMapping("/search_documents")
+public McpResponse searchDocuments(@RequestBody SearchDocumentsRequest request) {
+    String mode = request.mode() != null ? request.mode() : "keyword";
 
-### 5. 작업 목록
+    List<SearchResult> results = switch (mode) {
+        case "semantic" -> semanticSearchService.searchSemantic(
+            request.projectId(),
+            request.query(),
+            request.topK()
+        );
+        case "hybrid" -> hybridSearchService.hybridSearch(
+            request.projectId(),
+            request.query(),
+            request.topK()
+        );
+        default -> keywordSearchService.search(
+            request.projectId(),
+            request.query(),
+            request.topK()
+        );
+    };
 
-- [ ] SemanticSearchResult 프로젝션 인터페이스 생성
-- [ ] DocEmbeddingRepository에 벡터 검색 쿼리 추가
-- [ ] HybridSearchService 구현
-- [ ] SearchService에서 HybridSearchService 통합
-- [ ] SearchController에서 mode 파라미터 처리
-- [ ] McpController에서 mode 파라미터 실제 처리
+    return McpResponse.success(results);
+}
+```
+
+### 5. Spring AI Filter Expression 활용
+
+프로젝트/레포지토리 필터링을 Spring AI의 Filter 표현식으로 처리:
+
+```java
+// Project 필터
+Filter projectFilter = Filter.builder()
+    .key("project_id")
+    .value(projectId.toString())
+    .build();
+
+// Repository 필터 (선택)
+Filter repoFilter = Filter.builder()
+    .key("repository_id")
+    .value(repositoryId.toString())
+    .build();
+
+// AND 조건 결합
+Filter combinedFilter = Filter.and(projectFilter, repoFilter);
+
+SearchRequest request = SearchRequest.builder()
+    .query(query)
+    .topK(topK)
+    .filterExpression(combinedFilter)
+    .build();
+```
+
+### 6. 작업 목록
+
+- [ ] SearchResult DTO 정의
+- [ ] SemanticSearchService 구현 (Spring AI VectorStore)
+- [ ] HybridSearchService 구현 (RRF)
+- [ ] SearchController mode 파라미터 처리
+- [ ] McpController search_documents 확장
 - [ ] 프론트엔드 검색 모드 셀렉트 추가
-- [ ] 검색 결과에 headingPath 표시
+- [ ] 검색 결과에 headingPath/score 표시
+- [ ] Filter Expression 프로젝트 필터링 테스트
 - [ ] E2E 테스트
 
 ---
