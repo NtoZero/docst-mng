@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -39,4 +40,12 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
      * @return 프로젝트 목록
      */
     List<Project> findAllByOrderByCreatedAt();
+
+    /**
+     * 이름으로 프로젝트를 조회한다.
+     *
+     * @param name 프로젝트 이름
+     * @return 프로젝트 (존재하지 않으면 empty)
+     */
+    Optional<Project> findByName(String name);
 }

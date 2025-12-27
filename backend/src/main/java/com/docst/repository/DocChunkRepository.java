@@ -2,7 +2,9 @@ package com.docst.repository;
 
 import com.docst.domain.DocChunk;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +37,8 @@ public interface DocChunkRepository extends JpaRepository<DocChunk, UUID> {
      *
      * @param documentVersionId 문서 버전 ID
      */
+    @Modifying
+    @Transactional
     void deleteByDocumentVersionId(UUID documentVersionId);
 
     /**
