@@ -254,7 +254,12 @@ public class GitService {
      */
     private CredentialsProvider getCredentialsProvider(Repository repo) {
         Credential credential = repo.getCredential();
+        log.info("Getting credentials for repository {}: credential={}",
+                repo.getFullName(),
+                credential != null ? credential.getName() + " (active=" + credential.isActive() + ")" : "null");
+
         if (credential == null || !credential.isActive()) {
+            log.warn("No active credential found for repository {}", repo.getFullName());
             return null;
         }
 
@@ -267,7 +272,13 @@ public class GitService {
                 username = "x-access-token"; // GitHub 권장 값
             }
 
-            log.debug("Using credential '{}' for repository {}", credential.getName(), repo.getFullName());
+            // 디버깅용 로그 (토큰 prefix와 길이만)
+            String tokenPreview = secret != null && secret.length() > 10
+                    ? secret.substring(0, 10) + "..." + " (length=" + secret.length() + ")"
+                    : "(invalid or empty)";
+            log.info("Using credential '{}' for repository {} - username={}, token={}",
+                    credential.getName(), repo.getFullName(), username, tokenPreview);
+
             return new UsernamePasswordCredentialsProvider(username, secret);
         } catch (Exception e) {
             log.error("Failed to get credentials for repository {}: {}", repo.getFullName(), e.getMessage());

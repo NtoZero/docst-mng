@@ -48,7 +48,7 @@ public class GitSyncService {
      */
     @Transactional
     public String syncRepository(UUID jobId, UUID repositoryId, String branch) {
-        Repository repo = repositoryRepository.findById(repositoryId)
+        Repository repo = repositoryRepository.findWithCredentialById(repositoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
 
         try (Git git = gitService.cloneOrOpen(repo)) {

@@ -79,6 +79,7 @@ public final class ApiModels {
      * @param localMirrorPath 로컬 미러 경로
      * @param active 활성화 상태
      * @param createdAt 생성 시각
+     * @param credentialId 연결된 자격증명 ID (nullable)
      */
     public record RepositoryResponse(
             UUID id,
@@ -91,7 +92,8 @@ public final class ApiModels {
             String defaultBranch,
             String localMirrorPath,
             boolean active,
-            Instant createdAt
+            Instant createdAt,
+            UUID credentialId
     ) {}
 
     /**

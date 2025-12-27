@@ -11,6 +11,7 @@ import com.docst.repository.CredentialRepository;
 import com.docst.service.RepositoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -118,6 +119,7 @@ public class RepositoriesController {
      * @param request 자격증명 연결 요청
      * @return 업데이트된 레포지토리
      */
+    @Transactional
     @PutMapping("/repositories/{repoId}/credential")
     public ResponseEntity<RepositoryResponse> setCredential(
             @PathVariable UUID repoId,
@@ -153,7 +155,8 @@ public class RepositoriesController {
                 repo.getDefaultBranch(),
                 repo.getLocalMirrorPath(),
                 repo.isActive(),
-                repo.getCreatedAt()
+                repo.getCreatedAt(),
+                repo.getCredential() != null ? repo.getCredential().getId() : null
         );
     }
 }

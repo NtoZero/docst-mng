@@ -2,6 +2,7 @@ package com.docst.repository;
 
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -64,4 +65,13 @@ public interface RepositoryRepository extends JpaRepository<Repository, UUID> {
      */
     boolean existsByProjectIdAndProviderAndOwnerAndName(
             UUID projectId, RepoProvider provider, String owner, String name);
+
+    /**
+     * ID로 레포지토리를 조회하며 Credential도 함께 로드한다.
+     *
+     * @param id 레포지토리 ID
+     * @return 레포지토리 (존재하지 않으면 empty)
+     */
+    @EntityGraph(attributePaths = {"credential"})
+    Optional<Repository> findWithCredentialById(UUID id);
 }
