@@ -24,21 +24,16 @@ public class GitFileScanner {
 
     /**
      * 문서 파일로 인식할 패턴 목록.
-     * README, docs 디렉토리, ADR, OpenAPI 등을 포함한다.
+     * Markdown, AsciiDoc, OpenAPI 등 문서 형식을 포함한다.
      */
     private static final List<Pattern> DOC_PATTERNS = List.of(
-            Pattern.compile("^README\\.md$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^readme\\.md$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^docs/.*\\.md$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^docs/.*\\.adoc$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^documentation/.*\\.md$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^architecture/.*\\.md$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^adr/.*\\.md$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^adrs/.*\\.md$", Pattern.CASE_INSENSITIVE),
+            // 모든 Markdown 파일 (.md)
+            Pattern.compile(".*\\.md$", Pattern.CASE_INSENSITIVE),
+            // 모든 AsciiDoc 파일 (.adoc)
+            Pattern.compile(".*\\.adoc$", Pattern.CASE_INSENSITIVE),
+            // OpenAPI/Swagger 스펙 파일
             Pattern.compile(".*openapi\\.(yaml|yml|json)$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile(".*swagger\\.(yaml|yml|json)$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^CHANGELOG\\.md$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^CONTRIBUTING\\.md$", Pattern.CASE_INSENSITIVE)
+            Pattern.compile(".*swagger\\.(yaml|yml|json)$", Pattern.CASE_INSENSITIVE)
     );
 
     /**

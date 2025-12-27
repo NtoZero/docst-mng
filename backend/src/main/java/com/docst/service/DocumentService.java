@@ -43,7 +43,28 @@ public class DocumentService {
      */
     public List<Document> findByRepositoryId(UUID repositoryId, String pathPrefix, String docType) {
         DocType type = docType != null ? DocType.valueOf(docType.toUpperCase()) : null;
-        return documentRepository.findByRepositoryIdWithFilters(repositoryId, pathPrefix, type);
+        // pathPrefix가 있으면 LIKE 패턴으로 변환 (LIKE 특수문자 이스케이프 처리)
+        String pathPattern = null;
+        if (pathPrefix != null) {
+            String escaped = escapeLikePattern(pathPrefix);
+            pathPattern = escaped + "%";
+        }
+        return documentRepository.findByRepositoryIdWithFilters(repositoryId, pathPattern, type);
+    }
+
+    /**
+     * LIKE 패턴에서 사용되는 특수문자를 이스케이프 처리한다.
+     * Wildcard Injection 방지를 위해 %, _, ! 문자를 이스케이프한다.
+     * ESCAPE 문자로 '!'를 사용한다.
+     *
+     * @param input 원본 문자열
+     * @return 이스케이프된 문자열
+     */
+    private String escapeLikePattern(String input) {
+        return input
+                .replace("!", "!!")     // 이스케이프 문자 먼저 처리
+                .replace("%", "!%")
+                .replace("_", "!_");
     }
 
     /**

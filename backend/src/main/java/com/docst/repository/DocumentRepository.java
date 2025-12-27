@@ -28,19 +28,20 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     /**
      * 레포지토리의 문서를 필터링하여 조회한다.
+     * pathPrefix는 '%'가 포함된 LIKE 패턴으로 전달되어야 함 (예: "docs/%")
      *
      * @param repositoryId 레포지토리 ID
-     * @param pathPrefix 경로 접두사 (null이면 전체)
+     * @param pathPattern 경로 패턴 (null이면 전체, '%' 포함된 LIKE 패턴)
      * @param docType 문서 타입 (null이면 전체)
      * @return 문서 목록 (경로순)
      */
     @Query("SELECT d FROM Document d WHERE d.repository.id = :repoId AND d.deleted = false " +
-           "AND (:pathPrefix IS NULL OR d.path LIKE CONCAT(:pathPrefix, '%')) " +
+           "AND (:pathPattern IS NULL OR d.path LIKE :pathPattern ESCAPE '!') " +
            "AND (:docType IS NULL OR d.docType = :docType) " +
            "ORDER BY d.path")
     List<Document> findByRepositoryIdWithFilters(
             @Param("repoId") UUID repositoryId,
-            @Param("pathPrefix") String pathPrefix,
+            @Param("pathPattern") String pathPattern,
             @Param("docType") DocType docType);
 
     /**
