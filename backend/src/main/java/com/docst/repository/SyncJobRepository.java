@@ -3,6 +3,8 @@ package com.docst.repository;
 import com.docst.domain.SyncJob;
 import com.docst.domain.SyncJob.SyncStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -58,4 +60,14 @@ public interface SyncJobRepository extends JpaRepository<SyncJob, UUID> {
      * @return 존재 여부
      */
     boolean existsByRepositoryIdAndStatus(UUID repositoryId, SyncStatus status);
+
+    /**
+     * ID로 동기화 작업을 Repository와 함께 조회한다.
+     * 비동기 컨텍스트에서 LazyInitializationException을 방지하기 위해 사용.
+     *
+     * @param jobId 작업 ID
+     * @return 동기화 작업 (존재하지 않으면 empty)
+     */
+    @Query("SELECT j FROM SyncJob j JOIN FETCH j.repository WHERE j.id = :jobId")
+    Optional<SyncJob> findByIdWithRepository(@Param("jobId") UUID jobId);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState, useCallback } from 'react';
+import { use, useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useProject, useRepositories, useSyncStatus } from '@/hooks/use-api';
+import { useProject, useRepositories, useSyncStatus, queryKeys } from '@/hooks/use-api';
 import { useSync } from '@/hooks/use-sync';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import type { Repository, SyncStatus } from '@/lib/types';
@@ -43,18 +43,30 @@ function getSyncStatusBadge(status: SyncStatus | undefined) {
 
 function RepositoryCard({ repo, projectId }: { repo: Repository; projectId: string }) {
   const queryClient = useQueryClient();
-  const { data: syncStatus, isLoading: syncLoading } = useSyncStatus(repo.id);
   const [showProgress, setShowProgress] = useState(false);
 
   const handleSyncComplete = useCallback(() => {
-    // Invalidate queries to refresh data
-    queryClient.invalidateQueries({ queryKey: ['syncStatus', repo.id] });
-    queryClient.invalidateQueries({ queryKey: ['documents', repo.id] });
+    // Invalidate queries to refresh data - use correct queryKeys
+    void queryClient.invalidateQueries({ queryKey: queryKeys.repositories.syncStatus(repo.id) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.documents.byRepository(repo.id) });
   }, [queryClient, repo.id]);
 
-  const { startSync, cancelSync, isConnecting, isSyncing, syncEvent, error } = useSync(repo.id, {
-    onComplete: handleSyncComplete,
-  });
+  // Memoize options to prevent unnecessary re-renders
+  const syncOptions = useMemo(
+    () => ({
+      onComplete: handleSyncComplete,
+    }),
+    [handleSyncComplete]
+  );
+
+  const { startSync, cancelSync, isConnecting, isSyncing, syncEvent, error } = useSync(
+    repo.id,
+    syncOptions
+  );
+
+  // SSE 활성화 시 polling 비활성화
+  const isSSEActive = isConnecting || isSyncing;
+  const { data: syncStatus, isLoading: syncLoading } = useSyncStatus(repo.id, !isSSEActive);
 
   const handleSync = () => {
     setShowProgress(true);
@@ -66,7 +78,7 @@ function RepositoryCard({ repo, projectId }: { repo: Repository; projectId: stri
     setShowProgress(false);
   };
 
-  const isActive = isConnecting || isSyncing;
+  const isActive = isSSEActive;
   const syncProgress = syncEvent?.progress ?? 0;
   const processedDocs = syncEvent?.processedDocs ?? 0;
   const totalDocs = syncEvent?.totalDocs ?? 0;

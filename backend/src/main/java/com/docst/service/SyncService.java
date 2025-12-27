@@ -85,7 +85,8 @@ public class SyncService {
      * @param jobId 동기화 작업 ID
      */
     private void executeSync(UUID jobId) {
-        SyncJob job = syncJobRepository.findById(jobId).orElse(null);
+        // 비동기 스레드에서는 세션이 없으므로 Repository를 함께 fetch join으로 조회
+        SyncJob job = syncJobRepository.findByIdWithRepository(jobId).orElse(null);
         if (job == null) {
             log.error("Sync job not found: {}", jobId);
             return;

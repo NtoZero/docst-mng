@@ -26,10 +26,17 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const optionsRef = useRef(options);
+  const syncEventRef = useRef<SyncEvent | null>(null); // ref로 최신 값 추적
+  const isCompletedRef = useRef(false); // 완료 상태 추적
 
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
+
+  // syncEvent가 변경될 때 ref도 업데이트
+  useEffect(() => {
+    syncEventRef.current = syncEvent;
+  }, [syncEvent]);
 
   const cancelSync = useCallback(() => {
     if (eventSourceRef.current) {
@@ -48,6 +55,7 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
       setError(null);
       setIsConnecting(true);
       setSyncEvent(null);
+      isCompletedRef.current = false;
 
       try {
         // Start the sync job
@@ -56,6 +64,22 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
         if (job.status === 'FAILED') {
           setError(job.errorMessage || 'Sync failed');
           setIsConnecting(false);
+          return;
+        }
+
+        // 이미 완료된 상태면 SSE 연결 불필요
+        if (job.status === 'SUCCEEDED') {
+          setIsConnecting(false);
+          setSyncEvent({
+            jobId: job.id,
+            status: 'SUCCEEDED',
+            message: 'Sync completed',
+            progress: 100,
+            totalDocs: 0,
+            processedDocs: 0,
+          });
+          isCompletedRef.current = true;
+          optionsRef.current.onComplete?.(job);
           return;
         }
 
@@ -80,9 +104,11 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
           try {
             const data: SyncEvent = JSON.parse(event.data);
             setSyncEvent(data);
+            syncEventRef.current = data;
 
             const status = data.status as SyncStatus;
             if (status === 'SUCCEEDED' || status === 'FAILED') {
+              isCompletedRef.current = true;
               eventSource.close();
               eventSourceRef.current = null;
               setIsSyncing(false);
@@ -108,8 +134,13 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
           setIsSyncing(false);
           setIsConnecting(false);
 
-          // Check if we've received a success event already
-          if (!syncEvent || (syncEvent.status !== 'SUCCEEDED' && syncEvent.status !== 'FAILED')) {
+          // ref를 사용하여 최신 상태 확인 (stale closure 방지)
+          const currentEvent = syncEventRef.current;
+          if (
+            !isCompletedRef.current &&
+            (!currentEvent ||
+              (currentEvent.status !== 'SUCCEEDED' && currentEvent.status !== 'FAILED'))
+          ) {
             setError('Connection to sync stream lost');
           }
         };
@@ -118,7 +149,7 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
         setError(e instanceof Error ? e.message : 'Failed to start sync');
       }
     },
-    [repositoryId, cancelSync, syncEvent]
+    [repositoryId, cancelSync]
   );
 
   // Cleanup on unmount
