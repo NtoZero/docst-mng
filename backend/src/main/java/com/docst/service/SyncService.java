@@ -1,5 +1,6 @@
 package com.docst.service;
 
+import com.docst.api.ApiModels.SyncMode;
 import com.docst.domain.Repository;
 import com.docst.domain.SyncJob;
 import com.docst.domain.SyncJob.SyncStatus;
@@ -63,6 +64,23 @@ public class SyncService {
      */
     @Transactional
     public SyncJob startSync(UUID repositoryId, String branch) {
+        return startSync(repositoryId, branch, null, null);
+    }
+
+    /**
+     * 레포지토리 동기화를 시작한다 (모드 지정).
+     * 비동기로 동기화를 실행하며, 동시에 하나의 작업만 실행될 수 있다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch 대상 브랜치 (null이면 기본 브랜치 사용)
+     * @param mode 동기화 모드 (null이면 FULL_SCAN)
+     * @param targetCommitSha 특정 커밋 SHA (SPECIFIC_COMMIT 모드에서 사용)
+     * @return 생성된 동기화 작업
+     * @throws IllegalArgumentException 레포지토리가 존재하지 않을 경우
+     * @throws IllegalStateException 이미 동기화가 진행 중일 경우
+     */
+    @Transactional
+    public SyncJob startSync(UUID repositoryId, String branch, SyncMode mode, String targetCommitSha) {
         Repository repo = repositoryRepository.findById(repositoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
 
@@ -72,7 +90,9 @@ public class SyncService {
         }
 
         String targetBranch = branch != null ? branch : repo.getDefaultBranch();
-        SyncJob job = new SyncJob(repo, targetBranch);
+        SyncMode syncMode = mode != null ? mode : SyncMode.FULL_SCAN;
+
+        SyncJob job = new SyncJob(repo, targetBranch, syncMode, targetCommitSha);
         job = syncJobRepository.save(job);
 
         // 트랜잭션 커밋 후에 비동기 작업 시작 (job이 DB에 확실히 저장된 후 실행)
@@ -110,10 +130,23 @@ public class SyncService {
             // 진행 상황 추적 시작
             progressTracker.start(jobId, repo.getId());
 
-            log.info("Starting sync for repository: {} branch: {}", repo.getFullName(), job.getTargetBranch());
+            log.info("Starting sync for repository: {} branch: {} mode: {}",
+                    repo.getFullName(), job.getTargetBranch(), job.getSyncMode());
+
+            // 마지막 동기화 커밋 조회 (INCREMENTAL 모드에서 사용)
+            String lastSyncedCommit = findLatestByRepositoryId(repo.getId())
+                    .map(SyncJob::getLastSyncedCommit)
+                    .orElse(null);
 
             // Execute git sync (jobId를 전달하여 진행 상황 추적)
-            String lastCommit = gitSyncService.syncRepository(jobId, repo.getId(), job.getTargetBranch());
+            String lastCommit = gitSyncService.syncRepository(
+                    jobId,
+                    repo.getId(),
+                    job.getTargetBranch(),
+                    job.getSyncMode(),
+                    job.getTargetCommitSha(),
+                    lastSyncedCommit
+            );
 
             job.complete(lastCommit);
             syncJobRepository.save(job);

@@ -73,6 +73,12 @@
 | **Phase 2** | [phase-2-semantic-search.md](./phase-2-semantic-search.md) | 청킹, 임베딩, pgvector 의미 검색, 하이브리드 검색 |
 | **Phase 3** | [phase-3-advanced-features.md](./phase-3-advanced-features.md) | GitHub OAuth, Webhook, 문서 그래프, 권한 고도화 |
 
+## Feature 계획 문서
+
+| Feature | 문서 | 핵심 목표 |
+|---------|------|-----------|
+| **Sync Mode** | [sync-mode-enhancement.md](./sync-mode-enhancement.md) | 동기화 모드 확장 (Full/Incremental/Specific Commit), 커밋 히스토리 UI |
+
 ---
 
 ## 기술 스택 요약

@@ -16,11 +16,14 @@ import {
   ChevronUp,
   Key,
   Settings,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { SyncModeDialog } from '@/components/sync-mode-dialog';
+import { CommitHistoryDialog } from '@/components/commit-history-dialog';
 import {
   useProject,
   useRepositories,
@@ -31,7 +34,7 @@ import {
 } from '@/hooks/use-api';
 import { useSync } from '@/hooks/use-sync';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import type { Repository, SyncStatus, Credential } from '@/lib/types';
+import type { Repository, SyncStatus, Credential, SyncMode } from '@/lib/types';
 
 function getSyncStatusBadge(status: SyncStatus | undefined) {
   if (!status) return <Badge variant="secondary">Unknown</Badge>;
@@ -62,6 +65,8 @@ function RepositoryCard({
   const queryClient = useQueryClient();
   const [showProgress, setShowProgress] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSyncModeDialog, setShowSyncModeDialog] = useState(false);
+  const [showCommitHistory, setShowCommitHistory] = useState(false);
   const setCredential = useSetRepositoryCredential();
 
   const handleSyncComplete = useCallback(() => {
@@ -96,9 +101,15 @@ function RepositoryCard({
   const isSSEActive = isConnecting || isSyncing;
   const { data: syncStatus, isLoading: syncLoading } = useSyncStatus(repo.id, !isSSEActive);
 
+  // Sync Mode Dialog를 열기
   const handleSync = () => {
+    setShowSyncModeDialog(true);
+  };
+
+  // Sync Mode Dialog에서 모드 선택 후 실제 동기화 실행
+  const handleSyncConfirm = (mode: SyncMode, targetCommitSha?: string) => {
     setShowProgress(true);
-    startSync();
+    startSync({ mode, targetCommitSha });
   };
 
   const handleCancel = () => {
@@ -149,6 +160,15 @@ function RepositoryCard({
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
               Sync
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCommitHistory(true)}
+              disabled={isActive}
+            >
+              <History className="mr-2 h-4 w-4" />
+              History
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href={`/projects/${projectId}/repositories/${repo.id}/documents`}>
@@ -278,6 +298,21 @@ function RepositoryCard({
           <p className="text-sm text-destructive">{syncStatus.errorMessage}</p>
         )}
       </CardContent>
+
+      {/* Sync Mode Dialog */}
+      <SyncModeDialog
+        repositoryId={repo.id}
+        open={showSyncModeDialog}
+        onOpenChange={setShowSyncModeDialog}
+        onConfirm={handleSyncConfirm}
+      />
+
+      {/* Commit History Dialog */}
+      <CommitHistoryDialog
+        repositoryId={repo.id}
+        open={showCommitHistory}
+        onOpenChange={setShowCommitHistory}
+      />
     </Card>
   );
 }

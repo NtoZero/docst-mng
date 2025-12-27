@@ -20,6 +20,10 @@ import type {
   CreateCredentialRequest,
   UpdateCredentialRequest,
   SetCredentialRequest,
+  Commit,
+  CommitDetail,
+  CommitListParams,
+  CommitDiffParams,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
@@ -199,6 +203,28 @@ export const credentialsApi = {
     request(`/api/credentials/${id}`, {
       method: 'DELETE',
     }),
+};
+
+// ===== Commits API =====
+export const commitsApi = {
+  // 레포지토리의 커밋 목록을 조회 (페이지네이션 지원)
+  list: (repositoryId: string, params?: CommitListParams): Promise<Commit[]> => {
+    const query = new URLSearchParams();
+    if (params?.skip !== undefined) query.set('skip', String(params.skip));
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    const queryString = query.toString();
+    return request(`/api/repositories/${repositoryId}/commits${queryString ? `?${queryString}` : ''}`);
+  },
+
+  // 특정 커밋의 상세 정보 조회 (변경된 파일 목록 포함)
+  get: (repositoryId: string, sha: string): Promise<CommitDetail> =>
+    request(`/api/repositories/${repositoryId}/commits/${sha}`),
+
+  // 두 커밋 간 변경된 파일 목록 조회
+  getDiff: (repositoryId: string, params: CommitDiffParams): Promise<CommitDetail> => {
+    const query = new URLSearchParams({ from: params.from, to: params.to });
+    return request(`/api/repositories/${repositoryId}/commits/diff?${query.toString()}`);
+  },
 };
 
 export { ApiError };

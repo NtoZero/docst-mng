@@ -125,6 +125,7 @@ export interface SearchRequest {
 
 // ===== Sync =====
 export type SyncStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+export type SyncMode = 'FULL_SCAN' | 'INCREMENTAL' | 'SPECIFIC_COMMIT';
 
 export interface SyncJob {
   id: string;
@@ -140,6 +141,8 @@ export interface SyncJob {
 
 export interface SyncRequest {
   branch?: string;
+  mode?: SyncMode;
+  targetCommitSha?: string;
 }
 
 // ===== SSE Events =====
@@ -183,4 +186,35 @@ export interface UpdateCredentialRequest {
 
 export interface SetCredentialRequest {
   credentialId: string | null;
+}
+
+// ===== Commit =====
+export type ChangeType = 'ADDED' | 'MODIFIED' | 'DELETED' | 'RENAMED';
+
+export interface Commit {
+  sha: string;
+  message: string;
+  authorName: string;
+  authorEmail: string;
+  committedAt: string;
+}
+
+export interface ChangedFile {
+  path: string;
+  oldPath: string | null;
+  changeType: ChangeType;
+}
+
+export interface CommitDetail extends Commit {
+  changedFiles: ChangedFile[];
+}
+
+export interface CommitListParams {
+  skip?: number;
+  limit?: number;
+}
+
+export interface CommitDiffParams {
+  from: string;
+  to: string;
 }

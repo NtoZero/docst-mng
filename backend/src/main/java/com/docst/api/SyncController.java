@@ -1,6 +1,7 @@
 package com.docst.api;
 
 import com.docst.api.ApiModels.SyncJobResponse;
+import com.docst.api.ApiModels.SyncMode;
 import com.docst.api.ApiModels.SyncRequest;
 import com.docst.domain.SyncJob;
 import com.docst.service.SyncProgressTracker;
@@ -37,7 +38,7 @@ public class SyncController {
      * 레포지토리 동기화를 시작한다.
      *
      * @param repoId 레포지토리 ID
-     * @param request 동기화 요청 (브랜치 선택 가능)
+     * @param request 동기화 요청 (브랜치, 모드, 커밋 선택 가능)
      * @return 생성된 동기화 작업 (202 Accepted)
      */
     @PostMapping
@@ -46,7 +47,10 @@ public class SyncController {
             @RequestBody(required = false) SyncRequest request
     ) {
         String branch = request != null ? request.branch() : null;
-        SyncJob job = syncService.startSync(repoId, branch);
+        SyncMode mode = request != null ? request.mode() : null;
+        String targetCommitSha = request != null ? request.targetCommitSha() : null;
+
+        SyncJob job = syncService.startSync(repoId, branch, mode, targetCommitSha);
         return ResponseEntity.accepted().body(toResponse(job));
     }
 

@@ -1,6 +1,7 @@
 package com.docst.api;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -263,8 +264,22 @@ public final class ApiModels {
      * 동기화 시작 요청.
      *
      * @param branch 대상 브랜치 (선택)
+     * @param mode 동기화 모드 (선택, 기본값 FULL_SCAN)
+     * @param targetCommitSha SPECIFIC_COMMIT 모드에서 대상 커밋 (선택)
      */
-    public record SyncRequest(String branch) {}
+    public record SyncRequest(String branch, SyncMode mode, String targetCommitSha) {}
+
+    /**
+     * 동기화 모드.
+     */
+    public enum SyncMode {
+        /** 전체 파일 트리 스캔 */
+        FULL_SCAN,
+        /** 마지막 동기화 이후 변경분만 처리 */
+        INCREMENTAL,
+        /** 특정 커밋 기준 동기화 */
+        SPECIFIC_COMMIT
+    }
 
     /**
      * 검색 요청.
@@ -338,4 +353,67 @@ public final class ApiModels {
      * @param credentialId 자격증명 ID (null이면 연결 해제)
      */
     public record SetCredentialRequest(UUID credentialId) {}
+
+    // ===== Commit =====
+
+    /**
+     * 커밋 응답.
+     *
+     * @param sha 커밋 SHA (전체)
+     * @param shortSha 커밋 SHA (7자리)
+     * @param message 커밋 메시지 (첫 줄)
+     * @param fullMessage 커밋 메시지 (전체)
+     * @param authorName 작성자 이름
+     * @param authorEmail 작성자 이메일
+     * @param committedAt 커밋 시각
+     * @param changedFilesCount 변경된 파일 수
+     */
+    public record CommitResponse(
+            String sha,
+            String shortSha,
+            String message,
+            String fullMessage,
+            String authorName,
+            String authorEmail,
+            Instant committedAt,
+            int changedFilesCount
+    ) {}
+
+    /**
+     * 커밋 상세 응답 (변경된 파일 목록 포함).
+     *
+     * @param sha 커밋 SHA (전체)
+     * @param shortSha 커밋 SHA (7자리)
+     * @param message 커밋 메시지 (첫 줄)
+     * @param fullMessage 커밋 메시지 (전체)
+     * @param authorName 작성자 이름
+     * @param authorEmail 작성자 이메일
+     * @param committedAt 커밋 시각
+     * @param changedFiles 변경된 파일 목록
+     */
+    public record CommitDetailResponse(
+            String sha,
+            String shortSha,
+            String message,
+            String fullMessage,
+            String authorName,
+            String authorEmail,
+            Instant committedAt,
+            List<ChangedFileResponse> changedFiles
+    ) {}
+
+    /**
+     * 변경된 파일 응답.
+     *
+     * @param path 파일 경로
+     * @param changeType 변경 타입 (ADDED, MODIFIED, DELETED, RENAMED)
+     * @param oldPath 이전 경로 (RENAMED인 경우)
+     * @param isDocument 문서 패턴에 매칭되는지
+     */
+    public record ChangedFileResponse(
+            String path,
+            String changeType,
+            String oldPath,
+            boolean isDocument
+    ) {}
 }

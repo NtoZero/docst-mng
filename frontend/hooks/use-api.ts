@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { authApi, projectsApi, repositoriesApi, documentsApi, credentialsApi } from '@/lib/api';
+import { authApi, projectsApi, repositoriesApi, documentsApi, credentialsApi, commitsApi } from '@/lib/api';
 import type {
   CreateProjectRequest,
   UpdateProjectRequest,
@@ -13,6 +13,8 @@ import type {
   CreateCredentialRequest,
   UpdateCredentialRequest,
   SetCredentialRequest,
+  CommitListParams,
+  CommitDiffParams,
 } from '@/lib/types';
 import { useAuthStore } from '@/lib/store';
 
@@ -41,6 +43,14 @@ export const queryKeys = {
   credentials: {
     all: ['credentials'] as const,
     detail: (id: string) => ['credentials', id] as const,
+  },
+  commits: {
+    byRepository: (repositoryId: string, params?: CommitListParams) =>
+      ['commits', 'repository', repositoryId, params] as const,
+    detail: (repositoryId: string, sha: string) =>
+      ['commits', 'repository', repositoryId, sha] as const,
+    diff: (repositoryId: string, from: string, to: string) =>
+      ['commits', 'repository', repositoryId, 'diff', from, to] as const,
   },
 };
 
@@ -338,5 +348,33 @@ export function useSetRepositoryCredential() {
         queryKey: queryKeys.repositories.byProject(result.projectId),
       });
     },
+  });
+}
+
+// ===== Commits Hooks =====
+// 레포지토리의 커밋 목록을 조회 (페이지네이션 지원)
+export function useCommits(repositoryId: string, params?: CommitListParams, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.commits.byRepository(repositoryId, params),
+    queryFn: () => commitsApi.list(repositoryId, params),
+    enabled: enabled && !!repositoryId,
+  });
+}
+
+// 특정 커밋의 상세 정보 조회 (변경된 파일 목록 포함)
+export function useCommitDetail(repositoryId: string, sha: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.commits.detail(repositoryId, sha),
+    queryFn: () => commitsApi.get(repositoryId, sha),
+    enabled: enabled && !!repositoryId && !!sha,
+  });
+}
+
+// 두 커밋 간의 차이 조회
+export function useCommitDiff(repositoryId: string, params: CommitDiffParams, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.commits.diff(repositoryId, params.from, params.to),
+    queryFn: () => commitsApi.getDiff(repositoryId, params),
+    enabled: enabled && !!repositoryId && !!params.from && !!params.to,
   });
 }

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { repositoriesApi } from '@/lib/api';
-import type { SyncEvent, SyncJob, SyncStatus } from '@/lib/types';
+import type { SyncEvent, SyncJob, SyncStatus, SyncRequest } from '@/lib/types';
 
 interface UseSyncOptions {
   onComplete?: (job: SyncJob) => void;
@@ -10,7 +10,7 @@ interface UseSyncOptions {
 }
 
 interface UseSyncReturn {
-  startSync: (branch?: string) => Promise<void>;
+  startSync: (request?: SyncRequest) => Promise<void>;
   cancelSync: () => void;
   isConnecting: boolean;
   isSyncing: boolean;
@@ -48,7 +48,7 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
   }, []);
 
   const startSync = useCallback(
-    async (branch?: string) => {
+    async (request?: SyncRequest) => {
       // Clean up any existing connection
       cancelSync();
 
@@ -59,7 +59,7 @@ export function useSync(repositoryId: string, options: UseSyncOptions = {}): Use
 
       try {
         // Start the sync job
-        const job = await repositoriesApi.sync(repositoryId, { branch });
+        const job = await repositoriesApi.sync(repositoryId, request || {});
 
         if (job.status === 'FAILED') {
           setError(job.errorMessage || 'Sync failed');

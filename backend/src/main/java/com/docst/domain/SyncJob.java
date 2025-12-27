@@ -1,5 +1,6 @@
 package com.docst.domain;
 
+import com.docst.api.ApiModels.SyncMode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,6 +37,15 @@ public class SyncJob {
     @Column(name = "target_branch")
     private String targetBranch;
 
+    /** 동기화 모드 */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sync_mode", nullable = false)
+    private SyncMode syncMode = SyncMode.FULL_SCAN;
+
+    /** 특정 커밋 SHA (SPECIFIC_COMMIT 모드에서 사용) */
+    @Column(name = "target_commit_sha")
+    private String targetCommitSha;
+
     /** 마지막 동기화된 커밋 SHA */
     @Column(name = "last_synced_commit")
     private String lastSyncedCommit;
@@ -71,8 +81,22 @@ public class SyncJob {
      * @param targetBranch 대상 브랜치
      */
     public SyncJob(Repository repository, String targetBranch) {
+        this(repository, targetBranch, SyncMode.FULL_SCAN, null);
+    }
+
+    /**
+     * 동기화 작업 생성자 (모드 지정).
+     *
+     * @param repository 대상 레포지토리
+     * @param targetBranch 대상 브랜치
+     * @param syncMode 동기화 모드
+     * @param targetCommitSha 특정 커밋 SHA (SPECIFIC_COMMIT 모드에서 사용)
+     */
+    public SyncJob(Repository repository, String targetBranch, SyncMode syncMode, String targetCommitSha) {
         this.repository = repository;
         this.targetBranch = targetBranch;
+        this.syncMode = syncMode != null ? syncMode : SyncMode.FULL_SCAN;
+        this.targetCommitSha = targetCommitSha;
         this.status = SyncStatus.PENDING;
         this.createdAt = Instant.now();
     }

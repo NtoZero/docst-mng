@@ -103,4 +103,65 @@ public class GitFileScanner {
     public List<Pattern> getDocPatterns() {
         return DOC_PATTERNS;
     }
+
+    /**
+     * 전체 파일을 재귀적으로 스캔한다 (모든 파일, 패턴 무관).
+     *
+     * @param git Git 인스턴스
+     * @param commitSha 커밋 SHA
+     * @return 모든 파일 경로 목록
+     * @throws IOException I/O 오류 발생 시
+     */
+    public List<String> scanAllFiles(Git git, String commitSha) throws IOException {
+        List<String> allPaths = new ArrayList<>();
+
+        try (RevWalk revWalk = new RevWalk(git.getRepository())) {
+            ObjectId commitId = git.getRepository().resolve(commitSha);
+            if (commitId == null) {
+                log.warn("Commit not found: {}", commitSha);
+                return allPaths;
+            }
+
+            RevCommit commit = revWalk.parseCommit(commitId);
+            RevTree tree = commit.getTree();
+
+            try (TreeWalk treeWalk = new TreeWalk(git.getRepository())) {
+                treeWalk.addTree(tree);
+                treeWalk.setRecursive(true);
+
+                while (treeWalk.next()) {
+                    String path = treeWalk.getPathString();
+                    allPaths.add(path);
+                }
+            }
+        }
+
+        log.info("Scanned {} total files at commit {}", allPaths.size(), commitSha.substring(0, 7));
+        return allPaths;
+    }
+
+    /**
+     * 변경된 파일 중 문서 파일만 필터링한다.
+     *
+     * @param changedFiles 변경된 파일 목록
+     * @return 문서 파일만 포함된 목록
+     */
+    public List<GitCommitWalker.ChangedFile> filterDocumentFiles(List<GitCommitWalker.ChangedFile> changedFiles) {
+        List<GitCommitWalker.ChangedFile> documentFiles = new ArrayList<>();
+
+        for (GitCommitWalker.ChangedFile file : changedFiles) {
+            // DELETED가 아닌 파일은 path 체크, DELETED는 oldPath 체크
+            String pathToCheck = file.changeType() == GitCommitWalker.ChangeType.DELETED
+                    ? file.oldPath()
+                    : file.path();
+
+            if (isDocumentFile(pathToCheck)) {
+                documentFiles.add(file);
+            }
+        }
+
+        log.debug("Filtered {} document files from {} changed files",
+                documentFiles.size(), changedFiles.size());
+        return documentFiles;
+    }
 }
