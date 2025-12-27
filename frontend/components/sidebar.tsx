@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/routing';
 import { FolderGit2, Settings, Plus, ChevronRight, Home, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUIStore, useAuthStore } from '@/lib/store';
@@ -9,6 +9,8 @@ import { useProjects } from '@/hooks/use-api';
 import { cn } from '@/lib/utils';
 
 export function Sidebar() {
+  const t = useTranslations('sidebar');
+  const tCommon = useTranslations('common');
   const pathname = usePathname();
   const sidebarOpen = useUIStore((state) => state.sidebarOpen);
   const user = useAuthStore((state) => state.user);
@@ -41,24 +43,24 @@ export function Sidebar() {
               )}
             >
               <Home className="h-4 w-4" />
-              Dashboard
+              {t('dashboard')}
             </Link>
 
             <div className="pt-4">
               <div className="flex items-center justify-between px-3 py-2">
                 <span className="text-xs font-semibold uppercase text-muted-foreground">
-                  Projects
+                  {t('projects')}
                 </span>
                 <Button asChild variant="ghost" size="icon" className="h-6 w-6">
                   <Link href="/projects/new">
                     <Plus className="h-4 w-4" />
-                    <span className="sr-only">New Project</span>
+                    <span className="sr-only">{t('newProject')}</span>
                   </Link>
                 </Button>
               </div>
 
               {isLoading ? (
-                <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                <div className="px-3 py-2 text-sm text-muted-foreground">{tCommon('loading')}</div>
               ) : projects && projects.length > 0 ? (
                 <ul className="space-y-1">
                   {projects.map((project) => (
@@ -80,7 +82,7 @@ export function Sidebar() {
                   ))}
                 </ul>
               ) : (
-                <div className="px-3 py-2 text-sm text-muted-foreground">No projects yet</div>
+                <div className="px-3 py-2 text-sm text-muted-foreground">{t('noProjects')}</div>
               )}
             </div>
           </nav>
@@ -95,7 +97,7 @@ export function Sidebar() {
             )}
           >
             <Key className="h-4 w-4" />
-            Credentials
+            {t('credentials')}
           </Link>
           <Link
             href="/settings"
@@ -105,7 +107,7 @@ export function Sidebar() {
             )}
           >
             <Settings className="h-4 w-4" />
-            Settings
+            {t('settings')}
           </Link>
         </div>
       </div>

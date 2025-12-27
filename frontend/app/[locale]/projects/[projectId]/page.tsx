@@ -1,8 +1,7 @@
 'use client';
 
 import { use, useEffect, useState, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/routing';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,

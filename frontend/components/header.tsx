@@ -1,14 +1,17 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/routing';
 import { Menu, Search, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { useLogout } from '@/hooks/use-api';
 
 export function Header() {
+  const t = useTranslations('header');
+  const tCommon = useTranslations('common');
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
@@ -25,7 +28,7 @@ export function Header() {
       <div className="flex h-14 items-center px-4">
         <Button variant="ghost" size="icon" className="mr-2 lg:hidden" onClick={toggleSidebar}>
           <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle sidebar</span>
+          <span className="sr-only">{t('toggleSidebar')}</span>
         </Button>
 
         <div className="flex items-center gap-2">
@@ -39,13 +42,14 @@ export function Header() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search documents..."
+              placeholder={t('searchPlaceholder')}
               className="pl-8 md:w-[300px] lg:w-[400px]"
             />
           </div>
         </div>
 
         <nav className="flex items-center gap-2">
+          <LanguageSwitcher />
           {user ? (
             <>
               <div className="hidden items-center gap-2 md:flex">
@@ -54,12 +58,12 @@ export function Header() {
               </div>
               <Button variant="ghost" size="icon" onClick={logout}>
                 <LogOut className="h-4 w-4" />
-                <span className="sr-only">Logout</span>
+                <span className="sr-only">{tCommon('logout')}</span>
               </Button>
             </>
           ) : (
             <Button asChild variant="default" size="sm">
-              <Link href="/login">Login</Link>
+              <Link href="/login">{tCommon('login')}</Link>
             </Button>
           )}
         </nav>

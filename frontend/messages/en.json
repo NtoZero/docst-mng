@@ -1,0 +1,92 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "search": "Search documents...",
+    "login": "Login",
+    "logout": "Logout",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close"
+  },
+  "header": {
+    "toggleSidebar": "Toggle sidebar",
+    "searchPlaceholder": "Search documents..."
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "newProject": "New Project",
+    "noProjects": "No projects yet",
+    "credentials": "Credentials",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "welcome": "Welcome to Docst",
+    "subtitle": "Unified documentation hub for your projects",
+    "getStarted": "Get Started",
+    "title": "Dashboard",
+    "welcomeBack": "Welcome back, {name}",
+    "newProject": "New Project",
+    "totalProjects": "Total Projects",
+    "repositories": "Repositories",
+    "documents": "Documents",
+    "recentProjects": "Recent Projects",
+    "loadingProjects": "Loading projects...",
+    "noDescription": "No description",
+    "noProjectsYet": "No projects yet",
+    "createFirstProject": "Create your first project to get started",
+    "createProject": "Create Project"
+  },
+  "projects": {
+    "title": "Projects",
+    "newProject": "New Project",
+    "createProject": "Create Project",
+    "editProject": "Edit Project",
+    "deleteProject": "Delete Project",
+    "projectName": "Project Name",
+    "projectDescription": "Project Description",
+    "createSuccess": "Project created successfully",
+    "updateSuccess": "Project updated successfully",
+    "deleteSuccess": "Project deleted successfully"
+  },
+  "repositories": {
+    "title": "Repositories",
+    "newRepository": "New Repository",
+    "addRepository": "Add Repository",
+    "repositoryUrl": "Repository URL",
+    "cloneUrl": "Clone URL",
+    "defaultBranch": "Default Branch",
+    "sync": "Sync",
+    "syncSuccess": "Sync started successfully",
+    "noRepositories": "No repositories yet"
+  },
+  "documents": {
+    "title": "Documents",
+    "versions": "Versions",
+    "viewDocument": "View Document",
+    "noDocuments": "No documents yet",
+    "loading": "Loading documents..."
+  },
+  "credentials": {
+    "title": "Credentials",
+    "description": "Manage your Git credentials",
+    "addCredential": "Add Credential",
+    "credentialName": "Credential Name",
+    "username": "Username",
+    "password": "Password",
+    "token": "Token",
+    "noCredentials": "No credentials yet"
+  },
+  "auth": {
+    "login": "Login",
+    "loginTitle": "Sign in to Docst",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Sign In",
+    "loginSuccess": "Login successful",
+    "loginError": "Login failed"
+  }
+}

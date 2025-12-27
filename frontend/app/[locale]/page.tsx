@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import { Plus, FolderGit2, FileText, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,16 +9,17 @@ import { useProjects } from '@/hooks/use-api';
 import { useAuthStore } from '@/lib/store';
 
 export default function DashboardPage() {
+  const t = useTranslations('dashboard');
   const user = useAuthStore((state) => state.user);
   const { data: projects, isLoading: projectsLoading } = useProjects();
 
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <h1 className="text-3xl font-bold">Welcome to Docst</h1>
-        <p className="mt-4 text-muted-foreground">Unified documentation hub for your projects</p>
+        <h1 className="text-3xl font-bold">{t('welcome')}</h1>
+        <p className="mt-4 text-muted-foreground">{t('subtitle')}</p>
         <Button asChild className="mt-8">
-          <Link href="/login">Get Started</Link>
+          <Link href="/login">{t('getStarted')}</Link>
         </Button>
       </div>
     );
@@ -27,13 +29,13 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user.displayName}</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('welcomeBack', { name: user.displayName })}</p>
         </div>
         <Button asChild>
           <Link href="/projects/new">
             <Plus className="mr-2 h-4 w-4" />
-            New Project
+            {t('newProject')}
           </Link>
         </Button>
       </div>
@@ -41,7 +43,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('totalProjects')}</CardTitle>
             <FolderGit2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -53,7 +55,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Repositories</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('repositories')}</CardTitle>
             <GitBranch className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -63,7 +65,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Documents</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('documents')}</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -73,9 +75,9 @@ export default function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="mb-4 text-xl font-semibold">Recent Projects</h2>
+        <h2 className="mb-4 text-xl font-semibold">{t('recentProjects')}</h2>
         {projectsLoading ? (
-          <div className="text-muted-foreground">Loading projects...</div>
+          <div className="text-muted-foreground">{t('loadingProjects')}</div>
         ) : projects && projects.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {projects.slice(0, 6).map((project) => (
@@ -87,7 +89,7 @@ export default function DashboardPage() {
                       {project.name}
                     </CardTitle>
                     <CardDescription className="line-clamp-2">
-                      {project.description || 'No description'}
+                      {project.description || t('noDescription')}
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -98,14 +100,12 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8">
               <FolderGit2 className="h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">No projects yet</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Create your first project to get started
-              </p>
+              <h3 className="mt-4 text-lg font-semibold">{t('noProjectsYet')}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{t('createFirstProject')}</p>
               <Button asChild className="mt-4">
                 <Link href="/projects/new">
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Project
+                  {t('createProject')}
                 </Link>
               </Button>
             </CardContent>

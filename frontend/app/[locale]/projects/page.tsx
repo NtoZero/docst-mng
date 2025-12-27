@@ -1,12 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/routing';
 import { Plus, FolderGit2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useProjects } from '@/hooks/use-api';
 import { useAuthStore } from '@/lib/store';
-import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function ProjectsPage() {
