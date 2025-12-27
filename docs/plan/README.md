@@ -70,8 +70,8 @@
 | Phase | 문서 | 핵심 목표 |
 |-------|------|-----------|
 | **Phase 1** | [phase-1-mvp.md](./phase-1-mvp.md) | DB 연동, JGit 동기화, 기본 UI, 키워드 검색, MCP 기초 |
-| **Phase 2** | [phase-2-semantic-search.md](./phase-2-semantic-search.md) | 청킹, 임베딩, pgvector 의미 검색, 하이브리드 검색 |
-| **Phase 3** | [phase-3-advanced-features.md](./phase-3-advanced-features.md) | GitHub OAuth, Webhook, 문서 그래프, 권한 고도화 |
+| **Phase 2** | [phase-2-semantic-search.md](ver1/phase-2-semantic-search.md) | 청킹, 임베딩, pgvector 의미 검색, 하이브리드 검색 |
+| **Phase 3** | [phase-3-advanced-features.md](ver1/phase-3-advanced-features.md) | GitHub OAuth, Webhook, 문서 그래프, 권한 고도화 |
 
 ## Feature 계획 문서
 
