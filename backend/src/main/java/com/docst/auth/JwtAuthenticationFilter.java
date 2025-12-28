@@ -63,13 +63,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extract JWT token from Authorization header
+     * Extract JWT token from Authorization header or query parameter.
+     * Query parameter support is for SSE connections which cannot set custom headers.
      */
     private String extractTokenFromRequest(HttpServletRequest request) {
+        // 1. Try Authorization header first
         String bearerToken = request.getHeader(HEADER_NAME);
         if (bearerToken != null && bearerToken.startsWith(TOKEN_PREFIX)) {
             return bearerToken.substring(TOKEN_PREFIX.length());
         }
+
+        // 2. Try query parameter (for SSE/EventSource)
+        String tokenParam = request.getParameter("token");
+        if (tokenParam != null && !tokenParam.isEmpty()) {
+            return tokenParam;
+        }
+
         return null;
     }
 }

@@ -143,6 +143,7 @@ public class GitSyncService {
         // 이미 최신 상태인지 확인
         if (lastSyncedCommit.equals(latestCommit)) {
             log.info("INCREMENTAL: Already up to date at {}", latestCommit.substring(0, 7));
+            progressTracker.setTotal(jobId, 0);
             progressTracker.complete(jobId, "Already up to date");
             return latestCommit;
         }
@@ -154,6 +155,14 @@ public class GitSyncService {
         List<GitCommitWalker.CommitInfo> commits = gitCommitWalker.walkCommits(git, lastSyncedCommit, latestCommit);
         log.info("INCREMENTAL: Found {} commits to process", commits.size());
 
+        // 먼저 총 변경 파일 수 계산
+        int totalDocFiles = 0;
+        for (GitCommitWalker.CommitInfo commitInfo : commits) {
+            List<GitCommitWalker.ChangedFile> changedFiles = gitCommitWalker.getChangedFiles(git, commitInfo.sha());
+            totalDocFiles += gitFileScanner.filterDocumentFiles(changedFiles).size();
+        }
+        progressTracker.setTotal(jobId, totalDocFiles);
+
         List<String> processedPaths = new ArrayList<>();
 
         // 각 커밋의 변경 파일 처리
@@ -164,6 +173,7 @@ public class GitSyncService {
             for (GitCommitWalker.ChangedFile changedFile : docFiles) {
                 processChangedDocument(git, repo, changedFile, commitInfo);
                 processedPaths.add(changedFile.path());
+                progressTracker.update(jobId, processedPaths.size(), changedFile.path());
             }
         }
 
