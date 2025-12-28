@@ -3,10 +3,10 @@ package com.docst.api;
 import com.docst.api.ApiModels.CreateCredentialRequest;
 import com.docst.api.ApiModels.CredentialResponse;
 import com.docst.api.ApiModels.UpdateCredentialRequest;
+import com.docst.auth.SecurityUtils;
 import com.docst.domain.Credential;
 import com.docst.domain.Credential.CredentialType;
 import com.docst.service.CredentialService;
-import com.docst.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,31 +25,15 @@ import java.util.UUID;
 public class CredentialController {
 
     private final CredentialService credentialService;
-    private final UserService userService;
-
-    /**
-     * Authorization 헤더에서 사용자 ID를 추출한다.
-     * 개발 모드에서는 "dev-token-{userId}" 형식의 토큰을 파싱한다.
-     */
-    private UUID extractUserId(String auth) {
-        if (auth != null && auth.startsWith("Bearer dev-token-")) {
-            String userId = auth.replace("Bearer dev-token-", "");
-            return UUID.fromString(userId);
-        }
-        throw new IllegalArgumentException("Invalid or missing authorization token");
-    }
 
     /**
      * 현재 사용자의 모든 자격증명을 조회한다.
      *
-     * @param auth Authorization 헤더
      * @return 자격증명 목록
      */
     @GetMapping
-    public ResponseEntity<List<CredentialResponse>> list(
-            @RequestHeader(value = "Authorization", required = false) String auth
-    ) {
-        UUID userId = extractUserId(auth);
+    public ResponseEntity<List<CredentialResponse>> list() {
+        UUID userId = SecurityUtils.requireCurrentUser().getId();
         List<Credential> credentials = credentialService.findByUserId(userId);
         return ResponseEntity.ok(credentials.stream().map(this::toResponse).toList());
     }
@@ -58,15 +42,11 @@ public class CredentialController {
      * 자격증명을 ID로 조회한다.
      *
      * @param id 자격증명 ID
-     * @param auth Authorization 헤더
      * @return 자격증명
      */
     @GetMapping("/{id}")
-    public ResponseEntity<CredentialResponse> get(
-            @PathVariable UUID id,
-            @RequestHeader(value = "Authorization", required = false) String auth
-    ) {
-        UUID userId = extractUserId(auth);
+    public ResponseEntity<CredentialResponse> get(@PathVariable UUID id) {
+        UUID userId = SecurityUtils.requireCurrentUser().getId();
         return credentialService.findById(id, userId)
                 .map(this::toResponse)
                 .map(ResponseEntity::ok)
@@ -77,15 +57,11 @@ public class CredentialController {
      * 새 자격증명을 생성한다.
      *
      * @param request 생성 요청
-     * @param auth Authorization 헤더
      * @return 생성된 자격증명
      */
     @PostMapping
-    public ResponseEntity<CredentialResponse> create(
-            @RequestBody CreateCredentialRequest request,
-            @RequestHeader(value = "Authorization", required = false) String auth
-    ) {
-        UUID userId = extractUserId(auth);
+    public ResponseEntity<CredentialResponse> create(@RequestBody CreateCredentialRequest request) {
+        UUID userId = SecurityUtils.requireCurrentUser().getId();
         CredentialType type = CredentialType.valueOf(request.type());
         Credential credential = credentialService.create(
                 userId,
@@ -103,16 +79,14 @@ public class CredentialController {
      *
      * @param id 자격증명 ID
      * @param request 수정 요청
-     * @param auth Authorization 헤더
      * @return 수정된 자격증명
      */
     @PutMapping("/{id}")
     public ResponseEntity<CredentialResponse> update(
             @PathVariable UUID id,
-            @RequestBody UpdateCredentialRequest request,
-            @RequestHeader(value = "Authorization", required = false) String auth
+            @RequestBody UpdateCredentialRequest request
     ) {
-        UUID userId = extractUserId(auth);
+        UUID userId = SecurityUtils.requireCurrentUser().getId();
         try {
             Credential credential = credentialService.update(
                     id,
@@ -138,15 +112,11 @@ public class CredentialController {
      * 자격증명을 삭제한다.
      *
      * @param id 자격증명 ID
-     * @param auth Authorization 헤더
      * @return 204 No Content
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @PathVariable UUID id,
-            @RequestHeader(value = "Authorization", required = false) String auth
-    ) {
-        UUID userId = extractUserId(auth);
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        UUID userId = SecurityUtils.requireCurrentUser().getId();
         try {
             credentialService.delete(id, userId);
             return ResponseEntity.noContent().build();

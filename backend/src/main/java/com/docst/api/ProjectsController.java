@@ -4,8 +4,10 @@ import com.docst.api.ApiModels.CreateProjectRequest;
 import com.docst.api.ApiModels.ProjectResponse;
 import com.docst.api.ApiModels.UpdateProjectRequest;
 import com.docst.auth.RequireProjectRole;
+import com.docst.auth.SecurityUtils;
 import com.docst.domain.Project;
 import com.docst.domain.ProjectRole;
+import com.docst.domain.User;
 import com.docst.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -40,13 +42,15 @@ public class ProjectsController {
 
     /**
      * 새 프로젝트를 생성한다.
+     * 현재 사용자가 자동으로 프로젝트 소유자(OWNER)로 추가된다.
      *
      * @param request 생성 요청
      * @return 생성된 프로젝트 (201 Created)
      */
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(@RequestBody CreateProjectRequest request) {
-        Project project = projectService.create(request.name(), request.description());
+        User currentUser = SecurityUtils.requireCurrentUser();
+        Project project = projectService.create(request.name(), request.description(), currentUser);
         ProjectResponse response = toResponse(project);
         return ResponseEntity.created(URI.create("/api/projects/" + project.getId())).body(response);
     }
