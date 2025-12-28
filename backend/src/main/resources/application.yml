@@ -63,6 +63,9 @@ spring:
         schema-validation: true
 
 docst:
+  # Application Base URL (used for API documentation, callbacks, etc.)
+  base-url: ${DOCST_BASE_URL:http://localhost:8342}
+
   git:
     root-path: ${DOCST_GIT_ROOT:/data/git}
 

@@ -31,6 +31,9 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.springframework.boot:spring-boot-starter-actuator")
 
+  // OpenAPI/Swagger (compatible with Spring Boot 3.5.x)
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+
   // Spring AI - PgVector VectorStore
   implementation("org.springframework.ai:spring-ai-pgvector-store-spring-boot-starter")
 

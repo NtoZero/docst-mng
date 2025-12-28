@@ -6,6 +6,11 @@ import com.docst.api.ApiModels.SyncRequest;
 import com.docst.domain.SyncJob;
 import com.docst.service.SyncProgressTracker;
 import com.docst.service.SyncService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +30,7 @@ import java.util.concurrent.TimeUnit;
  * 동기화 컨트롤러.
  * 레포지토리 동기화 시작, 상태 조회, 실시간 스트리밍 기능을 제공한다.
  */
+@Tag(name = "Sync", description = "레포지토리 동기화 API")
 @RestController
 @RequestMapping("/api/repositories/{repoId}/sync")
 @RequiredArgsConstructor
@@ -41,9 +47,11 @@ public class SyncController {
      * @param request 동기화 요청 (브랜치, 모드, 커밋 선택 가능)
      * @return 생성된 동기화 작업 (202 Accepted)
      */
+    @Operation(summary = "동기화 시작", description = "레포지토리 동기화를 시작합니다. 동기화 모드 및 대상 브랜치를 지정할 수 있습니다.")
+    @ApiResponse(responseCode = "202", description = "동기화 시작됨 (Accepted)")
     @PostMapping
     public ResponseEntity<SyncJobResponse> sync(
-            @PathVariable UUID repoId,
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId,
             @RequestBody(required = false) SyncRequest request
     ) {
         String branch = request != null ? request.branch() : null;
@@ -60,8 +68,14 @@ public class SyncController {
      * @param repoId 레포지토리 ID
      * @return 동기화 작업 정보 (없으면 404)
      */
+    @Operation(summary = "동기화 상태 조회", description = "레포지토리의 가장 최근 동기화 작업 상태를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "동기화 작업을 찾을 수 없음")
+    })
     @GetMapping("/status")
-    public ResponseEntity<SyncJobResponse> getStatus(@PathVariable UUID repoId) {
+    public ResponseEntity<SyncJobResponse> getStatus(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId) {
         return syncService.findLatestByRepositoryId(repoId)
                 .map(this::toResponse)
                 .map(ResponseEntity::ok)
@@ -75,8 +89,10 @@ public class SyncController {
      * @param repoId 레포지토리 ID
      * @return SSE 이미터
      */
+    @Operation(summary = "동기화 진행 상황 스트리밍", description = "동기화 진행 상황을 SSE(Server-Sent Events)로 실시간 스트리밍합니다.")
+    @ApiResponse(responseCode = "200", description = "스트리밍 시작")
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter stream(@PathVariable UUID repoId) {
+    public SseEmitter stream(@Parameter(description = "레포지토리 ID") @PathVariable UUID repoId) {
         SseEmitter emitter = new SseEmitter(120000L); // 120 second timeout
 
         // Poll for status updates - 500ms 간격으로 더 빠르게

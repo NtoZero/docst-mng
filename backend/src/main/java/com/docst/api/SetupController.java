@@ -4,6 +4,10 @@ import com.docst.auth.PasswordValidator;
 import com.docst.domain.User;
 import com.docst.domain.User.AuthProvider;
 import com.docst.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -21,6 +25,7 @@ import java.util.Map;
  * 시스템 초기 설정 컨트롤러.
  * 최초 관리자 계정 생성 등 일회성 초기화 작업을 제공한다.
  */
+@Tag(name = "Setup", description = "시스템 초기 설정 API")
 @RestController
 @RequestMapping("/api/setup")
 @RequiredArgsConstructor
@@ -37,6 +42,8 @@ public class SetupController {
      *
      * @return 초기화 가능 여부 및 메시지
      */
+    @Operation(summary = "시스템 초기화 상태 확인", description = "시스템 초기화 필요 여부를 확인합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping("/status")
     public ResponseEntity<SetupStatusResponse> getSetupStatus() {
         long localUserCount = userRepository.findAll().stream()
@@ -60,6 +67,12 @@ public class SetupController {
      * @param request 관리자 계정 생성 요청
      * @return 생성된 관리자 정보 또는 에러 메시지
      */
+    @Operation(summary = "최초 관리자 계정 생성", description = "시스템 초기화 시 최초 관리자 계정을 생성합니다. LOCAL 사용자가 없을 때만 실행 가능합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "관리자 계정 생성 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (비밀번호 검증 실패 등)"),
+            @ApiResponse(responseCode = "409", description = "이미 초기화됨")
+    })
     @PostMapping("/initialize")
     public ResponseEntity<?> initialize(@Valid @RequestBody InitializeRequest request) {
         // LOCAL 사용자가 이미 존재하는지 확인

@@ -271,6 +271,9 @@ OPENAI_API_KEY=sk-proj-your-api-key-here
 
 **환경 변수 목록**
 ```bash
+# Application
+DOCST_BASE_URL=http://localhost:8342   # 배포 시: https://api.docst.com
+
 # Database
 DB_HOST=localhost
 DB_PORT=5434

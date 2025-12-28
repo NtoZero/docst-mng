@@ -5,6 +5,11 @@ import com.docst.api.ApiModels.CommitDetailResponse;
 import com.docst.api.ApiModels.CommitResponse;
 import com.docst.git.GitCommitWalker;
 import com.docst.service.CommitService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +21,7 @@ import java.util.UUID;
  * 커밋 컨트롤러.
  * Git 커밋 히스토리 조회 API를 제공한다.
  */
+@Tag(name = "Commits", description = "Git 커밋 히스토리 조회 API")
 @RestController
 @RequestMapping("/api/repositories/{repoId}/commits")
 @RequiredArgsConstructor
@@ -32,12 +38,14 @@ public class CommitController {
      * @param size 페이지 크기 (기본값 20, 최대 100)
      * @return 커밋 목록
      */
+    @Operation(summary = "커밋 목록 조회", description = "레포지토리의 커밋 목록을 페이지네이션으로 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
     public List<CommitResponse> listCommits(
-            @PathVariable UUID repoId,
-            @RequestParam(required = false) String branch,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId,
+            @Parameter(description = "브랜치명 (선택, null이면 기본 브랜치)") @RequestParam(required = false) String branch,
+            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기 (최대 100)") @RequestParam(defaultValue = "20") int size
     ) {
         // size 최대값 제한
         int limitedSize = Math.min(size, 100);
@@ -57,10 +65,15 @@ public class CommitController {
      * @param commitSha 커밋 SHA
      * @return 커밋 상세 정보
      */
+    @Operation(summary = "커밋 상세 조회", description = "특정 커밋의 상세 정보를 조회합니다. 변경된 파일 목록을 포함합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "커밋을 찾을 수 없음")
+    })
     @GetMapping("/{commitSha}")
     public ResponseEntity<CommitDetailResponse> getCommit(
-            @PathVariable UUID repoId,
-            @PathVariable String commitSha
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId,
+            @Parameter(description = "커밋 SHA") @PathVariable String commitSha
     ) {
         List<GitCommitWalker.ChangedFile> changedFiles = commitService.getChangedFiles(repoId, commitSha);
 
@@ -99,11 +112,13 @@ public class CommitController {
      * @param to 종료 커밋 SHA
      * @return 변경된 파일 목록
      */
+    @Operation(summary = "커밋 간 Diff 조회", description = "두 커밋 간 변경된 파일 목록을 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping("/diff")
     public List<ChangedFileResponse> getCommitDiff(
-            @PathVariable UUID repoId,
-            @RequestParam String from,
-            @RequestParam String to
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId,
+            @Parameter(description = "시작 커밋 SHA") @RequestParam String from,
+            @Parameter(description = "종료 커밋 SHA") @RequestParam String to
     ) {
         List<GitCommitWalker.ChangedFile> changedFiles = commitService.getChangedFilesBetween(
                 repoId, from, to);

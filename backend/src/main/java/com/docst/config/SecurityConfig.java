@@ -44,7 +44,12 @@ public class SecurityConfig {
                                 "/api/setup/**",  // Setup endpoint for initial admin creation
                                 "/api/webhook/**",
                                 "/actuator/health",
-                                "/error"
+                                "/error",
+                                // Swagger UI and OpenAPI
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**"
                         ).permitAll()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()

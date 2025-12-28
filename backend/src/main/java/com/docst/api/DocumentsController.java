@@ -4,6 +4,11 @@ import com.docst.api.ApiModels.*;
 import com.docst.domain.Document;
 import com.docst.domain.DocumentVersion;
 import com.docst.service.DocumentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +22,7 @@ import java.util.UUID;
  * 문서 컨트롤러.
  * 문서 조회, 버전 관리, diff 기능을 제공한다.
  */
+@Tag(name = "Documents", description = "문서 조회 및 버전 관리 API")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -32,11 +38,13 @@ public class DocumentsController {
      * @param type 문서 타입 필터 (선택)
      * @return 문서 목록
      */
+    @Operation(summary = "문서 목록 조회", description = "레포지토리의 문서 목록을 조회합니다. 경로 접두사와 타입으로 필터링할 수 있습니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping("/repositories/{repoId}/documents")
     public List<DocumentResponse> listDocuments(
-            @PathVariable UUID repoId,
-            @RequestParam(required = false) String pathPrefix,
-            @RequestParam(required = false) String type
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId,
+            @Parameter(description = "경로 접두사 필터") @RequestParam(required = false) String pathPrefix,
+            @Parameter(description = "문서 타입 필터 (MD, ADOC, OPENAPI, ADR, OTHER)") @RequestParam(required = false) String type
     ) {
         return documentService.findByRepositoryId(repoId, pathPrefix, type).stream()
                 .map(this::toResponse)
@@ -49,8 +57,14 @@ public class DocumentsController {
      * @param docId 문서 ID
      * @return 문서 상세 정보 (없으면 404)
      */
+    @Operation(summary = "문서 상세 조회", description = "문서 ID로 문서 상세 정보를 조회합니다. 최신 버전의 내용을 포함합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "문서를 찾을 수 없음")
+    })
     @GetMapping("/documents/{docId}")
-    public ResponseEntity<DocumentDetailResponse> getDocument(@PathVariable UUID docId) {
+    public ResponseEntity<DocumentDetailResponse> getDocument(
+            @Parameter(description = "문서 ID") @PathVariable UUID docId) {
         Optional<Document> docOpt = documentService.findById(docId);
         if (docOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -82,8 +96,11 @@ public class DocumentsController {
      * @param docId 문서 ID
      * @return 버전 목록 (최신순)
      */
+    @Operation(summary = "문서 버전 목록 조회", description = "문서의 모든 버전 이력을 최신순으로 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping("/documents/{docId}/versions")
-    public List<DocumentVersionResponse> listVersions(@PathVariable UUID docId) {
+    public List<DocumentVersionResponse> listVersions(
+            @Parameter(description = "문서 ID") @PathVariable UUID docId) {
         return documentService.findVersions(docId).stream()
                 .map(this::toVersionResponse)
                 .toList();
@@ -96,10 +113,15 @@ public class DocumentsController {
      * @param commitSha 커밋 SHA
      * @return 버전 상세 정보 (없으면 404)
      */
+    @Operation(summary = "문서 버전 상세 조회", description = "문서의 특정 버전을 조회합니다. 버전의 전체 내용을 포함합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "버전을 찾을 수 없음")
+    })
     @GetMapping("/documents/{docId}/versions/{commitSha}")
     public ResponseEntity<DocumentVersionDetailResponse> getVersion(
-            @PathVariable UUID docId,
-            @PathVariable String commitSha
+            @Parameter(description = "문서 ID") @PathVariable UUID docId,
+            @Parameter(description = "커밋 SHA") @PathVariable String commitSha
     ) {
         return documentService.findVersion(docId, commitSha)
                 .map(this::toVersionDetailResponse)
@@ -116,12 +138,17 @@ public class DocumentsController {
      * @param format diff 형식 (기본값: unified)
      * @return diff 문자열 (버전이 없으면 404)
      */
+    @Operation(summary = "문서 버전 비교", description = "두 버전 간의 문서 차이를 unified diff 형식으로 반환합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "버전을 찾을 수 없음")
+    })
     @GetMapping(value = "/documents/{docId}/diff", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> diffDocument(
-            @PathVariable UUID docId,
-            @RequestParam String from,
-            @RequestParam String to,
-            @RequestParam(required = false, defaultValue = "unified") String format
+            @Parameter(description = "문서 ID") @PathVariable UUID docId,
+            @Parameter(description = "시작 커밋 SHA") @RequestParam String from,
+            @Parameter(description = "종료 커밋 SHA") @RequestParam String to,
+            @Parameter(description = "diff 형식 (기본값: unified)") @RequestParam(required = false, defaultValue = "unified") String format
     ) {
         Optional<DocumentVersion> fromVersion = documentService.findVersion(docId, from);
         Optional<DocumentVersion> toVersion = documentService.findVersion(docId, to);
