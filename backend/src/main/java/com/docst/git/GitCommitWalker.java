@@ -255,7 +255,7 @@ public class GitCommitWalker {
                 commit.getShortMessage(),
                 commit.getAuthorIdent().getName(),
                 commit.getAuthorIdent().getEmailAddress(),
-                commit.getAuthorIdent().getWhen().toInstant()
+                commit.getAuthorIdent().getWhenAsInstant()
         );
     }
 

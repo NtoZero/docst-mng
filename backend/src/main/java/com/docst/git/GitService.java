@@ -18,8 +18,12 @@ import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
+import org.eclipse.jgit.util.io.DisabledOutputStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -125,22 +129,6 @@ public class GitService {
     }
 
     /**
-     * 원격 레포지토리에서 변경사항을 가져온다. (자격증명 없이)
-     *
-     * @param git Git 인스턴스
-     * @param branch 브랜치명
-     * @throws GitAPIException Git 작업 실패 시
-     * @deprecated Use fetch(Git, Repository, String) instead for authenticated access
-     */
-    @Deprecated
-    public void fetch(Git git, String branch) throws GitAPIException {
-        log.info("Fetching branch: {}", branch);
-        git.fetch()
-                .setRemote("origin")
-                .call();
-    }
-
-    /**
      * 특정 브랜치로 checkout한다.
      *
      * @param git Git 인스턴스
@@ -230,10 +218,84 @@ public class GitService {
                     commit.getName(),
                     commit.getAuthorIdent().getName(),
                     commit.getAuthorIdent().getEmailAddress(),
-                    commit.getAuthorIdent().getWhen().toInstant(),
+                    commit.getAuthorIdent().getWhenAsInstant(),
                     commit.getShortMessage()
             );
         }
+    }
+
+    /**
+     * 특정 커밋 시점에서 파일의 마지막 수정 커밋을 찾는다.
+     * git log -1 -- <path> 와 동일한 동작을 수행한다.
+     *
+     * @param git Git 인스턴스
+     * @param upToCommitSha 검색할 최대 커밋 SHA (이 커밋까지만 검색)
+     * @param path 파일 경로
+     * @return 파일의 마지막 수정 커밋 정보 (파일이 존재하지 않으면 null)
+     * @throws IOException I/O 오류 발생 시
+     */
+    public CommitInfo getLastCommitForFile(Git git, String upToCommitSha, String path) throws IOException {
+        try (RevWalk revWalk = new RevWalk(git.getRepository());
+             DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE)) {
+
+            diffFormatter.setRepository(git.getRepository());
+            diffFormatter.setDiffComparator(RawTextComparator.DEFAULT);
+            diffFormatter.setDetectRenames(true);
+
+            ObjectId commitId = git.getRepository().resolve(upToCommitSha);
+            if (commitId == null) {
+                return null;
+            }
+
+            RevCommit startCommit = revWalk.parseCommit(commitId);
+            revWalk.markStart(startCommit);
+
+            // 각 커밋을 순회하면서 파일이 실제로 변경되었는지 확인
+            for (RevCommit commit : revWalk) {
+                // 부모 커밋과 비교
+                if (commit.getParentCount() == 0) {
+                    // 최초 커밋 - 파일이 존재하는지 확인
+                    try (TreeWalk treeWalk = new TreeWalk(git.getRepository())) {
+                        treeWalk.addTree(commit.getTree());
+                        treeWalk.setRecursive(true);
+                        treeWalk.setFilter(PathFilter.create(path));
+                        if (treeWalk.next()) {
+                            return toCommitInfo(commit);
+                        }
+                    }
+                } else {
+                    // 부모 커밋과 diff 비교
+                    RevCommit parent = revWalk.parseCommit(commit.getParent(0));
+                    var diffs = diffFormatter.scan(parent.getTree(), commit.getTree());
+
+                    for (DiffEntry diff : diffs) {
+                        String diffPath = diff.getNewPath();
+                        if (diff.getChangeType() == DiffEntry.ChangeType.DELETE) {
+                            diffPath = diff.getOldPath();
+                        }
+
+                        if (path.equals(diffPath)) {
+                            return toCommitInfo(commit);
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * RevCommit을 CommitInfo로 변환한다.
+     */
+    private CommitInfo toCommitInfo(RevCommit commit) {
+        return new CommitInfo(
+                commit.getName(),
+                commit.getAuthorIdent().getName(),
+                commit.getAuthorIdent().getEmailAddress(),
+                commit.getAuthorIdent().getWhenAsInstant(),
+                commit.getFullMessage()
+        );
     }
 
     /**

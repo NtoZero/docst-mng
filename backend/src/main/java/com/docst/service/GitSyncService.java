@@ -220,18 +220,29 @@ public class GitSyncService {
 
     /**
      * 개별 문서 파일을 처리한다.
-     * Git에서 파일 내용을 읽어 파싱하고 DB에 저장한다.
+     * Git에서 파일의 실제 마지막 수정 커밋을 찾아 내용을 읽고 DB에 저장한다.
      *
      * @param git Git 인스턴스
      * @param repo 레포지토리 엔티티
      * @param path 파일 경로
-     * @param commitSha 커밋 SHA
-     * @param commitInfo 커밋 정보
+     * @param commitSha 커밋 SHA (스캔 시점의 커밋, 파일 마지막 커밋을 찾기 위한 상한)
+     * @param commitInfo 커밋 정보 (사용되지 않음)
      */
     private void processDocument(Git git, Repository repo, String path,
                                    String commitSha, CommitInfo commitInfo) {
         try {
-            Optional<String> contentOpt = gitService.getFileContent(git, commitSha, path);
+            // 파일의 실제 마지막 수정 커밋을 찾기
+            CommitInfo actualCommitInfo = gitService.getLastCommitForFile(git, commitSha, path);
+            if (actualCommitInfo == null) {
+                log.warn("Could not find commit for file: {}", path);
+                return;
+            }
+
+            String actualCommitSha = actualCommitInfo.sha();
+            log.info("Processing file: {} | scan commit: {} | actual last commit: {}",
+                    path, commitSha.substring(0, 7), actualCommitSha.substring(0, 7));
+
+            Optional<String> contentOpt = gitService.getFileContent(git, actualCommitSha, path);
             if (contentOpt.isEmpty()) {
                 log.warn("Could not read file: {}", path);
                 return;
@@ -243,12 +254,12 @@ public class GitSyncService {
             com.docst.domain.DocumentVersion newVersion = documentService.upsertDocument(
                     repo.getId(),
                     path,
-                    commitSha,
+                    actualCommitSha,  // 파일의 실제 마지막 커밋 사용
                     content,
-                    commitInfo.authorName(),
-                    commitInfo.authorEmail(),
-                    commitInfo.committedAt(),
-                    commitInfo.message()
+                    actualCommitInfo.authorName(),
+                    actualCommitInfo.authorEmail(),
+                    actualCommitInfo.committedAt(),
+                    actualCommitInfo.message()
             );
 
             // Chunk and embed the newly created document version
