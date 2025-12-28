@@ -63,6 +63,25 @@
     "syncSuccess": "Sync started successfully",
     "noRepositories": "No repositories yet"
   },
+  "sync": {
+    "dialogTitle": "Select Sync Mode",
+    "dialogDescription": "Choose how to sync the repository.",
+    "infoMessage": "Documents are automatically chunked during sync. Enable embedding to generate vectors for AI semantic search.",
+    "fullScan": "Full Scan",
+    "fullScanDescription": "Scan all documents from the latest commit. Most thorough but takes longer.",
+    "incremental": "Incremental",
+    "incrementalDescription": "Process only changed documents since last sync. Fast and efficient.",
+    "specificCommit": "Specific Commit",
+    "specificCommitDescription": "Get documents from a specific commit. Useful for restoring past versions.",
+    "selectCommit": "Select",
+    "enterOrSelectCommit": "Enter or select commit SHA",
+    "selectedCommit": "Selected commit",
+    "enableEmbedding": "Generate Embeddings",
+    "enableEmbeddingDescription": "Generate vectors for semantic/hybrid search",
+    "cancel": "Cancel",
+    "startSync": "Start Sync",
+    "syncTooltip": "Sync documents and generate embeddings for semantic search"
+  },
   "documents": {
     "title": "Documents",
     "versions": "Versions",

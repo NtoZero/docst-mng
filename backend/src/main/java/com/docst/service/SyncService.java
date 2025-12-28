@@ -81,6 +81,24 @@ public class SyncService {
      */
     @Transactional
     public SyncJob startSync(UUID repositoryId, String branch, SyncMode mode, String targetCommitSha) {
+        return startSync(repositoryId, branch, mode, targetCommitSha, null);
+    }
+
+    /**
+     * 레포지토리 동기화를 시작한다 (모드 및 임베딩 지정).
+     * 비동기로 동기화를 실행하며, 동시에 하나의 작업만 실행될 수 있다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch 대상 브랜치 (null이면 기본 브랜치 사용)
+     * @param mode 동기화 모드 (null이면 FULL_SCAN)
+     * @param targetCommitSha 특정 커밋 SHA (SPECIFIC_COMMIT 모드에서 사용)
+     * @param enableEmbedding 임베딩 생성 여부 (null이면 true)
+     * @return 생성된 동기화 작업
+     * @throws IllegalArgumentException 레포지토리가 존재하지 않을 경우
+     * @throws IllegalStateException 이미 동기화가 진행 중일 경우
+     */
+    @Transactional
+    public SyncJob startSync(UUID repositoryId, String branch, SyncMode mode, String targetCommitSha, Boolean enableEmbedding) {
         Repository repo = repositoryRepository.findById(repositoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
 
@@ -91,16 +109,18 @@ public class SyncService {
 
         String targetBranch = branch != null ? branch : repo.getDefaultBranch();
         SyncMode syncMode = mode != null ? mode : SyncMode.FULL_SCAN;
+        boolean doEmbedding = enableEmbedding != null ? enableEmbedding : true;
 
-        SyncJob job = new SyncJob(repo, targetBranch, syncMode, targetCommitSha);
+        SyncJob job = new SyncJob(repo, targetBranch, syncMode, targetCommitSha, doEmbedding);
         job = syncJobRepository.save(job);
 
         // 트랜잭션 커밋 후에 비동기 작업 시작 (job이 DB에 확실히 저장된 후 실행)
         final UUID jobId = job.getId();
+        final boolean finalDoEmbedding = doEmbedding;
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                CompletableFuture.runAsync(() -> executeSync(jobId));
+                CompletableFuture.runAsync(() -> executeSync(jobId, finalDoEmbedding));
             }
         });
 
@@ -112,8 +132,9 @@ public class SyncService {
      * 내부적으로 GitSyncService를 호출하여 실제 Git 동기화를 수행한다.
      *
      * @param jobId 동기화 작업 ID
+     * @param enableEmbedding 임베딩 생성 여부
      */
-    private void executeSync(UUID jobId) {
+    private void executeSync(UUID jobId, boolean enableEmbedding) {
         // 비동기 스레드에서는 세션이 없으므로 Repository를 함께 fetch join으로 조회
         SyncJob job = syncJobRepository.findByIdWithRepository(jobId).orElse(null);
         if (job == null) {
@@ -130,8 +151,8 @@ public class SyncService {
             // 진행 상황 추적 시작
             progressTracker.start(jobId, repo.getId());
 
-            log.info("Starting sync for repository: {} branch: {} mode: {}",
-                    repo.getFullName(), job.getTargetBranch(), job.getSyncMode());
+            log.info("Starting sync for repository: {} branch: {} mode: {} embedding: {}",
+                    repo.getFullName(), job.getTargetBranch(), job.getSyncMode(), enableEmbedding);
 
             // 마지막 동기화 커밋 조회 (INCREMENTAL 모드에서 사용)
             String lastSyncedCommit = findLatestByRepositoryId(repo.getId())
@@ -145,7 +166,8 @@ public class SyncService {
                     job.getTargetBranch(),
                     job.getSyncMode(),
                     job.getTargetCommitSha(),
-                    lastSyncedCommit
+                    lastSyncedCommit,
+                    enableEmbedding
             );
 
             job.complete(lastCommit);

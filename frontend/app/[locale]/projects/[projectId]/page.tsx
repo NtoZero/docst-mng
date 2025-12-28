@@ -106,9 +106,9 @@ function RepositoryCard({
   };
 
   // Sync Mode Dialog에서 모드 선택 후 실제 동기화 실행
-  const handleSyncConfirm = (mode: SyncMode, targetCommitSha?: string) => {
+  const handleSyncConfirm = (mode: SyncMode, targetCommitSha?: string, enableEmbedding?: boolean) => {
     setShowProgress(true);
-    startSync({ mode, targetCommitSha });
+    startSync({ mode, targetCommitSha, enableEmbedding });
   };
 
   const handleCancel = () => {
@@ -152,7 +152,13 @@ function RepositoryCard({
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleSync} disabled={isActive}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSync}
+              disabled={isActive}
+              title="Sync documents and generate embeddings for semantic search"
+            >
               {isActive ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

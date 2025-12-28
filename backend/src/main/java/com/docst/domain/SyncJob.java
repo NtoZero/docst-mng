@@ -74,6 +74,10 @@ public class SyncJob {
     @Transient
     private int processedDocuments;
 
+    /** 임베딩 생성 여부 (기본값: true) */
+    @Transient
+    private boolean enableEmbedding = true;
+
     /**
      * 동기화 작업 생성자.
      *
@@ -93,10 +97,24 @@ public class SyncJob {
      * @param targetCommitSha 특정 커밋 SHA (SPECIFIC_COMMIT 모드에서 사용)
      */
     public SyncJob(Repository repository, String targetBranch, SyncMode syncMode, String targetCommitSha) {
+        this(repository, targetBranch, syncMode, targetCommitSha, true);
+    }
+
+    /**
+     * 동기화 작업 생성자 (모드 및 임베딩 지정).
+     *
+     * @param repository 대상 레포지토리
+     * @param targetBranch 대상 브랜치
+     * @param syncMode 동기화 모드
+     * @param targetCommitSha 특정 커밋 SHA (SPECIFIC_COMMIT 모드에서 사용)
+     * @param enableEmbedding 임베딩 생성 여부
+     */
+    public SyncJob(Repository repository, String targetBranch, SyncMode syncMode, String targetCommitSha, boolean enableEmbedding) {
         this.repository = repository;
         this.targetBranch = targetBranch;
         this.syncMode = syncMode != null ? syncMode : SyncMode.FULL_SCAN;
         this.targetCommitSha = targetCommitSha;
+        this.enableEmbedding = enableEmbedding;
         this.status = SyncStatus.PENDING;
         this.createdAt = Instant.now();
     }

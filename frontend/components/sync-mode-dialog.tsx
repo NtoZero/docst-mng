@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, GitBranch, History } from 'lucide-react';
+import { RefreshCw, GitBranch, History, Sparkles, Info } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { CommitHistoryDialog } from './commit-history-dialog';
 import type { SyncMode } from '@/lib/types';
 
@@ -20,20 +21,21 @@ interface SyncModeDialogProps {
   repositoryId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (mode: SyncMode, targetCommitSha?: string) => void;
+  onConfirm: (mode: SyncMode, targetCommitSha?: string, enableEmbedding?: boolean) => void;
 }
 
 export function SyncModeDialog({ repositoryId, open, onOpenChange, onConfirm }: SyncModeDialogProps) {
   const [mode, setMode] = useState<SyncMode>('FULL_SCAN');
   const [targetCommitSha, setTargetCommitSha] = useState<string>('');
   const [showCommitHistory, setShowCommitHistory] = useState(false);
+  const [enableEmbedding, setEnableEmbedding] = useState(true);
 
   const handleConfirm = () => {
     if (mode === 'SPECIFIC_COMMIT' && !targetCommitSha) {
       alert('특정 커밋을 선택해주세요.');
       return;
     }
-    onConfirm(mode, mode === 'SPECIFIC_COMMIT' ? targetCommitSha : undefined);
+    onConfirm(mode, mode === 'SPECIFIC_COMMIT' ? targetCommitSha : undefined, enableEmbedding);
     onOpenChange(false);
   };
 
@@ -50,6 +52,14 @@ export function SyncModeDialog({ repositoryId, open, onOpenChange, onConfirm }: 
             <DialogTitle>동기화 모드 선택</DialogTitle>
             <DialogDescription>레포지토리를 동기화할 방식을 선택하세요.</DialogDescription>
           </DialogHeader>
+
+          {/* 안내 메시지 */}
+          <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              동기화 시 문서가 자동으로 청킹되며, 임베딩 옵션을 켜면 AI 의미 검색(Semantic Search)을 위한 벡터가 생성됩니다.
+            </p>
+          </div>
 
           <div className="space-y-4 py-4">
             <RadioGroup value={mode} onValueChange={(value) => setMode(value as SyncMode)}>
@@ -121,6 +131,26 @@ export function SyncModeDialog({ repositoryId, open, onOpenChange, onConfirm }: 
                 </div>
               </div>
             </RadioGroup>
+
+            {/* Embedding 옵션 */}
+            <div className="flex items-center justify-between rounded-md border p-4">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                <div className="space-y-0.5">
+                  <Label htmlFor="enable-embedding" className="text-sm font-medium cursor-pointer">
+                    임베딩 생성
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    의미 검색(Semantic/Hybrid)을 위한 벡터 생성
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="enable-embedding"
+                checked={enableEmbedding}
+                onCheckedChange={setEnableEmbedding}
+              />
+            </div>
           </div>
 
           <DialogFooter>

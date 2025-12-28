@@ -52,13 +52,15 @@ public class GitSyncService {
      * @param mode 동기화 모드
      * @param targetCommitSha 특정 커밋 SHA (SPECIFIC_COMMIT 모드에서 사용)
      * @param lastSyncedCommit 마지막 동기화된 커밋 (INCREMENTAL 모드에서 사용)
+     * @param enableEmbedding 임베딩 생성 여부
      * @return 최신 커밋 SHA
      * @throws IllegalArgumentException 레포지토리가 존재하지 않을 경우
      * @throws RuntimeException Git 작업 실패 시
      */
     @Transactional
     public String syncRepository(UUID jobId, UUID repositoryId, String branch,
-                                  SyncMode mode, String targetCommitSha, String lastSyncedCommit) {
+                                  SyncMode mode, String targetCommitSha, String lastSyncedCommit,
+                                  boolean enableEmbedding) {
         Repository repo = repositoryRepository.findWithCredentialById(repositoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
 
@@ -73,9 +75,9 @@ public class GitSyncService {
 
             // 모드에 따라 적절한 동기화 메서드 호출
             return switch (syncMode) {
-                case FULL_SCAN -> syncFullScan(jobId, git, repo, branch);
-                case INCREMENTAL -> syncIncremental(jobId, git, repo, branch, lastSyncedCommit);
-                case SPECIFIC_COMMIT -> syncSpecificCommit(jobId, git, repo, targetCommitSha);
+                case FULL_SCAN -> syncFullScan(jobId, git, repo, branch, enableEmbedding);
+                case INCREMENTAL -> syncIncremental(jobId, git, repo, branch, lastSyncedCommit, enableEmbedding);
+                case SPECIFIC_COMMIT -> syncSpecificCommit(jobId, git, repo, targetCommitSha, enableEmbedding);
             };
 
         } catch (GitAPIException | IOException e) {
@@ -88,7 +90,7 @@ public class GitSyncService {
      * 전체 스캔 동기화.
      * 최신 커밋의 모든 문서 파일을 스캔한다.
      */
-    private String syncFullScan(UUID jobId, Git git, Repository repo, String branch)
+    private String syncFullScan(UUID jobId, Git git, Repository repo, String branch, boolean enableEmbedding)
             throws GitAPIException, IOException {
 
         // Fetch and checkout
@@ -99,8 +101,8 @@ public class GitSyncService {
         String latestCommit = gitService.getLatestCommitSha(git, branch);
         CommitInfo commitInfo = gitService.getCommitInfo(git, latestCommit);
 
-        log.info("FULL_SCAN: Syncing repository {} at commit {}",
-                repo.getFullName(), latestCommit.substring(0, 7));
+        log.info("FULL_SCAN: Syncing repository {} at commit {} (embedding: {})",
+                repo.getFullName(), latestCommit.substring(0, 7), enableEmbedding);
 
         // Scan document files
         List<String> documentPaths = gitFileScanner.scanDocumentFiles(git, latestCommit);
@@ -112,7 +114,7 @@ public class GitSyncService {
         // Process each document
         for (int i = 0; i < documentPaths.size(); i++) {
             String path = documentPaths.get(i);
-            processDocument(git, repo, path, latestCommit, commitInfo);
+            processDocument(git, repo, path, latestCommit, commitInfo, enableEmbedding);
             progressTracker.update(jobId, i + 1, path);
         }
 
@@ -124,7 +126,7 @@ public class GitSyncService {
      * 증분 동기화.
      * 마지막 동기화 커밋 이후 변경된 문서만 처리한다.
      */
-    private String syncIncremental(UUID jobId, Git git, Repository repo, String branch, String lastSyncedCommit)
+    private String syncIncremental(UUID jobId, Git git, Repository repo, String branch, String lastSyncedCommit, boolean enableEmbedding)
             throws GitAPIException, IOException {
 
         // Fetch and checkout
@@ -137,7 +139,7 @@ public class GitSyncService {
         // lastSyncedCommit이 없으면 FULL_SCAN으로 fallback
         if (lastSyncedCommit == null || lastSyncedCommit.isBlank()) {
             log.warn("INCREMENTAL: No lastSyncedCommit, falling back to FULL_SCAN");
-            return syncFullScan(jobId, git, repo, branch);
+            return syncFullScan(jobId, git, repo, branch, enableEmbedding);
         }
 
         // 이미 최신 상태인지 확인
@@ -148,8 +150,8 @@ public class GitSyncService {
             return latestCommit;
         }
 
-        log.info("INCREMENTAL: Syncing from {} to {}",
-                lastSyncedCommit.substring(0, 7), latestCommit.substring(0, 7));
+        log.info("INCREMENTAL: Syncing from {} to {} (embedding: {})",
+                lastSyncedCommit.substring(0, 7), latestCommit.substring(0, 7), enableEmbedding);
 
         // 변경된 커밋 순회
         List<GitCommitWalker.CommitInfo> commits = gitCommitWalker.walkCommits(git, lastSyncedCommit, latestCommit);
@@ -171,7 +173,7 @@ public class GitSyncService {
             List<GitCommitWalker.ChangedFile> docFiles = gitFileScanner.filterDocumentFiles(changedFiles);
 
             for (GitCommitWalker.ChangedFile changedFile : docFiles) {
-                processChangedDocument(git, repo, changedFile, commitInfo);
+                processChangedDocument(git, repo, changedFile, commitInfo, enableEmbedding);
                 processedPaths.add(changedFile.path());
                 progressTracker.update(jobId, processedPaths.size(), changedFile.path());
             }
@@ -185,15 +187,15 @@ public class GitSyncService {
      * 특정 커밋 동기화.
      * 지정된 커밋에서 문서를 추출한다.
      */
-    private String syncSpecificCommit(UUID jobId, Git git, Repository repo, String targetCommitSha)
+    private String syncSpecificCommit(UUID jobId, Git git, Repository repo, String targetCommitSha, boolean enableEmbedding)
             throws GitAPIException, IOException {
 
         if (targetCommitSha == null || targetCommitSha.isBlank()) {
             throw new IllegalArgumentException("targetCommitSha is required for SPECIFIC_COMMIT mode");
         }
 
-        log.info("SPECIFIC_COMMIT: Syncing repository {} at commit {}",
-                repo.getFullName(), targetCommitSha.substring(0, 7));
+        log.info("SPECIFIC_COMMIT: Syncing repository {} at commit {} (embedding: {})",
+                repo.getFullName(), targetCommitSha.substring(0, 7), enableEmbedding);
 
         CommitInfo commitInfo = gitService.getCommitInfo(git, targetCommitSha);
         if (commitInfo == null) {
@@ -210,7 +212,7 @@ public class GitSyncService {
         // Process each document
         for (int i = 0; i < documentPaths.size(); i++) {
             String path = documentPaths.get(i);
-            processDocument(git, repo, path, targetCommitSha, commitInfo);
+            processDocument(git, repo, path, targetCommitSha, commitInfo, enableEmbedding);
             progressTracker.update(jobId, i + 1, path);
         }
 
@@ -227,9 +229,10 @@ public class GitSyncService {
      * @param path 파일 경로
      * @param commitSha 커밋 SHA (스캔 시점의 커밋, 파일 마지막 커밋을 찾기 위한 상한)
      * @param commitInfo 커밋 정보 (사용되지 않음)
+     * @param enableEmbedding 임베딩 생성 여부
      */
     private void processDocument(Git git, Repository repo, String path,
-                                   String commitSha, CommitInfo commitInfo) {
+                                   String commitSha, CommitInfo commitInfo, boolean enableEmbedding) {
         try {
             // 파일의 실제 마지막 수정 커밋을 찾기
             CommitInfo actualCommitInfo = gitService.getLastCommitForFile(git, commitSha, path);
@@ -265,16 +268,21 @@ public class GitSyncService {
             // Chunk and embed the newly created document version
             if (newVersion != null) {
                 try {
-                    // Step 1: Chunking
+                    // Step 1: Chunking (always performed)
                     chunkingService.chunkAndSave(newVersion);
                     log.debug("Chunked document version: {} for {}", newVersion.getId(), path);
 
-                    // Step 2: Embedding (Spring AI VectorStore)
-                    int embeddedCount = embeddingService.embedDocumentVersion(newVersion);
-                    log.debug("Embedded {} chunks for document version: {} ({})",
-                        embeddedCount, newVersion.getId(), path);
+                    // Step 2: Embedding (Spring AI VectorStore) - conditional
+                    if (enableEmbedding) {
+                        int embeddedCount = embeddingService.embedDocumentVersion(newVersion);
+                        log.debug("Embedded {} chunks for document version: {} ({})",
+                            embeddedCount, newVersion.getId(), path);
+                    } else {
+                        log.debug("Embedding skipped for document version: {} ({})",
+                            newVersion.getId(), path);
+                    }
 
-                    // Step 3: Link extraction
+                    // Step 3: Link extraction (always performed)
                     documentLinkService.extractAndSaveLinks(newVersion.getDocument(), content);
                     log.debug("Extracted links for document: {}", path);
 
@@ -299,10 +307,12 @@ public class GitSyncService {
      * @param repo 레포지토리 엔티티
      * @param changedFile 변경된 파일 정보
      * @param commitInfo 커밋 정보 (GitCommitWalker.CommitInfo)
+     * @param enableEmbedding 임베딩 생성 여부
      */
     private void processChangedDocument(Git git, Repository repo,
                                          GitCommitWalker.ChangedFile changedFile,
-                                         GitCommitWalker.CommitInfo commitInfo) {
+                                         GitCommitWalker.CommitInfo commitInfo,
+                                         boolean enableEmbedding) {
         try {
             // GitCommitWalker.CommitInfo를 GitService.CommitInfo로 변환
             GitService.CommitInfo serviceCommitInfo = new GitService.CommitInfo(
@@ -316,7 +326,7 @@ public class GitSyncService {
             switch (changedFile.changeType()) {
                 case ADDED, MODIFIED -> {
                     // 파일 내용 읽어서 처리
-                    processDocument(git, repo, changedFile.path(), commitInfo.sha(), serviceCommitInfo);
+                    processDocument(git, repo, changedFile.path(), commitInfo.sha(), serviceCommitInfo, enableEmbedding);
                 }
                 case DELETED -> {
                     // 문서 삭제 처리
@@ -326,7 +336,7 @@ public class GitSyncService {
                 case RENAMED -> {
                     // 경로 변경 처리 (기존 문서 삭제, 새 경로로 추가)
                     documentService.markDeleted(repo.getId(), changedFile.oldPath());
-                    processDocument(git, repo, changedFile.path(), commitInfo.sha(), serviceCommitInfo);
+                    processDocument(git, repo, changedFile.path(), commitInfo.sha(), serviceCommitInfo, enableEmbedding);
                     log.debug("Renamed document: {} -> {}", changedFile.oldPath(), changedFile.path());
                 }
             }

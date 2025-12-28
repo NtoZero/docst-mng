@@ -57,8 +57,9 @@ public class SyncController {
         String branch = request != null ? request.branch() : null;
         SyncMode mode = request != null ? request.mode() : null;
         String targetCommitSha = request != null ? request.targetCommitSha() : null;
+        Boolean enableEmbedding = request != null ? request.enableEmbedding() : null;
 
-        SyncJob job = syncService.startSync(repoId, branch, mode, targetCommitSha);
+        SyncJob job = syncService.startSync(repoId, branch, mode, targetCommitSha, enableEmbedding);
         return ResponseEntity.accepted().body(toResponse(job));
     }
 

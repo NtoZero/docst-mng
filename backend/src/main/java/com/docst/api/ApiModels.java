@@ -263,13 +263,14 @@ public final class ApiModels {
     ) {}
 
     /**
-     * 동기화 시작 요청.
+     * 동기화 요청.
      *
-     * @param branch 대상 브랜치 (선택)
-     * @param mode 동기화 모드 (선택, 기본값 FULL_SCAN)
-     * @param targetCommitSha SPECIFIC_COMMIT 모드에서 대상 커밋 (선택)
+     * @param branch 대상 브랜치 (null이면 기본 브랜치)
+     * @param mode 동기화 모드 (FULL_SCAN, INCREMENTAL, SPECIFIC_COMMIT)
+     * @param targetCommitSha 특정 커밋 SHA (SPECIFIC_COMMIT 모드에서 사용)
+     * @param enableEmbedding 임베딩 생성 여부 (기본값: true)
      */
-    public record SyncRequest(String branch, SyncMode mode, String targetCommitSha) {}
+    public record SyncRequest(String branch, SyncMode mode, String targetCommitSha, Boolean enableEmbedding) {}
 
     /**
      * 동기화 모드.

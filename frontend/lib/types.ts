@@ -182,6 +182,7 @@ export interface SyncRequest {
   branch?: string;
   mode?: SyncMode;
   targetCommitSha?: string;
+  enableEmbedding?: boolean;
 }
 
 // ===== SSE Events =====
