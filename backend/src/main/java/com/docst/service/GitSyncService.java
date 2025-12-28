@@ -40,6 +40,7 @@ public class GitSyncService {
     private final SyncProgressTracker progressTracker;
     private final com.docst.chunking.ChunkingService chunkingService;
     private final com.docst.embedding.DocstEmbeddingService embeddingService;
+    private final DocumentLinkService documentLinkService;
 
     /**
      * 레포지토리를 동기화한다.
@@ -252,9 +253,13 @@ public class GitSyncService {
                     log.debug("Embedded {} chunks for document version: {} ({})",
                         embeddedCount, newVersion.getId(), path);
 
+                    // Step 3: Link extraction
+                    documentLinkService.extractAndSaveLinks(newVersion.getDocument(), content);
+                    log.debug("Extracted links for document: {}", path);
+
                 } catch (Exception error) {
-                    log.error("Failed to chunk/embed document: {}", path, error);
-                    // Continue processing even if chunking/embedding fails
+                    log.error("Failed to chunk/embed/extract links for document: {}", path, error);
+                    // Continue processing even if chunking/embedding/link extraction fails
                 }
             }
 

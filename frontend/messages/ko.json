@@ -82,11 +82,30 @@
   },
   "auth": {
     "login": "로그인",
-    "loginTitle": "Docst 로그인",
+    "loginTitle": "Docst에 오신 것을 환영합니다",
     "email": "이메일",
     "password": "비밀번호",
     "loginButton": "로그인",
     "loginSuccess": "로그인 성공",
-    "loginError": "로그인 실패"
+    "loginError": "로그인 실패",
+    "loginWithGitHub": "GitHub으로 계속하기",
+    "orContinueWith": "또는 이메일로 계속하기",
+    "oauthSuccess": "로그인 성공! 리다이렉트 중...",
+    "oauthError": "인증 실패",
+    "oauthLoading": "인증 중..."
+  },
+  "search": {
+    "title": "문서 검색",
+    "searchPlaceholder": "검색어를 입력하세요...",
+    "search": "검색",
+    "noResults": "검색 결과가 없습니다",
+    "modeKeyword": "키워드",
+    "modeSemantic": "의미",
+    "modeHybrid": "하이브리드",
+    "recommended": "추천",
+    "results": "{count}개 결과",
+    "matchScore": "{score}% 일치",
+    "filterByType": "타입별 필터",
+    "filterByRepo": "저장소별 필터"
   }
 }

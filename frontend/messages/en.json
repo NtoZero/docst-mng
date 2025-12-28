@@ -82,11 +82,30 @@
   },
   "auth": {
     "login": "Login",
-    "loginTitle": "Sign in to Docst",
+    "loginTitle": "Welcome to Docst",
     "email": "Email",
     "password": "Password",
     "loginButton": "Sign In",
     "loginSuccess": "Login successful",
-    "loginError": "Login failed"
+    "loginError": "Login failed",
+    "loginWithGitHub": "Continue with GitHub",
+    "orContinueWith": "or continue with email",
+    "oauthSuccess": "Login successful! Redirecting...",
+    "oauthError": "Authentication failed",
+    "oauthLoading": "Authenticating..."
+  },
+  "search": {
+    "title": "Search Documents",
+    "searchPlaceholder": "Enter search query...",
+    "search": "Search",
+    "noResults": "No results found",
+    "modeKeyword": "Keyword",
+    "modeSemantic": "Semantic",
+    "modeHybrid": "Hybrid",
+    "recommended": "Recommended",
+    "results": "{count} results",
+    "matchScore": "{score}% match",
+    "filterByType": "Filter by type",
+    "filterByRepo": "Filter by repository"
   }
 }

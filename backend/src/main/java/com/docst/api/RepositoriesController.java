@@ -4,7 +4,10 @@ import com.docst.api.ApiModels.CreateRepositoryRequest;
 import com.docst.api.ApiModels.RepositoryResponse;
 import com.docst.api.ApiModels.SetCredentialRequest;
 import com.docst.api.ApiModels.UpdateRepositoryRequest;
+import com.docst.auth.RequireProjectRole;
+import com.docst.auth.RequireRepositoryAccess;
 import com.docst.domain.Credential;
+import com.docst.domain.ProjectRole;
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
 import com.docst.repository.CredentialRepository;
@@ -37,6 +40,7 @@ public class RepositoriesController {
      * @return 레포지토리 목록
      */
     @GetMapping("/projects/{projectId}/repositories")
+    @RequireProjectRole(role = ProjectRole.VIEWER, projectIdParam = "projectId")
     public List<RepositoryResponse> listRepositories(@PathVariable UUID projectId) {
         return repositoryService.findByProjectId(projectId).stream()
                 .map(this::toResponse)
@@ -51,6 +55,7 @@ public class RepositoriesController {
      * @return 생성된 레포지토리 (201 Created)
      */
     @PostMapping("/projects/{projectId}/repositories")
+    @RequireProjectRole(role = ProjectRole.ADMIN, projectIdParam = "projectId")
     public ResponseEntity<RepositoryResponse> createRepository(
             @PathVariable UUID projectId,
             @RequestBody CreateRepositoryRequest request
@@ -75,6 +80,7 @@ public class RepositoriesController {
      * @return 레포지토리 정보 (없으면 404)
      */
     @GetMapping("/repositories/{repoId}")
+    @RequireRepositoryAccess(role = ProjectRole.VIEWER, repositoryIdParam = "repoId")
     public ResponseEntity<RepositoryResponse> getRepository(@PathVariable UUID repoId) {
         return repositoryService.findById(repoId)
                 .map(this::toResponse)

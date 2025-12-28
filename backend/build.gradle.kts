@@ -45,12 +45,23 @@ dependencies {
   implementation("org.flywaydb:flyway-core")
   implementation("org.flywaydb:flyway-database-postgresql")
 
+  // SQL Logging with actual parameter values (P6Spy)
+  implementation("com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.11.0")
+
   // Git
   implementation("org.eclipse.jgit:org.eclipse.jgit:7.1.0.202411261347-r")
 
   // Utilities
   implementation("com.vladsch.flexmark:flexmark-all:0.64.8") // Markdown parsing
   implementation("com.knuddels:jtokkit:1.0.0") // Token counting (tiktoken compatible)
+
+  // JWT
+  implementation("io.jsonwebtoken:jjwt-api:0.12.5")
+  runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
+  runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
+
+  // OAuth2
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
   // Lombok
   compileOnly("org.projectlombok:lombok")

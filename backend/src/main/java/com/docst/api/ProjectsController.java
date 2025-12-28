@@ -3,7 +3,9 @@ package com.docst.api;
 import com.docst.api.ApiModels.CreateProjectRequest;
 import com.docst.api.ApiModels.ProjectResponse;
 import com.docst.api.ApiModels.UpdateProjectRequest;
+import com.docst.auth.RequireProjectRole;
 import com.docst.domain.Project;
+import com.docst.domain.ProjectRole;
 import com.docst.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +58,7 @@ public class ProjectsController {
      * @return 프로젝트 정보 (없으면 404)
      */
     @GetMapping("/{projectId}")
+    @RequireProjectRole(role = ProjectRole.VIEWER, projectIdParam = "projectId")
     public ResponseEntity<ProjectResponse> getProject(@PathVariable UUID projectId) {
         return projectService.findById(projectId)
                 .map(this::toResponse)
@@ -71,6 +74,7 @@ public class ProjectsController {
      * @return 업데이트된 프로젝트 (없으면 404)
      */
     @PutMapping("/{projectId}")
+    @RequireProjectRole(role = ProjectRole.ADMIN, projectIdParam = "projectId")
     public ResponseEntity<ProjectResponse> updateProject(
             @PathVariable UUID projectId,
             @RequestBody UpdateProjectRequest request
@@ -88,6 +92,7 @@ public class ProjectsController {
      * @return 204 No Content
      */
     @DeleteMapping("/{projectId}")
+    @RequireProjectRole(role = ProjectRole.OWNER, projectIdParam = "projectId")
     public ResponseEntity<Void> deleteProject(@PathVariable UUID projectId) {
         projectService.delete(projectId);
         return ResponseEntity.noContent().build();

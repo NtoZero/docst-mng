@@ -2,10 +2,12 @@ package com.docst.api;
 
 import com.docst.api.ApiModels.AuthTokenResponse;
 import com.docst.api.ApiModels.UserResponse;
+import com.docst.auth.JwtService;
 import com.docst.domain.User;
 import com.docst.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -20,6 +22,7 @@ import java.util.UUID;
 public class AuthController {
 
     private final UserService userService;
+    private final JwtService jwtService;
 
     /**
      * 로컬 계정으로 로그인한다.
@@ -31,29 +34,32 @@ public class AuthController {
     @PostMapping("/local/login")
     public ResponseEntity<AuthTokenResponse> login(@RequestBody LoginRequest request) {
         User user = userService.createOrUpdateLocalUser(request.email(), request.displayName());
-        // TODO: Generate proper JWT token
-        String token = "dev-token-" + user.getId();
-        AuthTokenResponse response = new AuthTokenResponse(token, "Bearer", 3600);
+        // Generate JWT token
+        String token = jwtService.generateToken(user.getId(), user.getEmail());
+        AuthTokenResponse response = new AuthTokenResponse(token, "Bearer", 86400);
         return ResponseEntity.ok(response);
     }
 
     /**
      * 현재 인증된 사용자 정보를 반환한다.
      *
-     * @param auth Authorization 헤더
+     * @param authentication Spring Security Authentication
      * @return 사용자 정보
      */
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(@RequestHeader(value = "Authorization", required = false) String auth) {
-        // TODO: Parse JWT and get actual user
-        // For now, return a placeholder user for development
+    public ResponseEntity<UserResponse> me(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(401).build();
+        }
+
+        User user = (User) authentication.getPrincipal();
         UserResponse response = new UserResponse(
-                UUID.randomUUID(),
-                "LOCAL",
-                "local-user",
-                "local@example.com",
-                "Local User",
-                java.time.Instant.now()
+                user.getId(),
+                user.getProvider().name(),
+                user.getProviderUserId(),
+                user.getEmail(),
+                user.getDisplayName(),
+                user.getCreatedAt()
         );
         return ResponseEntity.ok(response);
     }

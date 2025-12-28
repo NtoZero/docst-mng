@@ -74,4 +74,14 @@ public interface RepositoryRepository extends JpaRepository<Repository, UUID> {
      */
     @EntityGraph(attributePaths = {"credential"})
     Optional<Repository> findWithCredentialById(UUID id);
+
+    /**
+     * 소유자와 이름으로 레포지토리를 조회한다.
+     * Webhook 이벤트 처리 시 사용한다.
+     *
+     * @param owner 소유자 이름
+     * @param name 레포 이름
+     * @return 레포지토리 (존재하지 않으면 empty)
+     */
+    Optional<Repository> findByOwnerAndName(String owner, String name);
 }

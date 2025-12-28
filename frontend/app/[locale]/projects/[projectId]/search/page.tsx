@@ -3,55 +3,34 @@
 import { use, useEffect, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Search as SearchIcon, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search as SearchIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { SearchModeSelect } from '@/components/search-mode-select';
+import { SearchResultCard } from '@/components/search-result-card';
 import { useProject, useSearch } from '@/hooks/use-api';
 import { useAuthStore } from '@/lib/store';
-import type { SearchResult } from '@/lib/types';
-
-function SearchResultCard({ result }: { result: SearchResult }) {
-  return (
-    <Link href={`/documents/${result.documentId}`}>
-      <Card className="cursor-pointer transition-colors hover:bg-accent">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <FileText className="mt-0.5 h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">{result.path}</p>
-                <div
-                  className="mt-1 text-sm text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: result.highlightedSnippet || result.snippet }}
-                />
-              </div>
-            </div>
-            <Badge variant="outline">{Math.round(result.score * 100)}%</Badge>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
+import { useTranslations } from 'next-intl';
 
 export default function SearchPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAuthStore((state) => state.user);
+  const t = useTranslations('search');
 
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [mode, setMode] = useState<'keyword' | 'semantic' | 'hybrid'>('hybrid');
 
   const { data: project } = useProject(projectId);
   const {
     data: results,
     isLoading,
     error,
-  } = useSearch(projectId, { q: searchQuery, mode: 'keyword', topK: 20 }, !!searchQuery);
+  } = useSearch(projectId, { q: searchQuery, mode: mode, topK: 20 }, !!searchQuery);
 
   useEffect(() => {
     if (!user) {
@@ -83,20 +62,21 @@ export default function SearchPage({ params }: { params: Promise<{ projectId: st
         </div>
       </div>
 
-      <form onSubmit={handleSearch}>
+      <form onSubmit={handleSearch} className="space-y-4">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search documents..."
+              placeholder={t('searchPlaceholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-10"
             />
           </div>
+          <SearchModeSelect value={mode} onChange={setMode} />
           <Button type="submit" disabled={!query.trim()}>
-            Search
+            {t('search')}
           </Button>
         </div>
       </form>

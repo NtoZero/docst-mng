@@ -62,17 +62,31 @@ spring:
 docst:
   git:
     root-path: ${DOCST_GIT_ROOT:/data/git}
-  auth:
-    mode: ${DOCST_AUTH_MODE:local}
-    jwt:
-      secret: ${JWT_SECRET:docst-dev-secret-key-change-in-production}
-      expiration-seconds: 86400
+
+  # JWT Configuration
+  jwt:
+    secret: ${JWT_SECRET:docst-dev-secret-key-change-in-production-must-be-256-bits}
+    expiration: 86400  # 24 hours in seconds
+
+  # GitHub OAuth Configuration
+  github:
+    client-id: ${GITHUB_CLIENT_ID:}
+    client-secret: ${GITHUB_CLIENT_SECRET:}
+    callback-url: ${GITHUB_CALLBACK_URL:http://localhost:8342/api/auth/github/callback}
+    frontend-callback-url: ${GITHUB_FRONTEND_CALLBACK_URL:http://localhost:3000/auth/callback}
+
+  # GitHub Webhook Configuration
+  webhook:
+    github:
+      secret: ${GITHUB_WEBHOOK_SECRET:}
+
   # Chunking Configuration
   chunking:
     max-tokens: 512
     overlap-tokens: 50
     min-tokens: 100
     heading-path-separator: " > "
+
   # Embedding Configuration
   embedding:
     batch-size: 32
@@ -81,7 +95,17 @@ docst:
 logging:
   level:
     com.docst: DEBUG
-    org.hibernate.SQL: DEBUG
+    # Hibernate logging (replaced by P6Spy for better SQL logging with actual values)
+    # org.hibernate.SQL: DEBUG
+    # org.hibernate.orm.jdbc.bind: TRACE
+
+# P6Spy Configuration - Logs SQL with actual parameter values
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: true
+      multiline: false  # Single line format for easy copy-paste to SQL console
+      logging: slf4j    # Use SLF4J for logging
 
 ---
 spring:

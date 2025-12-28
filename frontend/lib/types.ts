@@ -110,17 +110,26 @@ export interface SearchResult {
   documentId: string;
   repositoryId: string;
   path: string;
+  documentPath: string;
+  title: string;
   commitSha: string;
   chunkId: string | null;
   score: number;
   snippet: string;
   highlightedSnippet: string;
+  highlights: string[];
+  // Phase 2-C: 의미 검색 추가 필드
+  headingPath?: string;
+  tokenCount?: number;
+  docType?: DocType;
 }
 
 export interface SearchRequest {
   q: string;
-  mode?: 'keyword' | 'semantic';
+  mode?: 'keyword' | 'semantic' | 'hybrid';
   topK?: number;
+  repositoryId?: string;  // 저장소 필터
+  docType?: DocType;      // 문서 타입 필터
 }
 
 // ===== Sync =====
