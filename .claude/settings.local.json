@@ -8,7 +8,8 @@
       "Bash(npm run build:*)",
       "Bash(docker compose:*)",
       "mcp__context7__resolve-library-id",
-      "Bash(./gradlew test:*)"
+      "Bash(./gradlew test:*)",
+      "Bash(./gradlew build:*)"
     ]
   }
 }

@@ -63,6 +63,15 @@ dependencies {
   // OAuth2
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
+  // Security
+  implementation("org.springframework.boot:spring-boot-starter-security")
+
+  // Bouncy Castle (Argon2 support)
+  implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+
+  // Cache (for rate limiting)
+  implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+
   // Lombok
   compileOnly("org.projectlombok:lombok")
   annotationProcessor("org.projectlombok:lombok")

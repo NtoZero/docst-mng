@@ -1,13 +1,20 @@
 package com.docst.api;
 
+import com.docst.auth.AdminInitializer;
+import com.docst.auth.JwtAuthenticationFilter;
+import com.docst.auth.PasswordValidator;
+import com.docst.config.AdminProperties;
 import com.docst.service.HybridSearchService;
 import com.docst.service.SearchService;
 import com.docst.service.SemanticSearchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -23,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * REST API 엔드포인트 검증
  */
 @WebMvcTest(SearchController.class)
+@AutoConfigureMockMvc(addFilters = false)  // Disable Spring Security filters for testing
 class SearchControllerTest {
 
     @Autowired
@@ -36,6 +44,22 @@ class SearchControllerTest {
 
     @MockBean
     private HybridSearchService hybridSearchService;
+
+    // Security-related beans (needed for SecurityConfig)
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private PasswordEncoder passwordEncoder;
+
+    @MockBean
+    private PasswordValidator passwordValidator;
+
+    @MockBean
+    private AdminProperties adminProperties;
+
+    @MockBean
+    private AdminInitializer adminInitializer;
 
     @Test
     @DisplayName("검색 모드=keyword → SearchService.searchByKeyword 호출")

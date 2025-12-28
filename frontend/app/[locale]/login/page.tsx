@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLogin } from '@/hooks/use-api';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -112,8 +113,14 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Demo credentials: demo@docst.dev / demo123</p>
+          <div className="mt-6 space-y-3 text-center text-sm">
+            <p className="text-muted-foreground">Demo credentials: demo@docst.dev / demo123</p>
+            <div className="text-muted-foreground">
+              Don't have an account?{' '}
+              <Link href="/register" className="text-primary hover:underline font-medium">
+                Sign up
+              </Link>
+            </div>
           </div>
         </CardContent>
       </Card>

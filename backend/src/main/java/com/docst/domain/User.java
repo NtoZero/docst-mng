@@ -48,6 +48,13 @@ public class User {
     private Instant createdAt;
 
     /**
+     * 비밀번호 해시 (LOCAL 사용자만 사용)
+     * Argon2id 형식: $argon2id$v=19$m=19456,t=2,p=1$...
+     */
+    @Column(name = "password_hash", length = 150)
+    private String passwordHash;
+
+    /**
      * 사용자 생성자.
      *
      * @param provider 인증 제공자
@@ -61,6 +68,34 @@ public class User {
         this.email = email;
         this.displayName = displayName;
         this.createdAt = Instant.now();
+    }
+
+    /**
+     * 비밀번호가 설정되어 있는지 확인
+     */
+    public boolean hasPassword() {
+        return passwordHash != null && !passwordHash.isEmpty();
+    }
+
+    /**
+     * LOCAL 사용자인지 확인
+     */
+    public boolean isLocalUser() {
+        return provider == AuthProvider.LOCAL;
+    }
+
+    /**
+     * 비밀번호 해시 설정 (public for service layer access)
+     */
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    /**
+     * 비밀번호 해시 조회 (public for service layer access)
+     */
+    public String getPasswordHash() {
+        return passwordHash;
     }
 
     /** 인증 제공자 타입 */

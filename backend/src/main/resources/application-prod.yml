@@ -1,0 +1,65 @@
+# Production Profile
+# Run with: java -jar app.jar --spring.profiles.active=prod
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    clean-disabled: true
+    validate-on-migrate: true
+
+docst:
+  git:
+    root-path: ${DOCST_GIT_ROOT:/data/git}
+
+  # Admin Auto-initialization (DISABLED in production)
+  # Use /api/setup/initialize endpoint instead
+  admin:
+    enabled: false
+
+  jwt:
+    secret: ${JWT_SECRET}  # REQUIRED in production
+
+  github:
+    client-id: ${GITHUB_CLIENT_ID}
+    client-secret: ${GITHUB_CLIENT_SECRET}
+    callback-url: ${GITHUB_CALLBACK_URL}
+    frontend-callback-url: ${GITHUB_FRONTEND_CALLBACK_URL}
+
+  webhook:
+    github:
+      secret: ${GITHUB_WEBHOOK_SECRET}
+
+logging:
+  level:
+    com.docst: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+
+# P6Spy - Disabled in production
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: false

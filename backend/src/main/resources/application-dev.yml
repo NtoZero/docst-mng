@@ -1,0 +1,41 @@
+# Development Server Profile
+# Run with: ./gradlew bootRun --args='--spring.profiles.active=dev'
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:docst_dev}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  flyway:
+    enabled: true
+    clean-disabled: true
+
+docst:
+  git:
+    root-path: ${DOCST_GIT_ROOT:/data/git}
+
+  # Admin Auto-initialization (enabled in dev)
+  admin:
+    enabled: true
+    email: ${DOCST_ADMIN_EMAIL:admin@dev.docst.local}
+    password: ${DOCST_ADMIN_PASSWORD:}  # Must be set via environment variable
+    display-name: ${DOCST_ADMIN_NAME:Dev Admin}
+
+  jwt:
+    secret: ${JWT_SECRET:}  # Must be set via environment variable
+
+logging:
+  level:
+    com.docst: DEBUG
+
+# P6Spy - Disabled in dev
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: false

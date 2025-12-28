@@ -2,6 +2,11 @@ import type {
   AuthTokenResponse,
   User,
   LoginRequest,
+  RegisterRequest,
+  ChangePasswordRequest,
+  SetupStatusResponse,
+  InitializeRequest,
+  InitializeResponse,
   Project,
   CreateProjectRequest,
   UpdateProjectRequest,
@@ -87,7 +92,30 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
 
+  register: (data: RegisterRequest): Promise<AuthTokenResponse> =>
+    request('/api/auth/local/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  changePassword: (data: ChangePasswordRequest): Promise<{ message: string }> =>
+    request('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   me: (): Promise<User> => request('/api/auth/me'),
+};
+
+// ===== Setup API =====
+export const setupApi = {
+  getStatus: (): Promise<SetupStatusResponse> => request('/api/setup/status'),
+
+  initialize: (data: InitializeRequest): Promise<InitializeResponse> =>
+    request('/api/setup/initialize', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // ===== Projects API =====

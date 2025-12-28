@@ -5,6 +5,9 @@ spring:
   application:
     name: docst
 
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:docst}
     username: ${DB_USERNAME:postgres}
@@ -33,7 +36,7 @@ spring:
       embedding:
         enabled: ${OPENAI_EMBEDDING_ENABLED:true}
         options:
-          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}  # text-embedding-3-small (1536 dims), text-embedding-ada-002 (1536 dims)
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
 
     # Ollama Embedding Model (Optional - disabled by default)
     ollama:
@@ -41,18 +44,18 @@ spring:
       embedding:
         enabled: ${OLLAMA_EMBEDDING_ENABLED:false}
         options:
-          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}  # 768 dimensions
+          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
       chat:
-        enabled: false  # Disable chat model to prevent mistral auto-pull
+        enabled: false
       init:
-        pull-model-strategy: never  # never, always, when_missing
+        pull-model-strategy: never
 
     # PgVector VectorStore
     vectorstore:
       pgvector:
-        index-type: HNSW  # HNSW or IVFFLAT
-        distance-type: COSINE_DISTANCE  # COSINE_DISTANCE, EUCLIDEAN_DISTANCE, NEGATIVE_INNER_PRODUCT
-        dimensions: ${EMBEDDING_DIMENSIONS:1536}  # OpenAI text-embedding-3-small: 1536, nomic-embed-text: 768
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: ${EMBEDDING_DIMENSIONS:1536}
         remove-existing-vector-store-table: false
         initialize-schema: true
         schema-name: public
@@ -92,49 +95,40 @@ docst:
     batch-size: 32
     enabled: true
 
+  # Admin Initialization Configuration
+  admin:
+    enabled: ${DOCST_ADMIN_AUTO_INIT:false}
+    email: ${DOCST_ADMIN_EMAIL:admin@docst.local}
+    password: ${DOCST_ADMIN_PASSWORD:}
+    display-name: ${DOCST_ADMIN_NAME:System Admin}
+
+  # CORS Configuration
+  cors:
+    enabled: ${DOCST_CORS_ENABLED:true}
+    allowed-origins: ${DOCST_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:3002}
+    allowed-methods: ${DOCST_CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+    allowed-headers: ${DOCST_CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept,X-Requested-With}
+    allow-credentials: ${DOCST_CORS_ALLOW_CREDENTIALS:true}
+    max-age: ${DOCST_CORS_MAX_AGE:3600}
+    exposed-headers: ${DOCST_CORS_EXPOSED_HEADERS:Authorization}
+
+  # Password Policy Configuration
+  security:
+    password-policy:
+      min-length: 8
+      max-length: 128
+      min-strength: 3
+      history-count: 5
+      expiration-days: 0  # 0 = unlimited
+
 logging:
   level:
-    com.docst: DEBUG
-    # Hibernate logging (replaced by P6Spy for better SQL logging with actual values)
-    # org.hibernate.SQL: DEBUG
-    # org.hibernate.orm.jdbc.bind: TRACE
+    com.docst: INFO
 
-# P6Spy Configuration - Logs SQL with actual parameter values
+# P6Spy Configuration
 decorator:
   datasource:
     p6spy:
-      enable-logging: true
-      multiline: false  # Single line format for easy copy-paste to SQL console
-      logging: slf4j    # Use SLF4J for logging
-
----
-spring:
-  config:
-    activate:
-      on-profile: local
-  datasource:
-    url: jdbc:h2:file:./data/docst-dev;MODE=PostgreSQL;AUTO_SERVER=TRUE
-    driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-  flyway:
-    enabled: false
-
-docst:
-  git:
-    root-path: ./data/git
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-  datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
-    driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-  flyway:
-    enabled: false
+      enable-logging: false
+      multiline: false
+      logging: slf4j

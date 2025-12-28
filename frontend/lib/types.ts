@@ -19,6 +19,36 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  displayName: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export interface SetupStatusResponse {
+  needsSetup: boolean;
+  message: string;
+  existingUserCount: number;
+}
+
+export interface InitializeRequest {
+  email: string;
+  password: string;
+  displayName: string;
+}
+
+export interface InitializeResponse {
+  userId: string;
+  email: string;
+  displayName: string;
+  message: string;
+}
+
 // ===== Project =====
 export interface Project {
   id: string;

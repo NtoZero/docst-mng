@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { authApi, projectsApi, repositoriesApi, documentsApi, credentialsApi, commitsApi } from '@/lib/api';
+import { authApi, projectsApi, repositoriesApi, documentsApi, credentialsApi, commitsApi, setupApi } from '@/lib/api';
 import type {
   CreateProjectRequest,
   UpdateProjectRequest,
@@ -10,6 +10,9 @@ import type {
   SearchRequest,
   SyncRequest,
   LoginRequest,
+  RegisterRequest,
+  ChangePasswordRequest,
+  InitializeRequest,
   CreateCredentialRequest,
   UpdateCredentialRequest,
   SetCredentialRequest,
@@ -79,6 +82,52 @@ export function useLogin() {
         token
       );
     },
+  });
+}
+
+export function useRegister() {
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  return useMutation({
+    mutationFn: async (data: RegisterRequest) => {
+      const tokenResponse = await authApi.register(data);
+      // Temporarily store token to fetch user
+      localStorage.setItem(
+        'docst-auth',
+        JSON.stringify({ state: { token: tokenResponse.accessToken } })
+      );
+      const user = await authApi.me();
+      return { token: tokenResponse.accessToken, user };
+    },
+    onSuccess: ({ token, user }) => {
+      setAuth(
+        {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+        },
+        token
+      );
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: ChangePasswordRequest) => authApi.changePassword(data),
+  });
+}
+
+export function useSetupStatus() {
+  return useQuery({
+    queryKey: ['setup', 'status'],
+    queryFn: () => setupApi.getStatus(),
+  });
+}
+
+export function useInitialize() {
+  return useMutation({
+    mutationFn: (data: InitializeRequest) => setupApi.initialize(data),
   });
 }
 
