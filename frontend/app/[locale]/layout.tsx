@@ -48,8 +48,8 @@ export default async function LocaleLayout({
               <Header />
               <div className="flex flex-1">
                 <Sidebar />
-                <main className="flex-1 lg:pl-64">
-                  <div className="container py-6">{children}</div>
+                <main className="flex-1 lg:pl-72">
+                  <div className="container px-6 py-6">{children}</div>
                 </main>
               </div>
             </div>

@@ -29,6 +29,7 @@ import type {
   CommitDetail,
   CommitListParams,
   CommitDiffParams,
+  StatsResponse,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
@@ -253,6 +254,11 @@ export const commitsApi = {
     const query = new URLSearchParams({ from: params.from, to: params.to });
     return request(`/api/repositories/${repositoryId}/commits/diff?${query.toString()}`);
   },
+};
+
+// ===== Stats API =====
+export const statsApi = {
+  get: (): Promise<StatsResponse> => request('/api/stats'),
 };
 
 export { ApiError };

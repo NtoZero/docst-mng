@@ -5,13 +5,14 @@ import { Link } from '@/i18n/routing';
 import { Plus, FolderGit2, FileText, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useProjects } from '@/hooks/use-api';
+import { useProjects, useStats } from '@/hooks/use-api';
 import { useAuthStore } from '@/lib/store';
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const user = useAuthStore((state) => state.user);
   const { data: projects, isLoading: projectsLoading } = useProjects();
+  const { data: stats, isLoading: statsLoading } = useStats();
 
   if (!user) {
     return (
@@ -48,7 +49,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {projectsLoading ? '-' : projects?.length || 0}
+              {statsLoading ? '-' : stats?.totalProjects || 0}
             </div>
           </CardContent>
         </Card>
@@ -59,7 +60,9 @@ export default function DashboardPage() {
             <GitBranch className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">-</div>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '-' : stats?.totalRepositories || 0}
+            </div>
           </CardContent>
         </Card>
 
@@ -69,7 +72,9 @@ export default function DashboardPage() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">-</div>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '-' : stats?.totalDocuments || 0}
+            </div>
           </CardContent>
         </Card>
       </div>

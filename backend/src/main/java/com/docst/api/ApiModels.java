@@ -418,4 +418,19 @@ public final class ApiModels {
             String oldPath,
             boolean isDocument
     ) {}
+
+    // ===== Stats =====
+
+    /**
+     * 대시보드 통계 응답.
+     *
+     * @param totalProjects 전체 프로젝트 수
+     * @param totalRepositories 전체 레포지토리 수
+     * @param totalDocuments 전체 문서 수 (삭제되지 않은 것만)
+     */
+    public record StatsResponse(
+            long totalProjects,
+            long totalRepositories,
+            long totalDocuments
+    ) {}
 }

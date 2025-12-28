@@ -257,3 +257,10 @@ export interface CommitDiffParams {
   from: string;
   to: string;
 }
+
+// ===== Stats =====
+export interface StatsResponse {
+  totalProjects: number;
+  totalRepositories: number;
+  totalDocuments: number;
+}

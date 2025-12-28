@@ -70,4 +70,11 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
      * @return 존재 여부
      */
     boolean existsByRepositoryIdAndPath(UUID repositoryId, String path);
+
+    /**
+     * 삭제되지 않은 문서의 총 개수를 조회한다.
+     *
+     * @return 문서 개수
+     */
+    long countByDeletedFalse();
 }

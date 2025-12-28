@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { authApi, projectsApi, repositoriesApi, documentsApi, credentialsApi, commitsApi, setupApi } from '@/lib/api';
+import { authApi, projectsApi, repositoriesApi, documentsApi, credentialsApi, commitsApi, setupApi, statsApi } from '@/lib/api';
 import type {
   CreateProjectRequest,
   UpdateProjectRequest,
@@ -54,6 +54,9 @@ export const queryKeys = {
       ['commits', 'repository', repositoryId, sha] as const,
     diff: (repositoryId: string, from: string, to: string) =>
       ['commits', 'repository', repositoryId, 'diff', from, to] as const,
+  },
+  stats: {
+    all: ['stats'] as const,
   },
 };
 
@@ -425,5 +428,13 @@ export function useCommitDiff(repositoryId: string, params: CommitDiffParams, en
     queryKey: queryKeys.commits.diff(repositoryId, params.from, params.to),
     queryFn: () => commitsApi.getDiff(repositoryId, params),
     enabled: enabled && !!repositoryId && !!params.from && !!params.to,
+  });
+}
+
+// ===== Stats Hooks =====
+export function useStats() {
+  return useQuery({
+    queryKey: queryKeys.stats.all,
+    queryFn: () => statsApi.get(),
   });
 }
