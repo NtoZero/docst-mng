@@ -28,6 +28,13 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  # Neo4j Configuration (Phase 4: Graph RAG)
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:password}
+
   # Spring AI Configuration
   ai:
     # OpenAI Embedding Model (Default)
@@ -97,6 +104,25 @@ docst:
   embedding:
     batch-size: 32
     enabled: true
+
+  # RAG Configuration (Phase 4: Graph RAG & Hybrid RAG)
+  # UI 중심 설계: 검색 시 mode 파라미터로 동적 선택
+  rag:
+    # 전역 기본 모드 (프로젝트 설정이 없을 때만 사용)
+    default-mode: ${DOCST_RAG_DEFAULT_MODE:auto}  # auto | pgvector | neo4j | hybrid
+
+    # 각 전략 활성화 여부
+    pgvector:
+      enabled: ${DOCST_RAG_PGVECTOR_ENABLED:true}
+    neo4j:
+      enabled: ${DOCST_RAG_NEO4J_ENABLED:false}
+      entity-extraction-model: ${DOCST_RAG_NEO4J_ENTITY_MODEL:gpt-4o-mini}
+      max-hop: ${DOCST_RAG_NEO4J_MAX_HOP:2}
+    hybrid:
+      enabled: ${DOCST_RAG_HYBRID_ENABLED:true}
+      fusion-strategy: ${DOCST_RAG_HYBRID_FUSION:rrf}  # rrf | weighted_sum
+      vector-weight: ${DOCST_RAG_HYBRID_VECTOR_WEIGHT:0.6}
+      graph-weight: ${DOCST_RAG_HYBRID_GRAPH_WEIGHT:0.4}
 
   # Admin Initialization Configuration
   admin:

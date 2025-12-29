@@ -1,12 +1,13 @@
 -- Phase 4: Graph RAG & Hybrid RAG 지원을 위한 스키마 추가
 -- 작성일: 2025-12-29
 
--- 1. Project에 RAG 모드 컬럼 추가
+-- 1. Project에 RAG 모드 컬럼 추가 (nullable - UI에서 선택)
+-- null이면 전역 기본값(auto) 또는 검색 요청의 mode 파라미터 사용
 ALTER TABLE dm_project
-ADD COLUMN rag_mode VARCHAR(20) NOT NULL DEFAULT 'pgvector'
+ADD COLUMN rag_mode VARCHAR(20)
     CHECK (rag_mode IN ('pgvector', 'neo4j', 'hybrid'));
 
-COMMENT ON COLUMN dm_project.rag_mode IS 'RAG 검색 모드 (pgvector: 벡터 검색, neo4j: 그래프 검색, hybrid: 하이브리드)';
+COMMENT ON COLUMN dm_project.rag_mode IS 'RAG 검색 모드 (nullable, UI에서 설정. null이면 자동 선택)';
 
 -- 2. Project에 RAG 설정 컬럼 추가 (JSONB)
 ALTER TABLE dm_project

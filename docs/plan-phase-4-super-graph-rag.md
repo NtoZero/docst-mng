@@ -68,12 +68,12 @@ public interface RagSearchStrategy {
 
 **V9__add_rag_config.sql** (신규)
 ```sql
--- Project에 RAG 모드 컬럼 추가
+-- Project에 RAG 모드 컬럼 추가 (nullable - UI에서 선택)
 ALTER TABLE dm_project
-ADD COLUMN rag_mode VARCHAR(20) NOT NULL DEFAULT 'pgvector'
+ADD COLUMN rag_mode VARCHAR(20)
     CHECK (rag_mode IN ('pgvector', 'neo4j', 'hybrid'));
 
--- Project에 RAG 설정 컬럼 추가 (JSONB)
+-- Project에 RAG 설정 컬럼 추가 (JSONB, nullable)
 ALTER TABLE dm_project
 ADD COLUMN rag_config JSONB;
 
@@ -109,14 +109,23 @@ CREATE INDEX idx_entity_rel_target ON dm_entity_relation(target_entity_id);
 #### 3. Project 엔티티 수정
 
 **Project.java** (수정)
-- `ragMode` 필드 추가 (RagMode enum, 기본값: PGVECTOR)
-- `ragConfig` 필드 추가 (String, JSONB 매핑)
+- `ragMode` 필드 추가 (RagMode enum, **nullable** - UI에서 설정)
+- `ragConfig` 필드 추가 (String, JSONB 매핑, nullable)
 
 ```java
+/**
+ * 프로젝트별 기본 RAG 모드.
+ * null이면 전역 기본값(auto) 사용.
+ */
+@Setter
 @Enumerated(EnumType.STRING)
-@Column(name = "rag_mode", nullable = false)
-private RagMode ragMode = RagMode.PGVECTOR;
+@Column(name = "rag_mode")
+private RagMode ragMode;  // nullable
 
+/**
+ * RAG 모드별 상세 설정 (선택사항).
+ */
+@Setter
 @Column(name = "rag_config", columnDefinition = "jsonb")
 private String ragConfig;
 ```
@@ -1196,9 +1205,70 @@ List<SearchResult> results = strategy.search(projectId, query, topK);
 
 현재 HybridSearchService (키워드 + 벡터)는 유지하고, 새로운 HybridSearchStrategy (벡터 + 그래프)와 분리
 
-### 3. 프로젝트별 RAG 모드
+### 3. **UI 중심 동적 모드 선택** (설계 변경)
 
-Project 엔티티에 ragMode 필드 추가 → 향후 프로젝트별 설정 지원
+**기존 계획**: `.env`의 `DOCST_RAG_MODE`로 애플리케이션 전역 모드 설정
+**변경 계획**: 화면(UI)에서 검색마다 동적으로 모드 선택
+
+#### RAG 모드 선택 우선순위
+
+```
+1. 검색 요청의 mode 파라미터 (최우선)
+   → GET /api/projects/{id}/search?q=query&mode=graph
+
+2. 프로젝트별 기본 모드 (Project.ragMode)
+   → 프로젝트 설정 화면에서 설정 가능
+
+3. 전역 기본값 (application.yml의 docst.rag.default-mode)
+   → 기본값: "auto" (QueryRouter가 자동 선택)
+```
+
+#### SearchController 로직 수정
+
+```java
+private RagMode determineRagMode(UUID projectId, String modeParam, String query) {
+    // 1. URL 파라미터 우선
+    if (modeParam != null && !modeParam.equals("default")) {
+        return parseMode(modeParam, query);
+    }
+
+    // 2. 프로젝트 설정 확인
+    Project project = projectRepository.findById(projectId)
+        .orElseThrow(() -> new NotFoundException("Project not found"));
+
+    if (project.getRagMode() != null) {
+        return project.getRagMode();
+    }
+
+    // 3. 전역 기본값 (auto → QueryRouter)
+    return queryRouter.analyzeAndRoute(query);
+}
+```
+
+#### 프론트엔드 UI 구성
+
+**검색 화면**:
+```typescript
+// 검색 바에 모드 선택 드롭다운 추가
+<Select value={searchMode} onChange={setSearchMode}>
+  <option value="auto">자동 선택 (추천)</option>
+  <option value="keyword">키워드 검색</option>
+  <option value="semantic">의미 검색</option>
+  <option value="graph">그래프 검색</option>
+  <option value="hybrid">하이브리드 검색</option>
+</Select>
+```
+
+**프로젝트 설정 화면**:
+```typescript
+// 프로젝트별 기본 RAG 모드 설정
+<RadioGroup value={project.ragMode} onChange={updateRagMode}>
+  <Radio value="auto">자동 선택 (기본값)</Radio>
+  <Radio value="pgvector">벡터 검색</Radio>
+  <Radio value="neo4j">그래프 검색</Radio>
+  <Radio value="hybrid">하이브리드 검색</Radio>
+</RadioGroup>
+```
 
 ---
 
@@ -1209,12 +1279,18 @@ Project 엔티티에 ragMode 필드 추가 → 향후 프로젝트별 설정 지
 ```yaml
 docst:
   rag:
-    mode: pgvector  # pgvector | neo4j | hybrid
+    # 전역 기본 모드 (프로젝트 설정이 없을 때)
+    default-mode: auto  # auto | pgvector | neo4j | hybrid
+
+    # 각 전략 활성화 여부
+    pgvector:
+      enabled: true
     neo4j:
-      enabled: false
+      enabled: ${DOCST_RAG_NEO4J_ENABLED:false}
       entity-extraction-model: gpt-4o-mini
       max-hop: 2
     hybrid:
+      enabled: true
       fusion-strategy: rrf  # rrf | weighted_sum
       vector-weight: 0.6
       graph-weight: 0.4
@@ -1223,11 +1299,40 @@ docst:
 ### 환경 변수 (.env)
 
 ```bash
-DOCST_RAG_MODE=pgvector
-DOCST_RAG_NEO4J_ENABLED=false
+# Neo4j 연결 설정만 필요 (모드는 UI에서 선택)
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=password
+
+# Neo4j 전략 활성화 여부
+DOCST_RAG_NEO4J_ENABLED=false
+
+# 전역 기본 모드 (선택사항, 기본값: auto)
+DOCST_RAG_DEFAULT_MODE=auto
+```
+
+### Project 엔티티 활용
+
+```java
+@Entity
+public class Project {
+    // ... 기존 필드
+
+    /**
+     * 프로젝트별 기본 RAG 모드.
+     * null이면 전역 기본값 사용.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rag_mode")
+    private RagMode ragMode;  // nullable
+
+    /**
+     * RAG 모드별 상세 설정 (선택사항).
+     * 예: {"neo4j": {"maxHop": 3}, "hybrid": {"vectorWeight": 0.7}}
+     */
+    @Column(name = "rag_config", columnDefinition = "jsonb")
+    private String ragConfig;
+}
 ```
 
 ---

@@ -40,11 +40,15 @@ public class Project {
     @Column(nullable = false)
     private boolean active = true;
 
-    /** RAG 검색 모드 (Phase 4) */
+    /**
+     * RAG 검색 모드 (Phase 4).
+     * null이면 전역 기본값(auto) 또는 검색 요청의 mode 파라미터 사용.
+     * 프로젝트 설정 화면에서 설정 가능.
+     */
     @Setter
     @Enumerated(EnumType.STRING)
-    @Column(name = "rag_mode", nullable = false)
-    private RagMode ragMode = RagMode.PGVECTOR;
+    @Column(name = "rag_mode")
+    private RagMode ragMode;  // nullable
 
     /** RAG 모드별 상세 설정 (Phase 4) */
     @Setter
