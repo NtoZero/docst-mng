@@ -1,5 +1,6 @@
 package com.docst.domain;
 
+import com.docst.rag.RagMode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -38,6 +39,17 @@ public class Project {
     @Setter
     @Column(nullable = false)
     private boolean active = true;
+
+    /** RAG 검색 모드 (Phase 4) */
+    @Setter
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rag_mode", nullable = false)
+    private RagMode ragMode = RagMode.PGVECTOR;
+
+    /** RAG 모드별 상세 설정 (Phase 4) */
+    @Setter
+    @Column(name = "rag_config", columnDefinition = "jsonb")
+    private String ragConfig;
 
     /** 생성 시각 */
     @Column(name = "created_at", nullable = false, updatable = false)
