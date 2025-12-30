@@ -1,10 +1,11 @@
 package com.docst.service;
 
+import com.docst.rag.hybrid.FusionStrategy;
+import com.docst.rag.hybrid.RrfFusionStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,7 +29,6 @@ class HybridSearchServiceTest {
     @Mock
     private SemanticSearchService semanticSearchService;
 
-    @InjectMocks
     private HybridSearchService hybridSearchService;
 
     private UUID testProjectId;
@@ -48,6 +48,10 @@ class HybridSearchServiceTest {
         testChunkId1 = UUID.randomUUID();
         testChunkId2 = UUID.randomUUID();
         testChunkId3 = UUID.randomUUID();
+
+        // Create HybridSearchService with real RrfFusionStrategy
+        List<FusionStrategy> strategies = List.of(new RrfFusionStrategy());
+        hybridSearchService = new HybridSearchService(searchService, semanticSearchService, strategies);
     }
 
     @Test

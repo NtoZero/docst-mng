@@ -8,7 +8,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -36,26 +35,39 @@ import java.util.List;
 @ConditionalOnProperty(name = "docst.rag.neo4j.enabled", havingValue = "true")
 public class EntityExtractionService {
 
+    private static final String DEFAULT_EXTRACTION_MODEL = "gpt-4o-mini";
+
     private final OpenAiApi openAiApi;
     private final ObjectMapper objectMapper;
 
-    @Value("${docst.rag.neo4j.entity-extraction-model:gpt-4o-mini}")
-    private String extractionModel;
-
     /**
-     * 청크 내용에서 엔티티와 관계 추출.
+     * 청크 내용에서 엔티티와 관계 추출 (기본 모델 사용).
      *
      * @param content 청크 내용
      * @param headingPath 헤딩 경로 (문맥 정보)
      * @return 추출된 엔티티 및 관계
      */
     public ExtractionResult extractEntitiesAndRelations(String content, String headingPath) {
-        log.debug("Extracting entities from chunk: headingPath={}", headingPath);
+        return extractEntitiesAndRelations(content, headingPath, DEFAULT_EXTRACTION_MODEL);
+    }
+
+    /**
+     * 청크 내용에서 엔티티와 관계 추출.
+     *
+     * @param content 청크 내용
+     * @param headingPath 헤딩 경로 (문맥 정보)
+     * @param extractionModel 사용할 LLM 모델 (동적 설정)
+     * @return 추출된 엔티티 및 관계
+     */
+    public ExtractionResult extractEntitiesAndRelations(String content, String headingPath, String extractionModel) {
+        log.debug("Extracting entities from chunk: headingPath={}, model={}", headingPath, extractionModel);
+
+        String modelToUse = extractionModel != null ? extractionModel : DEFAULT_EXTRACTION_MODEL;
 
         // ChatClient 생성 (매번 새로 생성)
         ChatClient chatClient = ChatClient.builder(new OpenAiChatModel(openAiApi,
             OpenAiChatOptions.builder()
-                .model(extractionModel)
+                .model(modelToUse)
                 .temperature(0.0)
                 .build()
         )).build();

@@ -5,17 +5,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.ChatClient.CallResponseSpec;
-import org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -35,7 +29,7 @@ class EntityExtractionServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         service = new EntityExtractionService(openAiApi, objectMapper);
-        ReflectionTestUtils.setField(service, "extractionModel", "gpt-4o-mini");
+        // extractionModel is now passed as a method parameter (dynamic configuration)
     }
 
     @Test

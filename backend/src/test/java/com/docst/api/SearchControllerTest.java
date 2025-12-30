@@ -1,21 +1,17 @@
 package com.docst.api;
 
-import com.docst.auth.AdminInitializer;
-import com.docst.auth.JwtAuthenticationFilter;
-import com.docst.auth.PasswordValidator;
-import com.docst.config.AdminProperties;
+import com.docst.rag.RagMode;
+import com.docst.rag.RagSearchStrategy;
 import com.docst.service.HybridSearchService;
 import com.docst.service.SearchService;
-import com.docst.service.SemanticSearchService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,40 +22,39 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * SearchController 통합 테스트.
- * REST API 엔드포인트 검증
+ * SearchController 단위 테스트.
+ * standaloneSetup을 사용하여 전략 패턴 주입을 정확하게 테스트
  */
-@WebMvcTest(SearchController.class)
-@AutoConfigureMockMvc(addFilters = false)  // Disable Spring Security filters for testing
+@ExtendWith(MockitoExtension.class)
 class SearchControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+    @Mock
     private SearchService searchService;
 
-    @MockitoBean
-    private SemanticSearchService semanticSearchService;
-
-    @MockitoBean
+    @Mock
     private HybridSearchService hybridSearchService;
 
-    // Security-related beans (needed for SecurityConfig)
-    @MockitoBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Mock
+    private RagSearchStrategy pgVectorStrategy;
 
-    @MockitoBean
-    private PasswordEncoder passwordEncoder;
+    @Mock
+    private RagSearchStrategy hybridStrategy;
 
-    @MockitoBean
-    private PasswordValidator passwordValidator;
+    @BeforeEach
+    void setUp() {
+        // Setup RagSearchStrategy mocks BEFORE creating controller
+        when(pgVectorStrategy.getSupportedMode()).thenReturn(RagMode.PGVECTOR);
+        when(hybridStrategy.getSupportedMode()).thenReturn(RagMode.HYBRID);
 
-    @MockitoBean
-    private AdminProperties adminProperties;
+        // Create controller with properly configured strategies
+        List<RagSearchStrategy> strategies = List.of(pgVectorStrategy, hybridStrategy);
+        SearchController controller = new SearchController(searchService, hybridSearchService, strategies);
 
-    @MockitoBean
-    private AdminInitializer adminInitializer;
+        // Setup MockMvc with standalone configuration
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
 
     @Test
     @DisplayName("검색 모드=keyword → SearchService.searchByKeyword 호출")
@@ -82,20 +77,20 @@ class SearchControllerTest {
             .andExpect(jsonPath("$[0].snippet").value("keyword result"));
 
         verify(searchService).searchByKeyword(projectId, "test query", 10);
-        verify(semanticSearchService, never()).searchSemantic(any(), anyString(), anyInt());
         verify(hybridSearchService, never()).hybridSearch(any(), anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("검색 모드=semantic → SemanticSearchService.searchSemantic 호출")
-    void search_withSemanticMode_callsSemanticSearchService() throws Exception {
+    @DisplayName("검색 모드=semantic → RagSearchStrategy.search 호출 (Phase 4)")
+    void search_withSemanticMode_callsRagSearchStrategy() throws Exception {
         // Given
         UUID projectId = UUID.randomUUID();
         List<SearchService.SearchResult> mockResults = List.of(
             createSearchResult(UUID.randomUUID(), "semantic result")
         );
 
-        when(semanticSearchService.searchSemantic(any(), anyString(), anyInt())).thenReturn(mockResults);
+        // Phase 4: semantic 모드는 PgVectorSearchStrategy를 사용
+        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(mockResults);
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
@@ -106,21 +101,21 @@ class SearchControllerTest {
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].snippet").value("semantic result"));
 
-        verify(semanticSearchService).searchSemantic(projectId, "test query", 5);
+        verify(pgVectorStrategy).search(projectId, "test query", 5);
         verify(searchService, never()).searchByKeyword(any(), anyString(), anyInt());
-        verify(hybridSearchService, never()).hybridSearch(any(), anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("검색 모드=hybrid → HybridSearchService.hybridSearch 호출")
-    void search_withHybridMode_callsHybridSearchService() throws Exception {
+    @DisplayName("검색 모드=hybrid → RagSearchStrategy.search 호출 (Phase 4)")
+    void search_withHybridMode_callsRagSearchStrategy() throws Exception {
         // Given
         UUID projectId = UUID.randomUUID();
         List<SearchService.SearchResult> mockResults = List.of(
             createSearchResult(UUID.randomUUID(), "hybrid result")
         );
 
-        when(hybridSearchService.hybridSearch(any(), anyString(), anyInt())).thenReturn(mockResults);
+        // Phase 4: hybrid 모드는 HybridSearchStrategy를 사용 (PgVector + Neo4j)
+        when(hybridStrategy.search(any(), anyString(), anyInt())).thenReturn(mockResults);
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
@@ -131,9 +126,8 @@ class SearchControllerTest {
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].snippet").value("hybrid result"));
 
-        verify(hybridSearchService).hybridSearch(projectId, "test query", 15);
+        verify(hybridStrategy).search(projectId, "test query", 15);
         verify(searchService, never()).searchByKeyword(any(), anyString(), anyInt());
-        verify(semanticSearchService, never()).searchSemantic(any(), anyString(), anyInt());
     }
 
     @Test
@@ -173,11 +167,11 @@ class SearchControllerTest {
     }
 
     @Test
-    @DisplayName("잘못된 mode 값 → 기본값 keyword로 폴백")
-    void search_withInvalidMode_defaultsToKeyword() throws Exception {
+    @DisplayName("잘못된 mode 값 → PGVECTOR 전략으로 폴백 (Phase 4)")
+    void search_withInvalidMode_fallsToPgVectorStrategy() throws Exception {
         // Given
         UUID projectId = UUID.randomUUID();
-        when(searchService.searchByKeyword(any(), anyString(), anyInt())).thenReturn(List.of());
+        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(List.of());
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
@@ -185,7 +179,8 @@ class SearchControllerTest {
                 .param("mode", "invalid-mode"))
             .andExpect(status().isOk());
 
-        verify(searchService).searchByKeyword(projectId, "test query", 10);
+        // Phase 4: 잘못된 mode는 PGVECTOR 전략으로 폴백
+        verify(pgVectorStrategy).search(projectId, "test query", 10);
     }
 
     @Test
@@ -262,11 +257,11 @@ class SearchControllerTest {
     }
 
     @Test
-    @DisplayName("mode 대소문자 무관 처리 (SEMANTIC → semantic)")
+    @DisplayName("mode 대소문자 무관 처리 (SEMANTIC → semantic) (Phase 4)")
     void search_caseSensitiveMode_handledCorrectly() throws Exception {
         // Given
         UUID projectId = UUID.randomUUID();
-        when(semanticSearchService.searchSemantic(any(), anyString(), anyInt())).thenReturn(List.of());
+        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(List.of());
 
         // When & Then - uppercase mode
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
@@ -274,7 +269,8 @@ class SearchControllerTest {
                 .param("mode", "SEMANTIC"))
             .andExpect(status().isOk());
 
-        verify(semanticSearchService).searchSemantic(projectId, "test", 10);
+        // Phase 4: SEMANTIC 모드는 PgVectorSearchStrategy 사용
+        verify(pgVectorStrategy).search(projectId, "test", 10);
     }
 
     // Helper method

@@ -45,7 +45,9 @@ public class SearchController {
                            List<RagSearchStrategy> strategies) {
         this.searchService = searchService;
         this.hybridSearchService = hybridSearchService;
+        // null 키를 가진 전략은 필터링 (테스트 환경에서 발생 가능)
         this.strategyMap = strategies.stream()
+            .filter(s -> s.getSupportedMode() != null)
             .collect(Collectors.toMap(RagSearchStrategy::getSupportedMode, s -> s));
         log.info("Registered RAG strategies: {}", strategyMap.keySet());
     }

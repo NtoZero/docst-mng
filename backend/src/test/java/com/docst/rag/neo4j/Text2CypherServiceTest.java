@@ -11,7 +11,6 @@ import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.exceptions.ClientException;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -41,7 +40,7 @@ class Text2CypherServiceTest {
     @BeforeEach
     void setUp() {
         service = new Text2CypherService(openAiApi, neo4jDriver);
-        ReflectionTestUtils.setField(service, "model", "gpt-4o-mini");
+        // model is now passed as a method parameter (dynamic configuration)
     }
 
     @Test

@@ -74,4 +74,19 @@ public interface DocumentVersionRepository extends JpaRepository<DocumentVersion
      * @return 존재 여부
      */
     boolean existsByDocumentIdAndContentHash(UUID documentId, String contentHash);
+
+    /**
+     * 프로젝트의 모든 문서 버전을 조회한다 (Phase 4-D-5).
+     *
+     * @param projectId 프로젝트 ID
+     * @return 문서 버전 목록
+     */
+    @Query("""
+        SELECT dv FROM DocumentVersion dv
+        JOIN dv.document d
+        JOIN d.repository r
+        WHERE r.project.id = :projectId
+        ORDER BY dv.committedAt DESC
+        """)
+    List<DocumentVersion> findByProjectId(@Param("projectId") UUID projectId);
 }

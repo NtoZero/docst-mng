@@ -8,7 +8,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -26,38 +25,51 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(name = "docst.rag.neo4j.enabled", havingValue = "true")
 public class Text2CypherService {
 
+    private static final String DEFAULT_MODEL = "gpt-4o-mini";
+
     private final OpenAiApi openAiApi;
     private final Driver neo4jDriver;
 
-    @Value("${docst.rag.neo4j.entity-extraction-model:gpt-4o-mini}")
-    private String model;
-
     /**
-     * 자연어 질문을 Cypher 쿼리로 변환.
+     * 자연어 질문을 Cypher 쿼리로 변환 (기본 모델 사용).
      *
      * @param question 자연어 질문
      * @return Cypher 쿼리
      */
     public String generateCypher(String question) {
-        return generateCypherWithRetry(question, null, 0);
+        return generateCypher(question, DEFAULT_MODEL);
+    }
+
+    /**
+     * 자연어 질문을 Cypher 쿼리로 변환.
+     *
+     * @param question 자연어 질문
+     * @param model 사용할 LLM 모델 (동적 설정)
+     * @return Cypher 쿼리
+     */
+    public String generateCypher(String question, String model) {
+        return generateCypherWithRetry(question, model, null, 0);
     }
 
     /**
      * Self-healing Cypher 생성 (재시도 포함).
      *
      * @param question 자연어 질문
+     * @param model 사용할 LLM 모델
      * @param previousError 이전 오류 메시지 (재시도 시)
      * @param retryCount 재시도 횟수
      * @return Cypher 쿼리
      */
-    private String generateCypherWithRetry(String question, String previousError, int retryCount) {
+    private String generateCypherWithRetry(String question, String model, String previousError, int retryCount) {
         if (retryCount > 3) {
             throw new RuntimeException("Failed to generate valid Cypher query after 3 retries");
         }
 
+        String modelToUse = model != null ? model : DEFAULT_MODEL;
+
         ChatClient chatClient = ChatClient.builder(new OpenAiChatModel(openAiApi,
             OpenAiChatOptions.builder()
-                .model(model)
+                .model(modelToUse)
                 .temperature(0.0)
                 .build()
         )).build();
@@ -83,7 +95,7 @@ public class Text2CypherService {
 
         } catch (Neo4jException e) {
             log.warn("Cypher query validation failed (retry {}): {}", retryCount + 1, e.getMessage());
-            return generateCypherWithRetry(question, e.getMessage(), retryCount + 1);
+            return generateCypherWithRetry(question, model, e.getMessage(), retryCount + 1);
         } catch (Exception e) {
             log.error("Failed to generate Cypher query", e);
             throw new RuntimeException("Cypher generation failed", e);

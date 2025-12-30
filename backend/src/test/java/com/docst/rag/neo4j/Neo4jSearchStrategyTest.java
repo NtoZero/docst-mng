@@ -3,7 +3,10 @@ package com.docst.rag.neo4j;
 import com.docst.domain.*;
 import com.docst.embedding.DocstEmbeddingService;
 import com.docst.rag.RagMode;
+import com.docst.rag.config.RagConfigService;
+import com.docst.rag.config.ResolvedRagConfig;
 import com.docst.repository.DocChunkRepository;
+import com.docst.repository.ProjectRepository;
 import com.docst.service.SearchService.SearchResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +20,6 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Value;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,12 @@ class Neo4jSearchStrategyTest {
     private DocChunkRepository chunkRepository;
 
     @Mock
+    private RagConfigService ragConfigService;
+
+    @Mock
+    private ProjectRepository projectRepository;
+
+    @Mock
     private Session session;
 
     @Mock
@@ -64,6 +72,7 @@ class Neo4jSearchStrategyTest {
     private UUID testDocId;
     private UUID testChunkId;
     private UUID testRepoId;
+    private Project testProject;
 
     @BeforeEach
     void setUp() {
@@ -72,7 +81,13 @@ class Neo4jSearchStrategyTest {
         testChunkId = UUID.randomUUID();
         testRepoId = UUID.randomUUID();
 
-        ReflectionTestUtils.setField(strategy, "maxHop", 2);
+        // Mock project
+        testProject = mock(Project.class);
+        when(testProject.getId()).thenReturn(testProjectId);
+        when(projectRepository.findById(testProjectId)).thenReturn(Optional.of(testProject));
+
+        // Mock RagConfigService to return default config
+        when(ragConfigService.resolve(any(Project.class))).thenReturn(ResolvedRagConfig.defaults());
     }
 
     @Test
@@ -246,7 +261,7 @@ class Neo4jSearchStrategyTest {
                 List.of(relation1)
             );
 
-        when(entityExtractionService.extractEntitiesAndRelations(anyString(), anyString()))
+        when(entityExtractionService.extractEntitiesAndRelations(anyString(), anyString(), anyString()))
             .thenReturn(extraction);
 
         // When
@@ -290,7 +305,7 @@ class Neo4jSearchStrategyTest {
         EntityExtractionService.ExtractionResult emptyExtraction =
             new EntityExtractionService.ExtractionResult(List.of(), List.of());
 
-        when(entityExtractionService.extractEntitiesAndRelations(anyString(), anyString()))
+        when(entityExtractionService.extractEntitiesAndRelations(anyString(), anyString(), anyString()))
             .thenReturn(emptyExtraction);
 
         // When
@@ -333,7 +348,7 @@ class Neo4jSearchStrategyTest {
         EntityExtractionService.ExtractionResult emptyExtraction =
             new EntityExtractionService.ExtractionResult(List.of(), List.of());
 
-        when(entityExtractionService.extractEntitiesAndRelations(anyString(), anyString()))
+        when(entityExtractionService.extractEntitiesAndRelations(anyString(), anyString(), anyString()))
             .thenReturn(emptyExtraction);
 
         // When
@@ -347,7 +362,7 @@ class Neo4jSearchStrategyTest {
         );
 
         verify(entityExtractionService, times(2))
-            .extractEntitiesAndRelations(anyString(), anyString());
+            .extractEntitiesAndRelations(anyString(), anyString(), anyString());
 
         verify(session).close();
     }

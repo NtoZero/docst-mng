@@ -1,5 +1,7 @@
 package com.docst.service;
 
+import com.docst.rag.hybrid.FusionParams;
+import com.docst.rag.hybrid.FusionStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -7,8 +9,12 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 /**
- * 하이브리드 검색 서비스 (Phase 2-C).
- * RRF (Reciprocal Rank Fusion) 알고리즘으로 키워드 검색과 의미 검색 결과를 융합한다.
+ * 하이브리드 검색 서비스 (Phase 2-C, Phase 4-D 업데이트).
+ * FusionStrategy 패턴으로 키워드 검색과 의미 검색 결과를 융합한다.
+ *
+ * 지원 융합 전략:
+ * - RRF (Reciprocal Rank Fusion)
+ * - WeightedSum (가중 합계)
  */
 @Service
 @RequiredArgsConstructor
@@ -17,12 +23,13 @@ public class HybridSearchService {
 
     private final SearchService searchService;
     private final SemanticSearchService semanticSearchService;
+    private final List<FusionStrategy> fusionStrategies;
 
-    /** RRF 상수 K (Reciprocal Rank Fusion constant) */
-    private static final int RRF_K = 60;
+    /** 기본 RRF 상수 K (하위 호환성용) */
+    private static final int DEFAULT_RRF_K = 60;
 
     /**
-     * 하이브리드 검색을 수행한다.
+     * 하이브리드 검색을 수행한다 (기본 RRF 전략 사용).
      * 키워드 검색 + 의미 검색 결과를 RRF로 융합하여 상위 topK 개 반환한다.
      *
      * @param projectId 프로젝트 ID
@@ -31,79 +38,68 @@ public class HybridSearchService {
      * @return 융합된 검색 결과 목록
      */
     public List<SearchService.SearchResult> hybridSearch(UUID projectId, String query, int topK) {
+        return hybridSearch(projectId, query, FusionParams.forRrf(DEFAULT_RRF_K, topK), "rrf");
+    }
+
+    /**
+     * 하이브리드 검색을 수행한다 (동적 융합 전략).
+     * Phase 4-D: 프로젝트별 설정에 따른 융합 전략 선택.
+     *
+     * @param projectId 프로젝트 ID
+     * @param query 검색 쿼리
+     * @param params 융합 파라미터
+     * @param strategyName 융합 전략 이름 (rrf, weighted_sum)
+     * @return 융합된 검색 결과 목록
+     */
+    public List<SearchService.SearchResult> hybridSearch(
+        UUID projectId,
+        String query,
+        FusionParams params,
+        String strategyName
+    ) {
         // 키워드 검색 (topK * 2개 조회)
         List<SearchService.SearchResult> keywordResults =
-            searchService.searchByKeyword(projectId, query, topK * 2);
+            searchService.searchByKeyword(projectId, query, params.topK() * 2);
 
         // 의미 검색 (topK * 2개 조회)
         List<SearchService.SearchResult> semanticResults =
-            semanticSearchService.searchSemantic(projectId, query, topK * 2);
+            semanticSearchService.searchSemantic(projectId, query, params.topK() * 2);
 
-        log.debug("Hybrid search: keyword={}, semantic={}, query='{}'",
-            keywordResults.size(), semanticResults.size(), query);
+        log.debug("Hybrid search: keyword={}, semantic={}, strategy={}, query='{}'",
+            keywordResults.size(), semanticResults.size(), strategyName, query);
 
-        // RRF 점수 계산 및 병합
-        Map<UUID, RRFResult> rrfScores = new HashMap<>();
+        // 융합 전략 선택
+        FusionStrategy strategy = getStrategy(strategyName);
 
-        // 키워드 결과 점수 추가
-        for (int i = 0; i < keywordResults.size(); i++) {
-            SearchService.SearchResult result = keywordResults.get(i);
-            UUID id = getResultId(result);
-            double rrfScore = 1.0 / (RRF_K + i + 1);
+        // 융합 수행
+        return strategy.fuse(keywordResults, semanticResults, params);
+    }
 
-            rrfScores.merge(id, new RRFResult(id, rrfScore, result),
-                (existing, newVal) -> new RRFResult(id, existing.score + newVal.score, result));
-        }
+    /**
+     * 융합 전략을 이름으로 조회한다.
+     *
+     * @param name 전략 이름 (예: "rrf", "weighted_sum")
+     * @return 융합 전략
+     * @throws IllegalArgumentException 전략을 찾을 수 없는 경우
+     */
+    public FusionStrategy getStrategy(String name) {
+        String normalizedName = name != null ? name.toLowerCase() : "rrf";
 
-        // 의미 결과 점수 추가
-        for (int i = 0; i < semanticResults.size(); i++) {
-            SearchService.SearchResult result = semanticResults.get(i);
-            UUID id = getResultId(result);
-            double rrfScore = 1.0 / (RRF_K + i + 1);
+        return fusionStrategies.stream()
+            .filter(s -> s.getName().equalsIgnoreCase(normalizedName))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Unknown fusion strategy: " + name + ". Available: rrf, weighted_sum"));
+    }
 
-            rrfScores.merge(id, new RRFResult(id, rrfScore, result),
-                (existing, newVal) -> new RRFResult(id, existing.score + newVal.score, existing.result));
-        }
-
-        // RRF 점수 기준 정렬 및 상위 topK 반환
-        return rrfScores.values().stream()
-            .sorted(Comparator.comparingDouble((RRFResult r) -> r.score).reversed())
-            .limit(topK)
-            .map(r -> new SearchService.SearchResult(
-                r.result.documentId(),
-                r.result.repositoryId(),
-                r.result.path(),
-                r.result.commitSha(),
-                r.result.chunkId(),
-                r.result.headingPath(),
-                r.score,  // RRF 융합 점수
-                r.result.snippet(),
-                r.result.highlightedSnippet()
-            ))
+    /**
+     * 사용 가능한 모든 융합 전략 이름 목록을 반환한다.
+     *
+     * @return 전략 이름 목록
+     */
+    public List<String> getAvailableStrategies() {
+        return fusionStrategies.stream()
+            .map(FusionStrategy::getName)
             .toList();
     }
-
-    /**
-     * SearchResult에서 고유 ID를 추출한다.
-     * chunkId가 있으면 chunkId, 없으면 documentId 사용.
-     *
-     * @param result 검색 결과
-     * @return 고유 ID
-     */
-    private UUID getResultId(SearchService.SearchResult result) {
-        return result.chunkId() != null ? result.chunkId() : result.documentId();
-    }
-
-    /**
-     * RRF 결과를 나타내는 내부 레코드.
-     *
-     * @param id 결과 ID (chunkId 또는 documentId)
-     * @param score RRF 융합 점수
-     * @param result 원본 SearchResult
-     */
-    private record RRFResult(
-        UUID id,
-        double score,
-        SearchService.SearchResult result
-    ) {}
 }

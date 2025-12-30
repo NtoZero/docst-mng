@@ -3,6 +3,8 @@ package com.docst.repository;
 import com.docst.domain.DocChunk;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,4 +50,19 @@ public interface DocChunkRepository extends JpaRepository<DocChunk, UUID> {
      * @return 청크 개수
      */
     long countByDocumentVersionId(UUID documentVersionId);
+
+    /**
+     * 프로젝트의 모든 청크를 조회한다 (Phase 4-D-5).
+     *
+     * @param projectId 프로젝트 ID
+     * @return 청크 목록
+     */
+    @Query("""
+        SELECT c FROM DocChunk c
+        JOIN c.documentVersion dv
+        JOIN dv.document d
+        JOIN d.repository r
+        WHERE r.project.id = :projectId
+        """)
+    List<DocChunk> findByProjectId(@Param("projectId") UUID projectId);
 }

@@ -2,16 +2,19 @@ package com.docst.rag.neo4j;
 
 import com.docst.domain.DocChunk;
 import com.docst.domain.DocumentVersion;
+import com.docst.domain.Project;
 import com.docst.embedding.DocstEmbeddingService;
 import com.docst.rag.RagMode;
 import com.docst.rag.RagSearchStrategy;
+import com.docst.rag.config.RagConfigService;
+import com.docst.rag.config.ResolvedRagConfig;
 import com.docst.repository.DocChunkRepository;
+import com.docst.repository.ProjectRepository;
 import com.docst.service.SearchService.SearchResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Record;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -36,13 +39,20 @@ public class Neo4jSearchStrategy implements RagSearchStrategy {
     private final EntityExtractionService entityExtractionService;
     private final DocstEmbeddingService embeddingService;
     private final DocChunkRepository chunkRepository;
-
-    @Value("${docst.rag.neo4j.max-hop:2}")
-    private int maxHop;
+    private final RagConfigService ragConfigService;
+    private final ProjectRepository projectRepository;
 
     @Override
     public List<SearchResult> search(UUID projectId, String query, int topK) {
         log.debug("Neo4j Graph search: projectId={}, query='{}', topK={}", projectId, query, topK);
+
+        // 동적으로 설정 해결
+        Project project = projectRepository.findById(projectId).orElse(null);
+        ResolvedRagConfig config = project != null
+            ? ragConfigService.resolve(project)
+            : ResolvedRagConfig.defaults();
+        int maxHop = config.getMaxHop();
+        log.debug("Using maxHop={} for project {}", maxHop, projectId);
 
         try (var session = neo4jDriver.session()) {
             // 1. Fulltext search for relevant chunks
@@ -107,6 +117,12 @@ public class Neo4jSearchStrategy implements RagSearchStrategy {
     public void indexDocument(DocumentVersion documentVersion) {
         log.debug("Neo4j indexing: documentId={}", documentVersion.getDocument().getId());
 
+        // 동적으로 설정 해결
+        Project project = documentVersion.getDocument().getRepository().getProject();
+        ResolvedRagConfig config = ragConfigService.resolve(project);
+        String extractionModel = config.getEntityExtractionModel();
+        log.debug("Using entityExtractionModel={} for indexing", extractionModel);
+
         // 1. Get all chunks for this document version
         List<DocChunk> chunks = chunkRepository.findByDocumentVersionIdOrderByChunkIndex(
             documentVersion.getId()
@@ -122,7 +138,8 @@ public class Neo4jSearchStrategy implements RagSearchStrategy {
                 // 3. Extract entities and relations
                 var extraction = entityExtractionService.extractEntitiesAndRelations(
                     chunk.getContent(),
-                    chunk.getHeadingPath()
+                    chunk.getHeadingPath(),
+                    extractionModel
                 );
 
                 // 4. Create Entity nodes and relationships

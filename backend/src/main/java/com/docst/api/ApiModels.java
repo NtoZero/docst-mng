@@ -434,4 +434,178 @@ public final class ApiModels {
             long totalRepositories,
             long totalDocuments
     ) {}
+
+    // ===== RAG Config (Phase 4-D) =====
+
+    /**
+     * 프로젝트 RAG 설정 응답.
+     *
+     * @param projectId 프로젝트 ID
+     * @param embedding 임베딩 설정
+     * @param pgvector PgVector 설정
+     * @param neo4j Neo4j 설정
+     * @param hybrid Hybrid 설정
+     * @param updatedAt 마지막 수정 시각
+     */
+    public record ProjectRagConfigResponse(
+            UUID projectId,
+            EmbeddingConfigResponse embedding,
+            PgVectorConfigResponse pgvector,
+            Neo4jConfigResponse neo4j,
+            HybridConfigResponse hybrid,
+            Instant updatedAt
+    ) {}
+
+    /**
+     * 임베딩 설정 응답.
+     */
+    public record EmbeddingConfigResponse(
+            String provider,
+            String model,
+            Integer dimensions
+    ) {}
+
+    /**
+     * PgVector 설정 응답.
+     */
+    public record PgVectorConfigResponse(
+            Boolean enabled,
+            Double similarityThreshold
+    ) {}
+
+    /**
+     * Neo4j 설정 응답.
+     */
+    public record Neo4jConfigResponse(
+            Boolean enabled,
+            Integer maxHop,
+            String entityExtractionModel
+    ) {}
+
+    /**
+     * Hybrid 설정 응답.
+     */
+    public record HybridConfigResponse(
+            String fusionStrategy,
+            Integer rrfK,
+            Double vectorWeight,
+            Double graphWeight
+    ) {}
+
+    /**
+     * RAG 설정 업데이트 요청.
+     *
+     * @param embedding 임베딩 설정 (선택)
+     * @param pgvector PgVector 설정 (선택)
+     * @param neo4j Neo4j 설정 (선택)
+     * @param hybrid Hybrid 설정 (선택)
+     */
+    public record UpdateProjectRagConfigRequest(
+            EmbeddingConfigRequest embedding,
+            PgVectorConfigRequest pgvector,
+            Neo4jConfigRequest neo4j,
+            HybridConfigRequest hybrid
+    ) {}
+
+    /**
+     * 임베딩 설정 요청.
+     */
+    public record EmbeddingConfigRequest(
+            String provider,
+            String model,
+            Integer dimensions
+    ) {}
+
+    /**
+     * PgVector 설정 요청.
+     */
+    public record PgVectorConfigRequest(
+            Boolean enabled,
+            Double similarityThreshold
+    ) {}
+
+    /**
+     * Neo4j 설정 요청.
+     */
+    public record Neo4jConfigRequest(
+            Boolean enabled,
+            Integer maxHop,
+            String entityExtractionModel
+    ) {}
+
+    /**
+     * Hybrid 설정 요청.
+     */
+    public record HybridConfigRequest(
+            String fusionStrategy,
+            Integer rrfK,
+            Double vectorWeight,
+            Double graphWeight
+    ) {}
+
+    /**
+     * RAG 설정 검증 응답.
+     *
+     * @param valid 유효 여부
+     * @param errors 오류 목록
+     * @param warnings 경고 목록
+     */
+    public record RagConfigValidationResponse(
+            boolean valid,
+            List<String> errors,
+            List<String> warnings
+    ) {}
+
+    /**
+     * RAG 설정 기본값 응답.
+     *
+     * @param embedding 임베딩 기본 설정
+     * @param pgvector PgVector 기본 설정
+     * @param neo4j Neo4j 기본 설정
+     * @param hybrid Hybrid 기본 설정
+     */
+    public record RagConfigDefaultsResponse(
+            EmbeddingConfigResponse embedding,
+            PgVectorConfigResponse pgvector,
+            Neo4jConfigResponse neo4j,
+            HybridConfigResponse hybrid
+    ) {}
+
+    /**
+     * 재임베딩 트리거 응답.
+     *
+     * @param projectId 프로젝트 ID
+     * @param message 상태 메시지
+     * @param inProgress 진행 중 여부
+     */
+    public record ReEmbeddingTriggerResponse(
+            UUID projectId,
+            String message,
+            boolean inProgress
+    ) {}
+
+    /**
+     * 재임베딩 상태 응답.
+     *
+     * @param projectId 프로젝트 ID
+     * @param inProgress 진행 중 여부
+     * @param totalVersions 총 문서 버전 수
+     * @param processedVersions 처리된 문서 버전 수
+     * @param progress 진행률 (0-100)
+     * @param deletedEmbeddings 삭제된 임베딩 수
+     * @param embeddedCount 생성된 임베딩 수
+     * @param failedCount 실패한 문서 수
+     * @param errorMessage 오류 메시지 (실패 시)
+     */
+    public record ReEmbeddingStatusResponse(
+            UUID projectId,
+            boolean inProgress,
+            int totalVersions,
+            int processedVersions,
+            double progress,
+            int deletedEmbeddings,
+            int embeddedCount,
+            int failedCount,
+            String errorMessage
+    ) {}
 }
