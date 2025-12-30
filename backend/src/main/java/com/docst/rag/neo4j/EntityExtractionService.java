@@ -4,10 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +38,7 @@ public class EntityExtractionService {
 
     private static final String DEFAULT_EXTRACTION_MODEL = "gpt-4o-mini";
 
-    private final OpenAiApi openAiApi;
+    private final ChatModel chatModel;
     private final ObjectMapper objectMapper;
 
     /**
@@ -62,17 +63,7 @@ public class EntityExtractionService {
     public ExtractionResult extractEntitiesAndRelations(String content, String headingPath, String extractionModel) {
         log.debug("Extracting entities from chunk: headingPath={}, model={}", headingPath, extractionModel);
 
-        String modelToUse = extractionModel != null ? extractionModel : DEFAULT_EXTRACTION_MODEL;
-
-        // ChatClient 생성 (매번 새로 생성)
-        ChatClient chatClient = ChatClient.builder(new OpenAiChatModel(openAiApi,
-            OpenAiChatOptions.builder()
-                .model(modelToUse)
-                .temperature(0.0)
-                .build()
-        )).build();
-
-        String systemPrompt = """
+        String systemPromptText = """
             You are an expert at extracting entities and relationships from technical documentation.
 
             Extract entities and relationships from the given documentation chunk.
@@ -112,7 +103,7 @@ public class EntityExtractionService {
             Do not include any markdown formatting, code blocks, or explanatory text - only the JSON object.
             """;
 
-        String userPrompt = String.format("""
+        String userPromptText = String.format("""
             Documentation Section: %s
 
             Content:
@@ -122,11 +113,18 @@ public class EntityExtractionService {
             """, headingPath != null ? headingPath : "Unknown", content);
 
         try {
-            String response = chatClient.prompt()
-                .system(systemPrompt)
-                .user(userPrompt)
-                .call()
-                .content();
+            // 동적 모델 선택: OpenAiChatOptions로 런타임에 모델 지정
+            OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(extractionModel)
+                .temperature(0.0)  // 일관된 결과를 위해 temperature 0
+                .build();
+
+            Prompt prompt = new Prompt(
+                List.of(new SystemMessage(systemPromptText), new UserMessage(userPromptText)),
+                options
+            );
+
+            String response = chatModel.call(prompt).getResult().getOutput().getText();
 
             log.debug("LLM response: {}", response);
 

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.chat.model.ChatModel;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 class EntityExtractionServiceTest {
 
     @Mock
-    private OpenAiApi openAiApi;
+    private ChatModel chatModel;
 
     private EntityExtractionService service;
     private ObjectMapper objectMapper;
@@ -28,7 +28,7 @@ class EntityExtractionServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        service = new EntityExtractionService(openAiApi, objectMapper);
+        service = new EntityExtractionService(chatModel, objectMapper);
         // extractionModel is now passed as a method parameter (dynamic configuration)
     }
 

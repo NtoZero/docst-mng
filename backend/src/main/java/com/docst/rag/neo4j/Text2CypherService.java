@@ -4,12 +4,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.exceptions.Neo4jException;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * Text-to-Cypher 서비스.
@@ -27,7 +30,7 @@ public class Text2CypherService {
 
     private static final String DEFAULT_MODEL = "gpt-4o-mini";
 
-    private final OpenAiApi openAiApi;
+    private final ChatModel chatModel;
     private final Driver neo4jDriver;
 
     /**
@@ -65,24 +68,22 @@ public class Text2CypherService {
             throw new RuntimeException("Failed to generate valid Cypher query after 3 retries");
         }
 
-        String modelToUse = model != null ? model : DEFAULT_MODEL;
-
-        ChatClient chatClient = ChatClient.builder(new OpenAiChatModel(openAiApi,
-            OpenAiChatOptions.builder()
-                .model(modelToUse)
-                .temperature(0.0)
-                .build()
-        )).build();
-
-        String systemPrompt = buildSystemPrompt(previousError);
-        String userPrompt = buildUserPrompt(question, previousError);
+        String systemPromptText = buildSystemPrompt(previousError);
+        String userPromptText = buildUserPrompt(question, previousError);
 
         try {
-            String response = chatClient.prompt()
-                .system(systemPrompt)
-                .user(userPrompt)
-                .call()
-                .content();
+            // 동적 모델 선택: OpenAiChatOptions로 런타임에 모델 지정
+            OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model)
+                .temperature(0.0)  // 일관된 Cypher 생성을 위해 temperature 0
+                .build();
+
+            Prompt prompt = new Prompt(
+                List.of(new SystemMessage(systemPromptText), new UserMessage(userPromptText)),
+                options
+            );
+
+            String response = chatModel.call(prompt).getResult().getOutput().getText();
 
             log.debug("Generated Cypher query: {}", response);
 
