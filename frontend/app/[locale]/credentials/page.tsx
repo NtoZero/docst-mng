@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/routing';
 import { Key, Plus, Trash2, Edit2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -270,8 +270,13 @@ export default function CredentialsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingCredential, setEditingCredential] = useState<Credential | undefined>();
 
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+    }
+  }, [user, router]);
+
   if (!user) {
-    router.push('/login');
     return null;
   }
 

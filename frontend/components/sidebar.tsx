@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
-import { FolderGit2, Settings, Plus, ChevronRight, Home, Key } from 'lucide-react';
+import { FolderGit2, Settings, Plus, ChevronRight, Home, Key, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import { useProjects } from '@/hooks/use-api';
@@ -85,6 +85,26 @@ export function Sidebar() {
                 <div className="px-3 py-2 text-sm text-muted-foreground">{t('noProjects')}</div>
               )}
             </div>
+
+            {selectedProjectId && (
+              <div className="pt-4">
+                <div className="px-3 py-2">
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">
+                    {t('projectSettings')}
+                  </span>
+                </div>
+                <Link
+                  href={`/projects/${selectedProjectId}/settings/rag`}
+                  className={cn(
+                    'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent',
+                    pathname === `/projects/${selectedProjectId}/settings/rag` && 'bg-accent font-medium'
+                  )}
+                >
+                  <Settings2 className="h-4 w-4" />
+                  {t('ragSettings')}
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
 

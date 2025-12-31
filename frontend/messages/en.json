@@ -21,7 +21,9 @@
     "newProject": "New Project",
     "noProjects": "No projects yet",
     "credentials": "Credentials",
-    "settings": "Settings"
+    "settings": "Settings",
+    "projectSettings": "Project Settings",
+    "ragSettings": "RAG Settings"
   },
   "dashboard": {
     "welcome": "Welcome to Docst",
@@ -126,5 +128,76 @@
     "matchScore": "{score}% match",
     "filterByType": "Filter by type",
     "filterByRepo": "Filter by repository"
+  },
+  "ragConfig": {
+    "title": "RAG Settings",
+    "description": "Configure embedding, vector search, and hybrid search settings for this project",
+    "loadError": "Failed to load RAG configuration",
+    "save": "Save Changes",
+    "reset": "Reset",
+    "embeddingChangeWarning": "Changing the embedding model will require re-embedding all documents. This may take some time.",
+    "tabs": {
+      "embedding": "Embedding",
+      "pgvector": "Vector Search",
+      "neo4j": "Graph RAG",
+      "hybrid": "Hybrid"
+    },
+    "embedding": {
+      "title": "Embedding Model",
+      "description": "Configure the embedding model for document vectorization",
+      "provider": "Provider",
+      "providerOpenaiHint": "Uses OpenAI API. Requires API key configuration.",
+      "providerOllamaHint": "Uses local Ollama server. No API costs.",
+      "model": "Model",
+      "selectModel": "Select a model",
+      "dimensions": "Dimensions",
+      "dimensionsHint": "Determined by the selected model",
+      "defaultValue": "Default"
+    },
+    "pgvector": {
+      "title": "Vector Search (PgVector)",
+      "description": "Configure vector similarity search settings",
+      "enabled": "Enable vector search",
+      "similarityThreshold": "Similarity Threshold",
+      "similarityThresholdHint": "Minimum similarity score (0.0 - 1.0). Higher values return more relevant results."
+    },
+    "neo4j": {
+      "title": "Graph RAG (Neo4j)",
+      "description": "Configure knowledge graph-based search using Neo4j",
+      "maxHop": "Max Hop Distance",
+      "maxHopHint": "Maximum graph traversal depth. Higher values explore more relationships but may be slower.",
+      "extractionModel": "Entity Extraction Model",
+      "extractionModelHint": "LLM model used for extracting entities and relationships from documents",
+      "graphRagInfo": "What is Graph RAG?",
+      "graphRagDescription": "Graph RAG extracts entities and relationships from your documents to build a knowledge graph. This enables semantic search that understands connections between concepts."
+    },
+    "hybrid": {
+      "title": "Hybrid Search",
+      "description": "Configure how vector and graph search results are combined",
+      "fusionStrategy": "Fusion Strategy",
+      "rrfDescription": "Combines rankings using reciprocal rank fusion. Good for most use cases.",
+      "weightedSumDescription": "Combines scores using weighted sum. Allows fine-tuning the balance.",
+      "rrfK": "RRF K Parameter",
+      "rrfKHint": "Ranking constant (default: 60). Lower values give more weight to top results.",
+      "vectorWeight": "Vector Search Weight",
+      "graphWeight": "Graph Search Weight"
+    },
+    "reEmbed": {
+      "title": "Re-embed Documents",
+      "description": "Regenerate embeddings for all documents in this project",
+      "warning": "This will delete all existing embeddings and regenerate them with the new model. This process cannot be undone.",
+      "confirmMessage": "Are you sure you want to re-embed all documents?",
+      "start": "Start Re-embedding",
+      "cancel": "Cancel",
+      "close": "Close",
+      "processed": "Processed",
+      "embedded": "Embedded",
+      "deleted": "Deleted",
+      "failed": "Failed",
+      "completed": "Re-embedding Complete",
+      "completedWithErrors": "Completed with Errors",
+      "completedMessage": "{count} embeddings created successfully",
+      "completedStats": "{total} documents processed, {failed} failed"
+    }
   }
 }

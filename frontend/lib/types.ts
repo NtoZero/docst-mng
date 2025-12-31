@@ -265,3 +265,100 @@ export interface StatsResponse {
   totalRepositories: number;
   totalDocuments: number;
 }
+
+// ===== RAG Config Types =====
+
+export interface RagConfigResponse {
+  projectId: string;
+  embedding: EmbeddingConfigResponse;
+  pgvector: PgVectorConfigResponse;
+  neo4j: Neo4jConfigResponse;
+  hybrid: HybridConfigResponse;
+  updatedAt: string;
+}
+
+export interface EmbeddingConfigResponse {
+  provider: string;
+  model: string;
+  dimensions: number;
+}
+
+export interface PgVectorConfigResponse {
+  enabled: boolean;
+  similarityThreshold: number;
+}
+
+export interface Neo4jConfigResponse {
+  enabled: boolean;
+  maxHop: number;
+  entityExtractionModel: string;
+}
+
+export interface HybridConfigResponse {
+  fusionStrategy: string;
+  rrfK: number;
+  vectorWeight: number;
+  graphWeight: number;
+}
+
+export interface UpdateRagConfigRequest {
+  embedding?: EmbeddingConfigRequest;
+  pgvector?: PgVectorConfigRequest;
+  neo4j?: Neo4jConfigRequest;
+  hybrid?: HybridConfigRequest;
+}
+
+export interface EmbeddingConfigRequest {
+  provider?: string;
+  model?: string;
+  dimensions?: number;
+}
+
+export interface PgVectorConfigRequest {
+  enabled?: boolean;
+  similarityThreshold?: number;
+}
+
+export interface Neo4jConfigRequest {
+  enabled?: boolean;
+  maxHop?: number;
+  entityExtractionModel?: string;
+}
+
+export interface HybridConfigRequest {
+  fusionStrategy?: string;
+  rrfK?: number;
+  vectorWeight?: number;
+  graphWeight?: number;
+}
+
+export interface RagConfigValidationResponse {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface RagDefaults {
+  embedding: EmbeddingConfigResponse;
+  pgvector: PgVectorConfigResponse;
+  neo4j: Neo4jConfigResponse;
+  hybrid: HybridConfigResponse;
+}
+
+export interface ReEmbeddingTriggerResponse {
+  projectId: string;
+  message: string;
+  inProgress: boolean;
+}
+
+export interface ReEmbeddingStatusResponse {
+  projectId: string;
+  inProgress: boolean;
+  totalVersions: number;
+  processedVersions: number;
+  progress: number;
+  deletedEmbeddings: number;
+  embeddedCount: number;
+  failedCount: number;
+  errorMessage?: string;
+}

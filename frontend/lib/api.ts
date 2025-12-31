@@ -30,6 +30,12 @@ import type {
   CommitListParams,
   CommitDiffParams,
   StatsResponse,
+  RagConfigResponse,
+  UpdateRagConfigRequest,
+  RagConfigValidationResponse,
+  RagDefaults,
+  ReEmbeddingTriggerResponse,
+  ReEmbeddingStatusResponse,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
@@ -259,6 +265,35 @@ export const commitsApi = {
 // ===== Stats API =====
 export const statsApi = {
   get: (): Promise<StatsResponse> => request('/api/stats'),
+};
+
+// ===== RAG Config API =====
+export const ragConfigApi = {
+  getConfig: (projectId: string): Promise<RagConfigResponse> =>
+    request(`/api/projects/${projectId}/rag-config`),
+
+  updateConfig: (projectId: string, data: UpdateRagConfigRequest): Promise<RagConfigResponse> =>
+    request(`/api/projects/${projectId}/rag-config`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  validateConfig: (projectId: string, data: UpdateRagConfigRequest): Promise<RagConfigValidationResponse> =>
+    request(`/api/projects/${projectId}/rag-config/validate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getDefaults: (projectId: string): Promise<RagDefaults> =>
+    request(`/api/projects/${projectId}/rag-config/defaults`),
+
+  triggerReEmbed: (projectId: string): Promise<ReEmbeddingTriggerResponse> =>
+    request(`/api/projects/${projectId}/rag-config/re-embed`, {
+      method: 'POST',
+    }),
+
+  getReEmbedStatus: (projectId: string): Promise<ReEmbeddingStatusResponse> =>
+    request(`/api/projects/${projectId}/rag-config/re-embed/status`),
 };
 
 export { ApiError };

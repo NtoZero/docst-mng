@@ -10,7 +10,9 @@
       "mcp__context7__resolve-library-id",
       "Bash(./gradlew test:*)",
       "Bash(./gradlew build:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(dir \"C:\\\\Dev\\\\project\\\\docst-mng\\\\frontend\" /B)",
+      "Bash(docker exec:*)"
     ]
   }
 }

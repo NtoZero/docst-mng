@@ -21,7 +21,9 @@
     "newProject": "새 프로젝트",
     "noProjects": "아직 프로젝트가 없습니다",
     "credentials": "인증 정보",
-    "settings": "설정"
+    "settings": "설정",
+    "projectSettings": "프로젝트 설정",
+    "ragSettings": "RAG 설정"
   },
   "dashboard": {
     "welcome": "Docst에 오신 것을 환영합니다",
@@ -126,5 +128,76 @@
     "matchScore": "{score}% 일치",
     "filterByType": "타입별 필터",
     "filterByRepo": "저장소별 필터"
+  },
+  "ragConfig": {
+    "title": "RAG 설정",
+    "description": "프로젝트의 임베딩, 벡터 검색, 하이브리드 검색 설정을 구성합니다",
+    "loadError": "RAG 설정을 불러오는데 실패했습니다",
+    "save": "변경 저장",
+    "reset": "초기화",
+    "embeddingChangeWarning": "임베딩 모델을 변경하면 모든 문서를 다시 임베딩해야 합니다. 시간이 걸릴 수 있습니다.",
+    "tabs": {
+      "embedding": "임베딩",
+      "pgvector": "벡터 검색",
+      "neo4j": "그래프 RAG",
+      "hybrid": "하이브리드"
+    },
+    "embedding": {
+      "title": "임베딩 모델",
+      "description": "문서 벡터화를 위한 임베딩 모델을 설정합니다",
+      "provider": "제공자",
+      "providerOpenaiHint": "OpenAI API를 사용합니다. API 키 설정이 필요합니다.",
+      "providerOllamaHint": "로컬 Ollama 서버를 사용합니다. API 비용이 없습니다.",
+      "model": "모델",
+      "selectModel": "모델 선택",
+      "dimensions": "차원",
+      "dimensionsHint": "선택한 모델에 의해 결정됩니다",
+      "defaultValue": "기본값"
+    },
+    "pgvector": {
+      "title": "벡터 검색 (PgVector)",
+      "description": "벡터 유사도 검색 설정을 구성합니다",
+      "enabled": "벡터 검색 활성화",
+      "similarityThreshold": "유사도 임계값",
+      "similarityThresholdHint": "최소 유사도 점수 (0.0 - 1.0). 높을수록 더 관련성 높은 결과를 반환합니다."
+    },
+    "neo4j": {
+      "title": "그래프 RAG (Neo4j)",
+      "description": "Neo4j를 사용한 지식 그래프 기반 검색을 설정합니다",
+      "maxHop": "최대 홉 거리",
+      "maxHopHint": "그래프 탐색 최대 깊이. 높을수록 더 많은 관계를 탐색하지만 느릴 수 있습니다.",
+      "extractionModel": "엔티티 추출 모델",
+      "extractionModelHint": "문서에서 엔티티와 관계를 추출하는 데 사용되는 LLM 모델",
+      "graphRagInfo": "Graph RAG란?",
+      "graphRagDescription": "Graph RAG는 문서에서 엔티티와 관계를 추출하여 지식 그래프를 구축합니다. 이를 통해 개념 간의 연결을 이해하는 시맨틱 검색이 가능합니다."
+    },
+    "hybrid": {
+      "title": "하이브리드 검색",
+      "description": "벡터와 그래프 검색 결과를 결합하는 방식을 설정합니다",
+      "fusionStrategy": "융합 전략",
+      "rrfDescription": "역순위 융합을 사용하여 순위를 결합합니다. 대부분의 경우에 적합합니다.",
+      "weightedSumDescription": "가중 합계를 사용하여 점수를 결합합니다. 균형을 세밀하게 조정할 수 있습니다.",
+      "rrfK": "RRF K 파라미터",
+      "rrfKHint": "순위 상수 (기본값: 60). 낮을수록 상위 결과에 더 가중치를 줍니다.",
+      "vectorWeight": "벡터 검색 가중치",
+      "graphWeight": "그래프 검색 가중치"
+    },
+    "reEmbed": {
+      "title": "문서 재임베딩",
+      "description": "프로젝트의 모든 문서에 대해 임베딩을 다시 생성합니다",
+      "warning": "기존 모든 임베딩을 삭제하고 새 모델로 다시 생성합니다. 이 작업은 취소할 수 없습니다.",
+      "confirmMessage": "모든 문서를 재임베딩하시겠습니까?",
+      "start": "재임베딩 시작",
+      "cancel": "취소",
+      "close": "닫기",
+      "processed": "처리됨",
+      "embedded": "임베딩됨",
+      "deleted": "삭제됨",
+      "failed": "실패",
+      "completed": "재임베딩 완료",
+      "completedWithErrors": "오류와 함께 완료",
+      "completedMessage": "{count}개의 임베딩이 성공적으로 생성되었습니다",
+      "completedStats": "{total}개 문서 처리됨, {failed}개 실패"
+    }
   }
 }
