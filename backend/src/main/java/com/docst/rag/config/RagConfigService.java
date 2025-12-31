@@ -44,76 +44,76 @@ public class RagConfigService {
                 requestParams != null ? requestParams.embeddingProvider() : null,
                 projectConfig != null && projectConfig.embedding() != null ?
                     projectConfig.embedding().provider() : null,
-                globalProps.getEmbedding().getProvider()
+                globalProps.getEmbedding().provider()
             ))
             .embeddingModel(firstNonNull(
                 requestParams != null ? requestParams.embeddingModel() : null,
                 projectConfig != null && projectConfig.embedding() != null ?
                     projectConfig.embedding().model() : null,
-                globalProps.getEmbedding().getModel()
+                globalProps.getEmbedding().model()
             ))
             .embeddingDimensions(firstNonNullInt(
                 requestParams != null ? requestParams.embeddingDimensions() : null,
                 projectConfig != null && projectConfig.embedding() != null ?
                     projectConfig.embedding().dimensions() : null,
-                globalProps.getEmbedding().getDimensions()
+                globalProps.getEmbedding().dimensions()
             ))
             // PgVector
             .pgvectorEnabled(firstNonNullBool(
                 requestParams != null ? requestParams.pgvectorEnabled() : null,
                 projectConfig != null && projectConfig.pgvector() != null ?
                     projectConfig.pgvector().enabled() : null,
-                globalProps.getPgvector().isEnabled()
+                globalProps.getPgvector().enabled()
             ))
             .similarityThreshold(firstNonNullDouble(
                 requestParams != null ? requestParams.similarityThreshold() : null,
                 projectConfig != null && projectConfig.pgvector() != null ?
                     projectConfig.pgvector().similarityThreshold() : null,
-                globalProps.getPgvector().getSimilarityThreshold()
+                globalProps.getPgvector().similarityThreshold()
             ))
             // Neo4j
             .neo4jEnabled(firstNonNullBool(
                 requestParams != null ? requestParams.neo4jEnabled() : null,
                 projectConfig != null && projectConfig.neo4j() != null ?
                     projectConfig.neo4j().enabled() : null,
-                globalProps.getNeo4j().isEnabled()
+                globalProps.getNeo4j().enabled()
             ))
             .maxHop(firstNonNullInt(
                 requestParams != null ? requestParams.maxHop() : null,
                 projectConfig != null && projectConfig.neo4j() != null ?
                     projectConfig.neo4j().maxHop() : null,
-                globalProps.getNeo4j().getMaxHop()
+                globalProps.getNeo4j().maxHop()
             ))
             .entityExtractionModel(firstNonNull(
                 requestParams != null ? requestParams.entityExtractionModel() : null,
                 projectConfig != null && projectConfig.neo4j() != null ?
                     projectConfig.neo4j().entityExtractionModel() : null,
-                globalProps.getNeo4j().getEntityExtractionModel()
+                globalProps.getNeo4j().entityExtractionModel()
             ))
             // Hybrid
             .fusionStrategy(firstNonNull(
                 requestParams != null ? requestParams.fusionStrategy() : null,
                 projectConfig != null && projectConfig.hybrid() != null ?
                     projectConfig.hybrid().fusionStrategy() : null,
-                globalProps.getHybrid().getFusionStrategy()
+                globalProps.getHybrid().fusionStrategy()
             ))
             .rrfK(firstNonNullInt(
                 requestParams != null ? requestParams.rrfK() : null,
                 projectConfig != null && projectConfig.hybrid() != null ?
                     projectConfig.hybrid().rrfK() : null,
-                globalProps.getHybrid().getRrfK()
+                globalProps.getHybrid().rrfK()
             ))
             .vectorWeight(firstNonNullDouble(
                 requestParams != null ? requestParams.vectorWeight() : null,
                 projectConfig != null && projectConfig.hybrid() != null ?
                     projectConfig.hybrid().vectorWeight() : null,
-                globalProps.getHybrid().getVectorWeight()
+                globalProps.getHybrid().vectorWeight()
             ))
             .graphWeight(firstNonNullDouble(
                 requestParams != null ? requestParams.graphWeight() : null,
                 projectConfig != null && projectConfig.hybrid() != null ?
                     projectConfig.hybrid().graphWeight() : null,
-                globalProps.getHybrid().getGraphWeight()
+                globalProps.getHybrid().graphWeight()
             ))
             .build();
     }
@@ -182,24 +182,26 @@ public class RagConfigService {
         return new RagConfigDto(
             RagConfigDto.CURRENT_VERSION,
             new RagConfigDto.EmbeddingConfig(
-                globalProps.getEmbedding().getProvider(),
-                globalProps.getEmbedding().getModel(),
-                globalProps.getEmbedding().getDimensions()
+                globalProps.getEmbedding().provider(),
+                globalProps.getEmbedding().model(),
+                globalProps.getEmbedding().dimensions(),
+                null  // No default credentialId
             ),
             new RagConfigDto.PgVectorConfig(
-                globalProps.getPgvector().isEnabled(),
-                globalProps.getPgvector().getSimilarityThreshold()
+                globalProps.getPgvector().enabled(),
+                globalProps.getPgvector().similarityThreshold()
             ),
             new RagConfigDto.Neo4jConfig(
-                globalProps.getNeo4j().isEnabled(),
-                globalProps.getNeo4j().getMaxHop(),
-                globalProps.getNeo4j().getEntityExtractionModel()
+                globalProps.getNeo4j().enabled(),
+                globalProps.getNeo4j().maxHop(),
+                globalProps.getNeo4j().entityExtractionModel(),
+                null  // No default credentialId
             ),
             new RagConfigDto.HybridConfig(
-                globalProps.getHybrid().getFusionStrategy(),
-                globalProps.getHybrid().getRrfK(),
-                globalProps.getHybrid().getVectorWeight(),
-                globalProps.getHybrid().getGraphWeight()
+                globalProps.getHybrid().fusionStrategy(),
+                globalProps.getHybrid().rrfK(),
+                globalProps.getHybrid().vectorWeight(),
+                globalProps.getHybrid().graphWeight()
             )
         );
     }

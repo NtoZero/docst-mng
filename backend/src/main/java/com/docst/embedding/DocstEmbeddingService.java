@@ -2,12 +2,17 @@ package com.docst.embedding;
 
 import com.docst.domain.DocChunk;
 import com.docst.domain.DocumentVersion;
+import com.docst.rag.config.RagConfigService;
+import com.docst.rag.config.ResolvedRagConfig;
 import com.docst.repository.DocChunkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,14 +24,18 @@ import java.util.UUID;
 /**
  * Docst 임베딩 서비스.
  * DocChunk와 Spring AI VectorStore 간의 변환 및 저장/검색을 담당한다.
+ * Phase 4-E: 프로젝트별 동적 임베딩 모델을 사용한다.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class DocstEmbeddingService {
 
-    private final VectorStore vectorStore;  // Spring AI가 자동 주입
+    private final VectorStore vectorStore;
     private final DocChunkRepository docChunkRepository;
+    private final DynamicEmbeddingClientFactory embeddingClientFactory;
+    private final RagConfigService ragConfigService;
+    private final JdbcTemplate jdbcTemplate;
 
     /**
      * DocumentVersion의 모든 청크를 임베딩하여 VectorStore에 저장한다.
@@ -50,30 +59,53 @@ public class DocstEmbeddingService {
             return 0;
         }
 
-        return embedChunks(chunks);
+        // 프로젝트 ID 추출
+        UUID projectId = documentVersion.getDocument().getRepository().getProject().getId();
+
+        return embedChunks(projectId, chunks);
     }
 
     /**
      * DocChunk 목록을 임베딩하여 VectorStore에 저장한다.
+     * Phase 4-E: 프로젝트별 동적 임베딩 모델을 사용한다.
      *
+     * @param projectId 프로젝트 ID
      * @param chunks 청크 목록
      * @return 임베딩된 청크 수
      */
     @Transactional
-    public int embedChunks(List<DocChunk> chunks) {
+    public int embedChunks(UUID projectId, List<DocChunk> chunks) {
         if (chunks == null || chunks.isEmpty()) {
             return 0;
         }
+
+        // 프로젝트 RAG 설정 조회
+        ResolvedRagConfig config = ragConfigService.resolve(projectId, null);
+
+        // 동적 임베딩 모델 생성
+        EmbeddingModel embeddingModel = embeddingClientFactory.createEmbeddingModel(projectId, config);
+
+        // 프로젝트별 임시 VectorStore 생성 (동적 임베딩 모델 사용)
+        PgVectorStore projectVectorStore = PgVectorStore.builder(jdbcTemplate, embeddingModel)
+            .dimensions(config.getEmbeddingDimensions())
+            .distanceType(PgVectorStore.PgDistanceType.COSINE_DISTANCE)
+            .indexType(PgVectorStore.PgIndexType.HNSW)
+            .removeExistingVectorStoreTable(false)
+            .initializeSchema(false)  // 스키마는 이미 초기화되어 있음
+            .schemaName("public")
+            .vectorTableName("vector_store")
+            .build();
 
         // DocChunk를 Spring AI Document로 변환
         List<Document> documents = chunks.stream()
             .map(this::convertToDocument)
             .toList();
 
-        // Spring AI VectorStore에 자동 임베딩 및 저장
-        vectorStore.add(documents);
+        // VectorStore에 저장 (자동으로 임베딩 생성됨)
+        projectVectorStore.add(documents);
 
-        log.info("Embedded and stored {} chunks in VectorStore", documents.size());
+        log.info("Embedded and stored {} chunks in VectorStore using {}/{}",
+            documents.size(), config.getEmbeddingProvider(), config.getEmbeddingModel());
         return documents.size();
     }
 

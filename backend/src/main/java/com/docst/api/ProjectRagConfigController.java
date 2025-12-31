@@ -309,7 +309,8 @@ public class ProjectRagConfigController {
             embeddingConfig = new RagConfigDto.EmbeddingConfig(
                     req.provider() != null ? req.provider() : (ex != null ? ex.provider() : null),
                     req.model() != null ? req.model() : (ex != null ? ex.model() : null),
-                    req.dimensions() != null ? req.dimensions() : (ex != null ? ex.dimensions() : null)
+                    req.dimensions() != null ? req.dimensions() : (ex != null ? ex.dimensions() : null),
+                    ex != null ? ex.credentialId() : null  // Preserve existing credentialId
             );
         } else if (existing != null) {
             embeddingConfig = existing.embedding();
@@ -334,7 +335,8 @@ public class ProjectRagConfigController {
             neo4jConfig = new RagConfigDto.Neo4jConfig(
                     req.enabled() != null ? req.enabled() : (ex != null ? ex.enabled() : null),
                     req.maxHop() != null ? req.maxHop() : (ex != null ? ex.maxHop() : null),
-                    req.entityExtractionModel() != null ? req.entityExtractionModel() : (ex != null ? ex.entityExtractionModel() : null)
+                    req.entityExtractionModel() != null ? req.entityExtractionModel() : (ex != null ? ex.entityExtractionModel() : null),
+                    ex != null ? ex.credentialId() : null  // Preserve existing credentialId
             );
         } else if (existing != null) {
             neo4jConfig = existing.neo4j();

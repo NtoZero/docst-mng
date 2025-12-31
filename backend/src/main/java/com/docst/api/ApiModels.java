@@ -1,7 +1,9 @@
 package com.docst.api;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -607,5 +609,171 @@ public final class ApiModels {
             int embeddedCount,
             int failedCount,
             String errorMessage
+    ) {}
+
+    // ===== System Config (Phase 4-E, ADMIN only) =====
+
+    /**
+     * 시스템 설정 응답.
+     *
+     * @param id 설정 ID
+     * @param configKey 설정 키
+     * @param configValue 설정 값
+     * @param configType 설정 타입 (STRING, JSON, ENCRYPTED)
+     * @param description 설명
+     * @param createdAt 생성 시각
+     * @param updatedAt 수정 시각
+     */
+    public record SystemConfigResponse(
+            UUID id,
+            String configKey,
+            String configValue,
+            String configType,
+            String description,
+            Instant createdAt,
+            Instant updatedAt
+    ) {}
+
+    /**
+     * 시스템 설정 업데이트 요청.
+     *
+     * @param configValue 새 설정 값
+     * @param configType 설정 타입 (선택)
+     * @param description 설명 (선택)
+     */
+    public record UpdateSystemConfigRequest(
+            String configValue,
+            String configType,
+            String description
+    ) {}
+
+    // ===== System & Project Credentials (Phase 4-E) =====
+
+    /**
+     * 시스템 크리덴셜 응답.
+     *
+     * @param id 크리덴셜 ID
+     * @param name 크리덴셜 이름
+     * @param type 크리덴셜 타입 (OPENAI_API_KEY, NEO4J_AUTH, etc.)
+     * @param scope 스코프 (SYSTEM)
+     * @param description 설명
+     * @param active 활성화 상태
+     * @param createdAt 생성 시각
+     * @param updatedAt 수정 시각
+     */
+    public record SystemCredentialResponse(
+            UUID id,
+            String name,
+            String type,
+            String scope,
+            String description,
+            boolean active,
+            Instant createdAt,
+            Instant updatedAt
+    ) {}
+
+    /**
+     * 시스템 크리덴셜 생성 요청.
+     *
+     * @param name 크리덴셜 이름
+     * @param type 크리덴셜 타입 (OPENAI_API_KEY, NEO4J_AUTH, ANTHROPIC_API_KEY, CUSTOM_API_KEY)
+     * @param secret 비밀 (평문, 서버에서 암호화)
+     * @param description 설명 (선택)
+     */
+    public record CreateSystemCredentialRequest(
+            String name,
+            String type,
+            String secret,
+            String description
+    ) {}
+
+    /**
+     * 시스템 크리덴셜 업데이트 요청.
+     *
+     * @param secret 새 비밀 (선택, 평문)
+     * @param description 새 설명 (선택)
+     */
+    public record UpdateSystemCredentialRequest(
+            String secret,
+            String description
+    ) {}
+
+    /**
+     * 프로젝트 크리덴셜 응답.
+     *
+     * @param id 크리덴셜 ID
+     * @param projectId 프로젝트 ID
+     * @param name 크리덴셜 이름
+     * @param type 크리덴셜 타입 (OPENAI_API_KEY, etc.)
+     * @param scope 스코프 (PROJECT)
+     * @param description 설명
+     * @param active 활성화 상태
+     * @param createdAt 생성 시각
+     * @param updatedAt 수정 시각
+     */
+    public record ProjectCredentialResponse(
+            UUID id,
+            UUID projectId,
+            String name,
+            String type,
+            String scope,
+            String description,
+            boolean active,
+            Instant createdAt,
+            Instant updatedAt
+    ) {}
+
+    /**
+     * 프로젝트 크리덴셜 생성 요청.
+     *
+     * @param name 크리덴셜 이름
+     * @param type 크리덴셜 타입 (OPENAI_API_KEY, etc.)
+     * @param secret 비밀 (평문, 서버에서 암호화)
+     * @param description 설명 (선택)
+     */
+    public record CreateProjectCredentialRequest(
+            String name,
+            String type,
+            String secret,
+            String description
+    ) {}
+
+    /**
+     * 프로젝트 크리덴셜 업데이트 요청.
+     *
+     * @param secret 새 비밀 (선택, 평문)
+     * @param description 새 설명 (선택)
+     */
+    public record UpdateProjectCredentialRequest(
+            String secret,
+            String description
+    ) {}
+
+    // ===== Health Check =====
+
+    /**
+     * 시스템 헬스 체크 응답.
+     *
+     * @param status 전체 상태 (UP, DEGRADED, DOWN)
+     * @param timestamp 체크 시각
+     * @param services 서비스별 헬스 상태
+     */
+    public record HealthCheckResponse(
+            String status,
+            LocalDateTime timestamp,
+            Map<String, ServiceHealth> services
+    ) {}
+
+    /**
+     * 개별 서비스 헬스 상태.
+     *
+     * @param status 상태 (UP, DOWN, UNKNOWN)
+     * @param message 상태 메시지
+     * @param details 상세 정보
+     */
+    public record ServiceHealth(
+            String status,
+            String message,
+            Map<String, Object> details
     ) {}
 }

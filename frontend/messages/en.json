@@ -20,8 +20,9 @@
     "projects": "Projects",
     "newProject": "New Project",
     "noProjects": "No projects yet",
-    "credentials": "Credentials",
+    "credentials": "Git Credentials",
     "settings": "Settings",
+    "adminSettings": "System Admin",
     "projectSettings": "Project Settings",
     "ragSettings": "RAG Settings"
   },
@@ -92,8 +93,8 @@
     "loading": "Loading documents..."
   },
   "credentials": {
-    "title": "Credentials",
-    "description": "Manage your Git credentials",
+    "title": "Git Credentials",
+    "description": "Manage personal authentication credentials for accessing private Git repositories",
     "addCredential": "Add Credential",
     "credentialName": "Credential Name",
     "username": "Username",
@@ -198,6 +199,65 @@
       "completedWithErrors": "Completed with Errors",
       "completedMessage": "{count} embeddings created successfully",
       "completedStats": "{total} documents processed, {failed} failed"
+    }
+  },
+  "admin": {
+    "title": "System Settings",
+    "subtitle": "Manage system-wide configuration and credentials",
+    "tabs": {
+      "config": "Configuration",
+      "credentials": "Credentials",
+      "neo4j": "Neo4j",
+      "health": "Health Check"
+    },
+    "config": {
+      "title": "System Configuration",
+      "loading": "Loading configurations...",
+      "error": "Failed to load configurations",
+      "save": "Save",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "refreshCache": "Refresh Cache"
+    },
+    "credentials": {
+      "title": "System Credentials",
+      "description": "System-wide authentication credentials for external services (OpenAI, Neo4j, etc.)",
+      "create": "Create Credential",
+      "edit": "Edit Credential",
+      "delete": "Delete Credential",
+      "deleteConfirm": "Are you sure you want to delete this credential?",
+      "deleteWarning": "This action cannot be undone.",
+      "noCredentials": "No credentials configured",
+      "createFirst": "Create First Credential",
+      "name": "Name",
+      "type": "Type",
+      "scope": "Scope",
+      "description": "Description",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "created": "Created",
+      "actions": "Actions",
+      "secret": "Secret",
+      "secretPlaceholder": "Enter secret value",
+      "secretKeepCurrent": "leave empty to keep current",
+      "nameRequired": "Name is required",
+      "secretRequired": "Secret is required",
+      "nameCannotChange": "Name cannot be changed after creation",
+      "typeCannotChange": "Type cannot be changed after creation",
+      "neo4jFormat": "Format: JSON with username and password fields",
+      "saving": "Saving...",
+      "update": "Update"
+    },
+    "neo4j": {
+      "title": "Neo4j Configuration",
+      "subtitle": "Graph database settings for knowledge graph RAG",
+      "enable": "Enable Neo4j",
+      "enableDescription": "Turn on graph-based retrieval",
+      "uri": "Connection URI",
+      "maxHop": "Maximum graph traversal depth",
+      "entityModel": "LLM model for entity extraction",
+      "credentialNote": "Neo4j credentials must be configured in the Credentials tab with type NEO4J_AUTH"
     }
   }
 }

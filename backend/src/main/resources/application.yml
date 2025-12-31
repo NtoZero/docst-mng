@@ -8,6 +8,17 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
 
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration
+      - org.springframework.ai.autoconfigure.ollama.OllamaAutoConfiguration
+      - org.springframework.ai.autoconfigure.vectorstore.pgvector.PgVectorStoreAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.neo4j.Neo4jHealthContributorAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jReactiveDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jReactiveRepositoriesAutoConfiguration
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:docst}
     username: ${DB_USERNAME:postgres}
@@ -28,36 +39,10 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  # Neo4j Configuration (Phase 4: Graph RAG)
-  neo4j:
-    uri: ${NEO4J_URI:bolt://localhost:7697}
-    authentication:
-      username: ${NEO4J_USERNAME:neo4j}
-      password: ${NEO4J_PASSWORD:password}
-
   # Spring AI Configuration
+  # NOTE: Provider-specific configs (OpenAI/Ollama/Neo4j) are now managed in dm_system_config and dm_credential tables.
+  # Only schema-level PgVector settings remain here for Spring AI VectorStore initialization.
   ai:
-    # OpenAI Embedding Model (Default)
-    openai:
-      api-key: ${OPENAI_API_KEY:}
-      embedding:
-        enabled: ${OPENAI_EMBEDDING_ENABLED:true}
-        options:
-          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
-
-    # Ollama Embedding Model (Optional - disabled by default)
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-      embedding:
-        enabled: ${OLLAMA_EMBEDDING_ENABLED:false}
-        options:
-          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
-      chat:
-        enabled: false
-      init:
-        pull-model-strategy: never
-
-    # PgVector VectorStore
     vectorstore:
       pgvector:
         index-type: HNSW
@@ -105,24 +90,9 @@ docst:
     batch-size: 32
     enabled: true
 
-  # RAG Configuration (Phase 4: Graph RAG & Hybrid RAG)
-  # UI 중심 설계: 검색 시 mode 파라미터로 동적 선택
-  rag:
-    # 전역 기본 모드 (프로젝트 설정이 없을 때만 사용)
-    default-mode: ${DOCST_RAG_DEFAULT_MODE:auto}  # auto | pgvector | neo4j | hybrid
-
-    # 각 전략 활성화 여부
-    pgvector:
-      enabled: ${DOCST_RAG_PGVECTOR_ENABLED:true}
-    neo4j:
-      enabled: ${DOCST_RAG_NEO4J_ENABLED:false}
-      entity-extraction-model: ${DOCST_RAG_NEO4J_ENTITY_MODEL:gpt-4o-mini}
-      max-hop: ${DOCST_RAG_NEO4J_MAX_HOP:2}
-    hybrid:
-      enabled: ${DOCST_RAG_HYBRID_ENABLED:true}
-      fusion-strategy: ${DOCST_RAG_HYBRID_FUSION:rrf}  # rrf | weighted_sum
-      vector-weight: ${DOCST_RAG_HYBRID_VECTOR_WEIGHT:0.6}
-      graph-weight: ${DOCST_RAG_HYBRID_GRAPH_WEIGHT:0.4}
+  # RAG Configuration (Phase 4-E)
+  # NOTE: All RAG settings (provider, model, Neo4j, hybrid) are now managed per-project in dm_project_rag_config table.
+  # System-wide defaults are stored in dm_system_config table (embedding.default-provider, embedding.default-model, etc.).
 
   # Admin Initialization Configuration
   admin:

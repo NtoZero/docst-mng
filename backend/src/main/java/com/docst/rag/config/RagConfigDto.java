@@ -24,14 +24,15 @@ public record RagConfigDto(
     Neo4jConfig neo4j,
     HybridConfig hybrid
 ) {
-    public static final String CURRENT_VERSION = "1.0";
+    public static final String CURRENT_VERSION = "1.1";
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record EmbeddingConfig(
         String provider,
         String model,
-        Integer dimensions
+        Integer dimensions,
+        String credentialId  // 프로젝트 크리덴셜 UUID (선택)
     ) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -46,7 +47,8 @@ public record RagConfigDto(
     public record Neo4jConfig(
         Boolean enabled,
         Integer maxHop,
-        String entityExtractionModel
+        String entityExtractionModel,
+        String credentialId  // LLM API 키용 크리덴셜 (선택)
     ) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -71,9 +73,9 @@ public record RagConfigDto(
     public static RagConfigDto withDefaults() {
         return new RagConfigDto(
             CURRENT_VERSION,
-            new EmbeddingConfig("openai", "text-embedding-3-small", 1536),
+            new EmbeddingConfig("openai", "text-embedding-3-small", 1536, null),
             new PgVectorConfig(true, 0.5),
-            new Neo4jConfig(false, 2, "gpt-4o-mini"),
+            new Neo4jConfig(false, 2, "gpt-4o-mini", null),
             new HybridConfig("rrf", 60, 0.6, 0.4)
         );
     }

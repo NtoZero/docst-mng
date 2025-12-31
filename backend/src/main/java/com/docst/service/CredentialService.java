@@ -2,8 +2,11 @@ package com.docst.service;
 
 import com.docst.domain.Credential;
 import com.docst.domain.Credential.CredentialType;
+import com.docst.domain.CredentialScope;
+import com.docst.domain.Project;
 import com.docst.domain.User;
 import com.docst.repository.CredentialRepository;
+import com.docst.repository.ProjectRepository;
 import com.docst.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,7 @@ public class CredentialService {
 
     private final CredentialRepository credentialRepository;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
     private final EncryptionService encryptionService;
 
     /**
@@ -165,5 +169,196 @@ public class CredentialService {
                 .orElseThrow(() -> new IllegalArgumentException("Credential not found or access denied"));
 
         return encryptionService.decrypt(credential.getEncryptedSecret());
+    }
+
+    // ============================================================
+    // 시스템 크리덴셜 (Phase 4-D2)
+    // ============================================================
+
+    /**
+     * 시스템 크리덴셜 생성 (ADMIN 권한 필요).
+     *
+     * @param name 크리덴셜 이름
+     * @param type 크리덴셜 타입
+     * @param secret 비밀 (평문)
+     * @param description 설명
+     * @return 생성된 시스템 크리덴셜
+     */
+    @Transactional
+    public Credential createSystemCredential(String name, CredentialType type, String secret, String description) {
+        // 중복 이름 확인
+        Optional<Credential> existing = credentialRepository.findByScope(CredentialScope.SYSTEM).stream()
+                .filter(c -> c.getName().equals(name))
+                .findFirst();
+        if (existing.isPresent()) {
+            throw new IllegalArgumentException("System credential with name '" + name + "' already exists");
+        }
+
+        String encryptedSecret = encryptionService.encrypt(secret);
+        Credential credential = Credential.createSystemCredential(name, type, encryptedSecret);
+        credential.setDescription(description);
+
+        Credential saved = credentialRepository.save(credential);
+        log.info("AUDIT: Created system credential: {}", name);
+        return saved;
+    }
+
+    /**
+     * 시스템 크리덴셜 목록 조회.
+     *
+     * @return 시스템 크리덴셜 목록
+     */
+    public List<Credential> findSystemCredentials() {
+        return credentialRepository.findByScope(CredentialScope.SYSTEM);
+    }
+
+    /**
+     * 시스템 크리덴셜 조회.
+     *
+     * @param id 크리덴셜 ID
+     * @return 크리덴셜
+     */
+    public Optional<Credential> findSystemCredentialById(UUID id) {
+        return credentialRepository.findById(id)
+                .filter(c -> c.getScope() == CredentialScope.SYSTEM);
+    }
+
+    /**
+     * 시스템 크리덴셜 업데이트.
+     *
+     * @param id 크리덴셜 ID
+     * @param secret 새 비밀 (null이면 변경 안 함)
+     * @param description 새 설명 (null이면 변경 안 함)
+     * @return 업데이트된 크리덴셜
+     */
+    @Transactional
+    public Credential updateSystemCredential(UUID id, String secret, String description) {
+        Credential credential = findSystemCredentialById(id)
+                .orElseThrow(() -> new IllegalArgumentException("System credential not found: " + id));
+
+        if (secret != null) {
+            credential.setEncryptedSecret(encryptionService.encrypt(secret));
+        }
+        if (description != null) {
+            credential.setDescription(description);
+        }
+        credential.setUpdatedAt(Instant.now());
+
+        log.info("AUDIT: Updated system credential: {}", credential.getName());
+        return credentialRepository.save(credential);
+    }
+
+    /**
+     * 시스템 크리덴셜 삭제.
+     *
+     * @param id 크리덴셜 ID
+     */
+    @Transactional
+    public void deleteSystemCredential(UUID id) {
+        Credential credential = findSystemCredentialById(id)
+                .orElseThrow(() -> new IllegalArgumentException("System credential not found: " + id));
+
+        credentialRepository.delete(credential);
+        log.info("AUDIT: Deleted system credential: {}", credential.getName());
+    }
+
+    // ============================================================
+    // 프로젝트 크리덴셜 (Phase 4-D2)
+    // ============================================================
+
+    /**
+     * 프로젝트 크리덴셜 생성 (PROJECT_ADMIN 권한 필요).
+     *
+     * @param projectId 프로젝트 ID
+     * @param name 크리덴셜 이름
+     * @param type 크리덴셜 타입
+     * @param secret 비밀 (평문)
+     * @param description 설명
+     * @return 생성된 프로젝트 크리덴셜
+     */
+    @Transactional
+    public Credential createProjectCredential(UUID projectId, String name, CredentialType type, String secret, String description) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
+
+        // 중복 이름 확인
+        Optional<Credential> existing = credentialRepository.findByProjectId(projectId).stream()
+                .filter(c -> c.getName().equals(name))
+                .findFirst();
+        if (existing.isPresent()) {
+            throw new IllegalArgumentException("Project credential with name '" + name + "' already exists in this project");
+        }
+
+        String encryptedSecret = encryptionService.encrypt(secret);
+        Credential credential = Credential.createProjectCredential(project, name, type, encryptedSecret);
+        credential.setDescription(description);
+
+        Credential saved = credentialRepository.save(credential);
+        log.info("AUDIT: Created project credential: {} in project {}", name, projectId);
+        return saved;
+    }
+
+    /**
+     * 프로젝트 크리덴셜 목록 조회.
+     *
+     * @param projectId 프로젝트 ID
+     * @return 프로젝트 크리덴셜 목록
+     */
+    public List<Credential> findProjectCredentials(UUID projectId) {
+        return credentialRepository.findByProjectId(projectId);
+    }
+
+    /**
+     * 프로젝트 크리덴셜 조회.
+     *
+     * @param projectId 프로젝트 ID
+     * @param credentialId 크리덴셜 ID
+     * @return 크리덴셜
+     */
+    public Optional<Credential> findProjectCredentialById(UUID projectId, UUID credentialId) {
+        return credentialRepository.findById(credentialId)
+                .filter(c -> c.getScope() == CredentialScope.PROJECT)
+                .filter(c -> c.getProject() != null && c.getProject().getId().equals(projectId));
+    }
+
+    /**
+     * 프로젝트 크리덴셜 업데이트.
+     *
+     * @param projectId 프로젝트 ID
+     * @param credentialId 크리덴셜 ID
+     * @param secret 새 비밀 (null이면 변경 안 함)
+     * @param description 새 설명 (null이면 변경 안 함)
+     * @return 업데이트된 크리덴셜
+     */
+    @Transactional
+    public Credential updateProjectCredential(UUID projectId, UUID credentialId, String secret, String description) {
+        Credential credential = findProjectCredentialById(projectId, credentialId)
+                .orElseThrow(() -> new IllegalArgumentException("Project credential not found"));
+
+        if (secret != null) {
+            credential.setEncryptedSecret(encryptionService.encrypt(secret));
+        }
+        if (description != null) {
+            credential.setDescription(description);
+        }
+        credential.setUpdatedAt(Instant.now());
+
+        log.info("AUDIT: Updated project credential: {} in project {}", credential.getName(), projectId);
+        return credentialRepository.save(credential);
+    }
+
+    /**
+     * 프로젝트 크리덴셜 삭제.
+     *
+     * @param projectId 프로젝트 ID
+     * @param credentialId 크리덴셜 ID
+     */
+    @Transactional
+    public void deleteProjectCredential(UUID projectId, UUID credentialId) {
+        Credential credential = findProjectCredentialById(projectId, credentialId)
+                .orElseThrow(() -> new IllegalArgumentException("Project credential not found"));
+
+        credentialRepository.delete(credential);
+        log.info("AUDIT: Deleted project credential: {} in project {}", credential.getName(), projectId);
     }
 }

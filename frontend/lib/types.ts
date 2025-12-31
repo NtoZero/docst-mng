@@ -196,7 +196,16 @@ export interface SyncEvent {
 }
 
 // ===== Credential =====
-export type CredentialType = 'GITHUB_PAT' | 'BASIC_AUTH' | 'SSH_KEY';
+export type CredentialType =
+  | 'GITHUB_PAT'
+  | 'BASIC_AUTH'
+  | 'SSH_KEY'
+  | 'OPENAI_API_KEY'
+  | 'NEO4J_AUTH'
+  | 'ANTHROPIC_API_KEY'
+  | 'CUSTOM_API_KEY';
+
+export type CredentialScope = 'USER' | 'SYSTEM' | 'PROJECT';
 
 export interface Credential {
   id: string;
@@ -226,6 +235,71 @@ export interface UpdateCredentialRequest {
 
 export interface SetCredentialRequest {
   credentialId: string | null;
+}
+
+// ===== System Config (Phase 4-E, ADMIN only) =====
+export interface SystemConfig {
+  id: string;
+  configKey: string;
+  configValue: string;
+  configType: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface UpdateSystemConfigRequest {
+  configValue: string;
+  configType?: string;
+  description?: string;
+}
+
+// ===== System & Project Credentials (Phase 4-E) =====
+export interface SystemCredential {
+  id: string;
+  name: string;
+  type: CredentialType;
+  scope: CredentialScope;
+  description: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateSystemCredentialRequest {
+  name: string;
+  type: CredentialType;
+  secret: string;
+  description?: string;
+}
+
+export interface UpdateSystemCredentialRequest {
+  secret?: string;
+  description?: string;
+}
+
+export interface ProjectCredential {
+  id: string;
+  projectId: string;
+  name: string;
+  type: CredentialType;
+  scope: CredentialScope;
+  description: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateProjectCredentialRequest {
+  name: string;
+  type: CredentialType;
+  secret: string;
+  description?: string;
+}
+
+export interface UpdateProjectCredentialRequest {
+  secret?: string;
+  description?: string;
 }
 
 // ===== Commit =====
@@ -361,4 +435,17 @@ export interface ReEmbeddingStatusResponse {
   embeddedCount: number;
   failedCount: number;
   errorMessage?: string;
+}
+
+// ===== Health Check =====
+export interface HealthCheckResponse {
+  status: 'UP' | 'DEGRADED' | 'DOWN';
+  timestamp: string;
+  services: Record<string, ServiceHealth>;
+}
+
+export interface ServiceHealth {
+  status: 'UP' | 'DOWN' | 'UNKNOWN';
+  message: string;
+  details: Record<string, any>;
 }

@@ -2,6 +2,7 @@ package com.docst.repository;
 
 import com.docst.domain.Credential;
 import com.docst.domain.Credential.CredentialType;
+import com.docst.domain.CredentialScope;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -58,4 +59,60 @@ public interface CredentialRepository extends JpaRepository<Credential, UUID> {
      * @return 자격증명 (존재하지 않거나 소유자가 다르면 empty)
      */
     Optional<Credential> findByIdAndUserId(UUID id, UUID userId);
+
+    // ============================================================
+    // 스코프 기반 쿼리 (Phase 4-D2)
+    // ============================================================
+
+    /**
+     * 스코프와 타입으로 활성화된 크리덴셜 조회 (SYSTEM 스코프용).
+     *
+     * @param scope 스코프
+     * @param type 크리덴셜 타입
+     * @return 크리덴셜
+     */
+    Optional<Credential> findByScopeAndTypeAndActiveTrue(CredentialScope scope, CredentialType type);
+
+    /**
+     * 프로젝트, 타입, 스코프로 활성화된 크리덴셜 조회 (PROJECT 스코프용).
+     *
+     * @param projectId 프로젝트 ID
+     * @param type 크리덴셜 타입
+     * @param scope 스코프
+     * @return 크리덴셜
+     */
+    Optional<Credential> findByProjectIdAndTypeAndScopeAndActiveTrue(UUID projectId, CredentialType type, CredentialScope scope);
+
+    /**
+     * 스코프로 모든 크리덴셜 조회.
+     *
+     * @param scope 스코프
+     * @return 크리덴셜 목록
+     */
+    List<Credential> findByScope(CredentialScope scope);
+
+    /**
+     * 스코프로 활성화된 크리덴셜 조회.
+     *
+     * @param scope 스코프
+     * @return 크리덴셜 목록
+     */
+    List<Credential> findByScopeAndActiveTrue(CredentialScope scope);
+
+    /**
+     * 프로젝트 ID로 크리덴셜 조회.
+     *
+     * @param projectId 프로젝트 ID
+     * @return 크리덴셜 목록
+     */
+    List<Credential> findByProjectId(UUID projectId);
+
+    /**
+     * 프로젝트 ID와 타입으로 크리덴셜 조회.
+     *
+     * @param projectId 프로젝트 ID
+     * @param type 크리덴셜 타입
+     * @return 크리덴셜 목록
+     */
+    List<Credential> findByProjectIdAndType(UUID projectId, CredentialType type);
 }

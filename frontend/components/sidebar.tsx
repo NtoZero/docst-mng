@@ -120,6 +120,16 @@ export function Sidebar() {
             {t('credentials')}
           </Link>
           <Link
+            href="/admin/settings"
+            className={cn(
+              'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent',
+              pathname.startsWith('/admin/settings') && 'bg-accent'
+            )}
+          >
+            <Settings2 className="h-4 w-4" />
+            {t('adminSettings')}
+          </Link>
+          <Link
             href="/settings"
             className={cn(
               'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent',

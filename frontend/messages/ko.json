@@ -20,8 +20,9 @@
     "projects": "프로젝트",
     "newProject": "새 프로젝트",
     "noProjects": "아직 프로젝트가 없습니다",
-    "credentials": "인증 정보",
+    "credentials": "Git 인증정보",
     "settings": "설정",
+    "adminSettings": "시스템 관리",
     "projectSettings": "프로젝트 설정",
     "ragSettings": "RAG 설정"
   },
@@ -92,8 +93,8 @@
     "loading": "문서 로딩 중..."
   },
   "credentials": {
-    "title": "인증 정보",
-    "description": "Git 인증 정보 관리",
+    "title": "Git 인증정보",
+    "description": "프라이빗 Git 저장소 접근을 위한 개인 인증정보 관리",
     "addCredential": "인증 정보 추가",
     "credentialName": "인증 정보 이름",
     "username": "사용자명",
@@ -198,6 +199,65 @@
       "completedWithErrors": "오류와 함께 완료",
       "completedMessage": "{count}개의 임베딩이 성공적으로 생성되었습니다",
       "completedStats": "{total}개 문서 처리됨, {failed}개 실패"
+    }
+  },
+  "admin": {
+    "title": "시스템 설정",
+    "subtitle": "시스템 전역 설정 및 크리덴셜 관리",
+    "tabs": {
+      "config": "설정",
+      "credentials": "크리덴셜",
+      "neo4j": "Neo4j",
+      "health": "헬스 체크"
+    },
+    "config": {
+      "title": "시스템 설정",
+      "loading": "설정을 불러오는 중...",
+      "error": "설정을 불러오지 못했습니다",
+      "save": "저장",
+      "edit": "편집",
+      "cancel": "취소",
+      "refreshCache": "캐시 새로고침"
+    },
+    "credentials": {
+      "title": "시스템 크리덴셜",
+      "description": "외부 서비스(OpenAI, Neo4j 등) 연동을 위한 시스템 전역 인증정보",
+      "create": "크리덴셜 생성",
+      "edit": "크리덴셜 수정",
+      "delete": "크리덴셜 삭제",
+      "deleteConfirm": "이 크리덴셜을 삭제하시겠습니까?",
+      "deleteWarning": "이 작업은 되돌릴 수 없습니다.",
+      "noCredentials": "설정된 크리덴셜이 없습니다",
+      "createFirst": "첫 번째 크리덴셜 생성",
+      "name": "이름",
+      "type": "타입",
+      "scope": "범위",
+      "description": "설명",
+      "status": "상태",
+      "active": "활성",
+      "inactive": "비활성",
+      "created": "생성일",
+      "actions": "작업",
+      "secret": "비밀 값",
+      "secretPlaceholder": "비밀 값 입력",
+      "secretKeepCurrent": "현재 값을 유지하려면 비워두세요",
+      "nameRequired": "이름은 필수입니다",
+      "secretRequired": "비밀 값은 필수입니다",
+      "nameCannotChange": "생성 후에는 이름을 변경할 수 없습니다",
+      "typeCannotChange": "생성 후에는 타입을 변경할 수 없습니다",
+      "neo4jFormat": "형식: username과 password 필드가 있는 JSON",
+      "saving": "저장 중...",
+      "update": "업데이트"
+    },
+    "neo4j": {
+      "title": "Neo4j 설정",
+      "subtitle": "지식 그래프 RAG를 위한 그래프 데이터베이스 설정",
+      "enable": "Neo4j 활성화",
+      "enableDescription": "그래프 기반 검색 활성화",
+      "uri": "연결 URI",
+      "maxHop": "최대 그래프 탐색 깊이",
+      "entityModel": "엔티티 추출용 LLM 모델",
+      "credentialNote": "Neo4j 크리덴셜은 크리덴셜 탭에서 NEO4J_AUTH 타입으로 설정해야 합니다"
     }
   }
 }
