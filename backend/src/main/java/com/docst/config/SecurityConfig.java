@@ -49,7 +49,10 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-resources/**"
+                                "/swagger-resources/**",
+                                // MCP endpoints (JSON-RPC 2.0 transport)
+                                "/mcp",
+                                "/mcp/**"
                         ).permitAll()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
