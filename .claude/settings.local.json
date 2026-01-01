@@ -12,7 +12,8 @@
       "Bash(./gradlew build:*)",
       "Bash(ls:*)",
       "Bash(dir \"C:\\\\Dev\\\\project\\\\docst-mng\\\\frontend\" /B)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "mcp__context7__query-docs"
     ]
   }
 }
