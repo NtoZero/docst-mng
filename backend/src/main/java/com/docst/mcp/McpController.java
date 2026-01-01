@@ -30,6 +30,7 @@ public class McpController {
     private final SemanticSearchService semanticSearchService;
     private final HybridSearchService hybridSearchService;
     private final SyncService syncService;
+    private final McpToolDispatcher dispatcher;
 
     /**
      * 문서 목록을 조회한다.
@@ -257,6 +258,48 @@ public class McpController {
             return ResponseEntity.internalServerError()
                     .body(McpResponse.error(e.getMessage()));
         }
+    }
+
+    /**
+     * 새 문서를 생성하고 선택적으로 커밋한다.
+     * Phase 5: WRITE 도구
+     *
+     * @param input 생성 요청
+     * @return 생성 결과
+     */
+    @PostMapping("/create_document")
+    public ResponseEntity<McpResponse<CreateDocumentResult>> createDocument(
+            @RequestBody CreateDocumentInput input
+    ) {
+        return ResponseEntity.ok(dispatcher.dispatch("create_document", input));
+    }
+
+    /**
+     * 기존 문서를 수정하고 선택적으로 커밋한다.
+     * Phase 5: WRITE 도구
+     *
+     * @param input 수정 요청
+     * @return 수정 결과
+     */
+    @PostMapping("/update_document")
+    public ResponseEntity<McpResponse<UpdateDocumentResult>> updateDocument(
+            @RequestBody UpdateDocumentInput input
+    ) {
+        return ResponseEntity.ok(dispatcher.dispatch("update_document", input));
+    }
+
+    /**
+     * 로컬 커밋을 원격 레포지토리로 푸시한다.
+     * Phase 5: WRITE 도구
+     *
+     * @param input 푸시 요청
+     * @return 푸시 결과
+     */
+    @PostMapping("/push_to_remote")
+    public ResponseEntity<McpResponse<PushToRemoteResult>> pushToRemote(
+            @RequestBody PushToRemoteInput input
+    ) {
+        return ResponseEntity.ok(dispatcher.dispatch("push_to_remote", input));
     }
 
     /**

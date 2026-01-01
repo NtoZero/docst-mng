@@ -17,6 +17,7 @@
   },
   "sidebar": {
     "dashboard": "Dashboard",
+    "playground": "Playground",
     "projects": "Projects",
     "newProject": "New Project",
     "noProjects": "No projects yet",

@@ -314,7 +314,7 @@ public class GitService {
      * @param repo 레포지토리 엔티티
      * @return CredentialsProvider (자격증명이 없으면 null)
      */
-    private CredentialsProvider getCredentialsProvider(Repository repo) {
+    public CredentialsProvider getCredentialsProvider(Repository repo) {
         Credential credential = repo.getCredential();
         log.info("Getting credentials for repository {}: credential={}",
                 repo.getFullName(),

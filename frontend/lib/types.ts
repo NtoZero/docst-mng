@@ -449,3 +449,75 @@ export interface ServiceHealth {
   message: string;
   details: Record<string, any>;
 }
+
+// ===== Phase 5: MCP & Playground =====
+
+// JSON-RPC 2.0
+export interface JsonRpcRequest {
+  jsonrpc: '2.0';
+  id: string | number;
+  method: string;
+  params?: unknown;
+}
+
+export interface JsonRpcResponse<T = unknown> {
+  jsonrpc: '2.0';
+  id: string | number;
+  result?: T;
+  error?: JsonRpcError;
+}
+
+export interface JsonRpcError {
+  code: number;
+  message: string;
+  data?: unknown;
+}
+
+// MCP Tool Definitions
+export interface McpToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+export interface McpToolsListResult {
+  tools: McpToolDefinition[];
+}
+
+// Chat Messages
+export type MessageRole = 'user' | 'assistant' | 'system';
+
+export interface ChatMessage {
+  id: string;
+  role: MessageRole;
+  content: string;
+  timestamp: Date;
+  toolCalls?: ToolCall[];
+  isError?: boolean;
+}
+
+export interface ToolCall {
+  toolName: string;
+  input: Record<string, unknown>;
+  output?: unknown;
+  error?: string;
+  duration?: number;
+}
+
+// MCP Tool Call Request/Response
+export interface McpToolCallRequest {
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface McpResponse<T = unknown> {
+  result: T | null;
+  error: { message: string } | null;
+}
+
+// Playground State
+export interface PlaygroundState {
+  projectId?: string;
+  connected: boolean;
+  tools: McpToolDefinition[];
+}

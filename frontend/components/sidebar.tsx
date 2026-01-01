@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
-import { FolderGit2, Settings, Plus, ChevronRight, Home, Key, Settings2 } from 'lucide-react';
+import { FolderGit2, Settings, Plus, ChevronRight, Home, Key, Settings2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUIStore, useAuthStore } from '@/lib/store';
 import { useProjects } from '@/hooks/use-api';
@@ -44,6 +44,17 @@ export function Sidebar() {
             >
               <Home className="h-4 w-4" />
               {t('dashboard')}
+            </Link>
+
+            <Link
+              href="/playground"
+              className={cn(
+                'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent',
+                pathname === '/playground' && 'bg-accent'
+              )}
+            >
+              <MessageSquare className="h-4 w-4" />
+              {t('playground')}
             </Link>
 
             <div className="pt-4">

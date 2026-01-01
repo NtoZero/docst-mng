@@ -1,8 +1,10 @@
 package com.docst.auth;
 
+import com.docst.domain.Document;
 import com.docst.domain.ProjectMember;
 import com.docst.domain.ProjectRole;
 import com.docst.domain.Repository;
+import com.docst.repository.DocumentRepository;
 import com.docst.repository.ProjectMemberRepository;
 import com.docst.repository.RepositoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class PermissionService {
 
     private final ProjectMemberRepository projectMemberRepository;
     private final RepositoryRepository repositoryRepository;
+    private final DocumentRepository documentRepository;
 
     /**
      * 사용자가 프로젝트에 대해 요구되는 권한을 가지고 있는지 확인한다.
@@ -157,5 +160,70 @@ public class PermissionService {
     public void requireRepositoryPermission(UUID repositoryId, ProjectRole required) {
         UUID userId = SecurityUtils.requireCurrentUser().getId();
         requireRepositoryPermission(userId, repositoryId, required);
+    }
+
+    /**
+     * 사용자가 문서에 대해 요구되는 권한을 가지고 있는지 확인한다.
+     * 문서가 속한 레포지토리의 프로젝트에 대한 권한을 검사한다.
+     *
+     * @param userId     사용자 ID
+     * @param documentId 문서 ID
+     * @param required   요구되는 역할
+     * @return 권한이 있으면 true
+     */
+    @Transactional(readOnly = true)
+    public boolean hasDocumentPermission(UUID userId, UUID documentId, ProjectRole required) {
+        Optional<Document> docOpt = documentRepository.findById(documentId);
+        if (docOpt.isEmpty()) {
+            log.warn("Document {} not found", documentId);
+            return false;
+        }
+
+        UUID repositoryId = docOpt.get().getRepository().getId();
+        return hasRepositoryPermission(userId, repositoryId, required);
+    }
+
+    /**
+     * 사용자가 문서에 대해 요구되는 권한을 가지고 있는지 확인하고, 없으면 예외를 발생시킨다.
+     *
+     * @param userId     사용자 ID
+     * @param documentId 문서 ID
+     * @param required   요구되는 역할
+     * @throws PermissionDeniedException 권한이 없을 경우
+     */
+    public void requireDocumentPermission(UUID userId, UUID documentId, ProjectRole required) {
+        if (!hasDocumentPermission(userId, documentId, required)) {
+            throw new PermissionDeniedException(
+                    String.format("User %s does not have %s permission for document %s",
+                            userId, required, documentId)
+            );
+        }
+    }
+
+    /**
+     * 현재 사용자가 문서에 대해 요구되는 권한을 가지고 있는지 확인한다.
+     *
+     * @param documentId 문서 ID
+     * @param required   요구되는 역할
+     * @return 권한이 있으면 true
+     */
+    public boolean hasDocumentPermission(UUID documentId, ProjectRole required) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        if (userId == null) {
+            return false;
+        }
+        return hasDocumentPermission(userId, documentId, required);
+    }
+
+    /**
+     * 현재 사용자가 문서에 대해 요구되는 권한을 가지고 있는지 확인하고, 없으면 예외를 발생시킨다.
+     *
+     * @param documentId 문서 ID
+     * @param required   요구되는 역할
+     * @throws PermissionDeniedException 권한이 없을 경우
+     */
+    public void requireDocumentPermission(UUID documentId, ProjectRole required) {
+        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        requireDocumentPermission(userId, documentId, required);
     }
 }

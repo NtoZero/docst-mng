@@ -239,4 +239,106 @@ public final class McpModels {
      * @param status 작업 상태
      */
     public record SyncRepositoryResult(UUID jobId, String status) {}
+
+    // ===== create_document =====
+
+    /**
+     * create_document 도구 입력.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param path 파일 경로
+     * @param content 문서 내용
+     * @param message 커밋 메시지 (선택)
+     * @param branch 대상 브랜치 (선택, 기본: main)
+     * @param createCommit 즉시 커밋 여부 (true: 즉시 커밋, false: 스테이징만)
+     */
+    public record CreateDocumentInput(
+            UUID repositoryId,
+            String path,
+            String content,
+            String message,
+            String branch,
+            Boolean createCommit
+    ) {}
+
+    /**
+     * create_document 도구 결과.
+     *
+     * @param documentId 생성된 문서 ID
+     * @param path 파일 경로
+     * @param newCommitSha 커밋된 경우 커밋 SHA
+     * @param committed 커밋 여부
+     * @param message 결과 메시지
+     */
+    public record CreateDocumentResult(
+            UUID documentId,
+            String path,
+            String newCommitSha,
+            boolean committed,
+            String message
+    ) {}
+
+    // ===== update_document =====
+
+    /**
+     * update_document 도구 입력.
+     *
+     * @param documentId 문서 ID
+     * @param content 수정된 내용
+     * @param message 커밋 메시지 (선택)
+     * @param branch 대상 브랜치 (선택, 기본: main)
+     * @param createCommit 즉시 커밋 여부 (true: 즉시 커밋, false: 스테이징만)
+     */
+    public record UpdateDocumentInput(
+            UUID documentId,
+            String content,
+            String message,
+            String branch,
+            Boolean createCommit
+    ) {}
+
+    /**
+     * update_document 도구 결과.
+     *
+     * @param documentId 문서 ID
+     * @param path 파일 경로
+     * @param newCommitSha 커밋된 경우 커밋 SHA
+     * @param committed 커밋 여부
+     * @param message 결과 메시지
+     */
+    public record UpdateDocumentResult(
+            UUID documentId,
+            String path,
+            String newCommitSha,
+            boolean committed,
+            String message
+    ) {}
+
+    // ===== push_to_remote =====
+
+    /**
+     * push_to_remote 도구 입력.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch 푸시할 브랜치 (선택, 기본: main)
+     */
+    public record PushToRemoteInput(
+            UUID repositoryId,
+            String branch
+    ) {}
+
+    /**
+     * push_to_remote 도구 결과.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch 푸시한 브랜치
+     * @param success 성공 여부
+     * @param message 결과 메시지
+     */
+    public record PushToRemoteResult(
+            UUID repositoryId,
+            String branch,
+            boolean success,
+            String message
+    ) {}
 }

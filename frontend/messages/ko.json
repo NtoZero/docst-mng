@@ -17,6 +17,7 @@
   },
   "sidebar": {
     "dashboard": "대시보드",
+    "playground": "플레이그라운드",
     "projects": "프로젝트",
     "newProject": "새 프로젝트",
     "noProjects": "아직 프로젝트가 없습니다",
