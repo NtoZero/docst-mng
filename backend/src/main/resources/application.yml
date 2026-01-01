@@ -10,18 +10,18 @@ spring:
 
   autoconfigure:
     exclude:
-      # Spring AI 1.1.0 - 동적 임베딩/벡터스토어 설정 사용으로 AutoConfiguration 비활성화
-      # OpenAI 모델 관련 (spring-ai-autoconfigure-model-openai)
+      # Spring AI 1.1.0 - 동적 설정 사용으로 AutoConfiguration 비활성화
+      # OpenAI: Chat, Embedding 모두 동적 관리로 비활성화 (크리덴셜 기반)
       - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
-      # Ollama 모델 관련 (spring-ai-autoconfigure-model-ollama)
+      # Ollama: Chat/Embedding 모두 비활성화 (필요시 동적 생성)
       - org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration
       - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
-      # PgVector 벡터스토어 (spring-ai-autoconfigure-vector-store-pgvector)
+      # PgVector 벡터스토어 - 동적 관리
       - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
       # Neo4j - 조건부 활성화를 위해 AutoConfiguration 비활성화
       - org.springframework.boot.actuate.autoconfigure.neo4j.Neo4jHealthContributorAutoConfiguration
@@ -51,9 +51,15 @@ spring:
     baseline-on-migrate: true
 
   # Spring AI Configuration
-  # NOTE: Provider-specific configs (OpenAI/Ollama/Neo4j) are now managed in dm_system_config and dm_credential tables.
-  # Only schema-level PgVector settings remain here for Spring AI VectorStore initialization.
+  # NOTE: All AI configs (Chat, Embedding, Vector Store) are managed dynamically per-project
+  # using dm_system_config and dm_credential tables (Phase 4-E, Phase 6).
   ai:
+    # OpenAI - All configurations moved to Credential management (dynamic)
+    # Chat API Key: stored in dm_credential (CredentialType.OPENAI_API_KEY)
+    # Embedding API Key: stored in dm_credential (CredentialType.OPENAI_API_KEY)
+    # Provider settings: stored in dm_system_config (llm.provider, embedding.provider)
+
+    # Vector Store (PgVector)
     vectorstore:
       pgvector:
         index-type: HNSW
@@ -88,6 +94,10 @@ docst:
   webhook:
     github:
       secret: ${GITHUB_WEBHOOK_SECRET:}
+
+  # LLM Configuration (Phase 6)
+  llm:
+    enabled: ${LLM_ENABLED:true}
 
   # Chunking Configuration
   chunking:

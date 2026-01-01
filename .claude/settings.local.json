@@ -14,7 +14,8 @@
       "Bash(dir \"C:\\\\Dev\\\\project\\\\docst-mng\\\\frontend\" /B)",
       "Bash(docker exec:*)",
       "mcp__context7__query-docs",
-      "WebSearch"
+      "WebSearch",
+      "Bash(./gradlew compileJava:*)"
     ]
   }
 }

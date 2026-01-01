@@ -494,6 +494,7 @@ export interface ChatMessage {
   timestamp: Date;
   toolCalls?: ToolCall[];
   isError?: boolean;
+  isStreaming?: boolean;  // Phase 6: streaming indicator
 }
 
 export interface ToolCall {
@@ -520,4 +521,16 @@ export interface PlaygroundState {
   projectId?: string;
   connected: boolean;
   tools: McpToolDefinition[];
+}
+
+// ===== LLM Chat Types (Phase 6) =====
+
+export interface ChatRequest {
+  message: string;
+  projectId: string;
+  sessionId: string;
+}
+
+export interface ChatResponse {
+  content: string;
 }

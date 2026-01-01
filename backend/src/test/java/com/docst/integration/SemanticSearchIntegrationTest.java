@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Tag("integration")
 @Tag("openai")
-// @Disabled("OpenAI API 키가 필요하며 비용이 발생합니다. 수동 실행 시에만 활성화하세요.")
+@Disabled("Phase 2+ 기능 (시맨틱 검색) - Phase 6 LLM 구현 중에는 비활성화")
 class SemanticSearchIntegrationTest {
 
     @Autowired

@@ -256,18 +256,30 @@ dm_sync_job (id, repository_id, status, target_branch,
 
 ## Configuration
 
+
+### API Key 관리 정책
+
+**중요**: Docst는 모든 외부 서비스 API Key를 프로그램 내부에서 관리합니다.
+
+- **환경 변수나 yml 파일에 API Key를 저장하지 않습니다**
+- **모든 API Key는 웹 UI의 Credential 관리 메뉴에서 암호화하여 저장합니다**
+- **프로젝트별 또는 시스템 레벨로 API Key 관리 가능**
+
+지원 API Key 타입:
+- `OPENAI_API_KEY`: OpenAI API (LLM Chat + Embedding 통합)
+- `ANTHROPIC_API_KEY`: Anthropic Claude API
+- `GITHUB_PAT`: GitHub Personal Access Token
+- `NEO4J_AUTH`: Neo4j 인증 정보
+- `CUSTOM_API_KEY`: 커스텀 API Key
+
+**API Key 등록 방법**:
+1. 웹 UI 로그인 후 Settings → Credentials 이동
+2. "Add Credential" 클릭
+3. 타입 선택 (예: OPENAI_API_KEY)
+4. API Key 입력 (AES-256으로 암호화 저장)
+5. 프로젝트별 설정 또는 시스템 공용으로 선택
+
 ### Backend Environment Variables
-
-**필수 설정 (.env 파일 생성)**
-```bash
-# .env.example을 복사하여 .env 파일 생성
-cp .env.example .env
-
-# OpenAI API Key 설정 (필수)
-OPENAI_API_KEY=sk-proj-your-api-key-here
-
-# 기타 설정은 기본값 사용 가능
-```
 
 **환경 변수 목록**
 ```bash
@@ -281,17 +293,6 @@ DB_NAME=docst
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 
-# OpenAI (기본 임베딩 제공자)
-OPENAI_API_KEY=sk-proj-...              # 필수
-OPENAI_EMBEDDING_ENABLED=true
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small  # 1536 dims
-EMBEDDING_DIMENSIONS=1536
-
-# Ollama (선택적, 로컬 사용 시)
-OLLAMA_EMBEDDING_ENABLED=false          # 기본값: 비활성화
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text # 768 dims
-
 # Git Storage
 DOCST_GIT_ROOT=/data/git
 
@@ -299,36 +300,48 @@ DOCST_GIT_ROOT=/data/git
 DOCST_AUTH_MODE=local  # local, github
 JWT_SECRET=your-secret-key
 
-# Encryption
-DOCST_ENCRYPTION_KEY=your-encryption-key
+# Encryption (Credential 암복호화에 사용)
+DOCST_ENCRYPTION_KEY=your-encryption-key-32-bytes-minimum
 ```
+
+**제거된 환경 변수** (웹 UI Credential 관리로 이동):
+- ~~OPENAI_API_KEY~~ → 웹 UI에서 관리
+- ~~OPENAI_EMBEDDING_ENABLED~~ → 웹 UI에서 관리
+- ~~OPENAI_EMBEDDING_MODEL~~ → 웹 UI에서 관리
+- ~~OLLAMA_EMBEDDING_ENABLED~~ → 웹 UI에서 관리
+- ~~OLLAMA_BASE_URL~~ → 웹 UI에서 관리
+- ~~OLLAMA_EMBEDDING_MODEL~~ → 웹 UI에서 관리
+
 
 ### application.yml (자동 적용)
+
+**주요 변경**: Spring AI Auto-configuration을 비활성화하고, 동적 Factory 패턴 사용
+
 ```yaml
 spring:
+  autoconfigure:
+    exclude:
+      # Spring AI: 모든 AI 관련 Auto-configuration 비활성화
+      # 동적 Credential 기반 Factory에서 ChatModel, EmbeddingModel 생성
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
+      - org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration
+      - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
+
   ai:
-    # OpenAI (기본)
-    openai:
-      api-key: ${OPENAI_API_KEY:}
-      embedding:
-        enabled: ${OPENAI_EMBEDDING_ENABLED:true}
-        options:
-          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
-
-    # Ollama (선택)
-    ollama:
-      embedding:
-        enabled: ${OLLAMA_EMBEDDING_ENABLED:false}
-      init:
-        pull-model-strategy: never  # 자동 다운로드 방지
-
-    # Vector Store
     vectorstore:
       pgvector:
-        dimensions: ${EMBEDDING_DIMENSIONS:1536}
-        distance-type: COSINE_DISTANCE
         index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+        initialize-schema: true
+
+docst:
+  llm:
+    enabled: true  # LLM 기능 활성화 (Phase 6)
 ```
+
+**API Key 설정**: 환경 변수가 아닌 웹 UI Credential 관리 사용
 
 ### Frontend (.env.local)
 ```
@@ -339,50 +352,64 @@ NEXT_PUBLIC_API_BASE=http://localhost:8080
 
 ## Running Locally
 
-### 1. 환경 변수 설정 (필수)
-```bash
-# .env 파일 생성
-cp .env.example .env
+### 1. 서버 실행
 
-# .env 파일 편집
-# OPENAI_API_KEY=sk-proj-... 설정 필수
-nano .env  # 또는 원하는 에디터 사용
-```
-
-**OpenAI API Key 발급**
-1. https://platform.openai.com/api-keys 접속
-2. "Create new secret key" 클릭
-3. 생성된 키를 `.env` 파일의 `OPENAI_API_KEY`에 설정
-
-### 2. With Docker Compose
+#### With Docker Compose (권장)
 ```bash
 docker-compose up -d
 
 # Backend: http://localhost:8342
-# Frontend: http://localhost:3000 (추후)
+# Frontend: http://localhost:3000
 # PostgreSQL: localhost:5434
 ```
 
-### 3. Development
+#### Development Mode
 ```bash
 # Backend
 cd backend && ./gradlew bootRun
 
-# Frontend (추후)
+# Frontend
 cd frontend && npm run dev
 ```
 
-### Ollama 사용 (선택)
-로컬에서 Ollama를 사용하려면:
-```bash
-# .env 파일 수정
-OPENAI_EMBEDDING_ENABLED=false
-OLLAMA_EMBEDDING_ENABLED=true
-EMBEDDING_DIMENSIONS=768
+### 2. API Key 설정 (웹 UI)
 
-# Ollama 모델 다운로드
-docker exec -it docst-mng-ollama-1 ollama pull nomic-embed-text
+**중요**: 환경 변수가 아닌 웹 UI에서 API Key를 설정합니다.
+
+1. **웹 UI 접속**: http://localhost:3000
+2. **로그인**: 관리자 계정으로 로그인
+3. **Settings → Credentials 이동**
+4. **Add Credential 클릭**
+5. **API Key 입력**:
+   - **Type**: `OPENAI_API_KEY`
+   - **Name**: "OpenAI Main Key" (식별용)
+   - **Secret**: `sk-proj-your-actual-key-here`
+   - **Scope**: `SYSTEM` (전체 프로젝트 공용) 또는 `PROJECT` (특정 프로젝트 전용)
+6. **Save**
+
+**OpenAI API Key 발급**:
+1. https://platform.openai.com/api-keys 접속
+2. "Create new secret key" 클릭
+3. 생성된 키를 웹 UI Credential 관리에 입력
+
+### 3. Ollama 사용 (선택)
+
+로컬 LLM을 사용하려면:
+
+1. **Ollama 설치**: https://ollama.ai/download
+2. **모델 다운로드**:
+```bash
+ollama pull nomic-embed-text  # Embedding용
+ollama pull llama3.2          # Chat용
 ```
+3. **웹 UI에서 설정**:
+   - Settings → System Configuration
+   - `llm.provider` = `ollama`
+   - `llm.ollama.base-url` = `http://localhost:11434`
+   - `embedding.provider` = `ollama`
+   - `embedding.ollama.model` = `nomic-embed-text`
+
+**주의**: Ollama는 API Key가 필요 없습니다.
 
 ---
 
