@@ -22,8 +22,8 @@ repositories {
 }
 
 dependencies {
-  // Spring AI BOM
-  implementation(platform("org.springframework.ai:spring-ai-bom:1.0.0-M5"))
+  // Spring AI BOM (1.1.0 GA)
+  implementation(platform("org.springframework.ai:spring-ai-bom:1.1.0"))
 
   // Spring Boot Starters
   implementation("org.springframework.boot:spring-boot-starter-web")
@@ -36,13 +36,13 @@ dependencies {
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 
   // Spring AI - PgVector VectorStore
-  implementation("org.springframework.ai:spring-ai-pgvector-store-spring-boot-starter")
+  implementation("org.springframework.ai:spring-ai-starter-vector-store-pgvector")
 
   // Spring AI - OpenAI Embedding Model (Default)
-  implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter")
+  implementation("org.springframework.ai:spring-ai-starter-model-openai")
 
   // Spring AI - Ollama Embedding Model (Optional)
-  implementation("org.springframework.ai:spring-ai-ollama-spring-boot-starter")
+  implementation("org.springframework.ai:spring-ai-starter-model-ollama")
 
   // Database
   runtimeOnly("org.postgresql:postgresql")

@@ -11,9 +11,12 @@ import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.ollama.OllamaEmbeddingModel;
 import org.springframework.ai.ollama.api.OllamaApi;
+import org.springframework.ai.ollama.api.OllamaEmbeddingOptions;
 import org.springframework.ai.ollama.management.ModelManagementOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
+import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.retry.RetryUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -21,6 +24,8 @@ import java.util.UUID;
 /**
  * 동적 임베딩 클라이언트 팩토리.
  * 프로젝트별 설정과 크리덴셜을 기반으로 EmbeddingModel을 동적 생성한다.
+ *
+ * Spring AI 1.1.0+ API 사용.
  */
 @Service
 @RequiredArgsConstructor
@@ -52,6 +57,7 @@ public class DynamicEmbeddingClientFactory {
 
     /**
      * OpenAI 임베딩 모델 생성.
+     * Spring AI 1.1.0+ Builder API 사용.
      *
      * @param projectId 프로젝트 ID
      * @param config RAG 설정
@@ -61,18 +67,28 @@ public class DynamicEmbeddingClientFactory {
         // 프로젝트 > 시스템 우선순위로 API 키 조회
         String apiKey = credentialResolver.resolveApiKey(projectId, CredentialType.OPENAI_API_KEY);
 
-        OpenAiApi openAiApi = new OpenAiApi(apiKey);
-
-        var options = org.springframework.ai.openai.OpenAiEmbeddingOptions.builder()
-                .withModel(config.getEmbeddingModel())
-                .withDimensions(config.getEmbeddingDimensions())
+        // Spring AI 1.1.0: Builder 패턴 사용
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .apiKey(apiKey)
                 .build();
 
-        return new OpenAiEmbeddingModel(openAiApi, MetadataMode.EMBED, options);
+        OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
+                .model(config.getEmbeddingModel())
+                .dimensions(config.getEmbeddingDimensions())
+                .build();
+
+        // Spring AI 1.1.0: RetryTemplate 필수
+        return new OpenAiEmbeddingModel(
+                openAiApi,
+                MetadataMode.EMBED,
+                options,
+                RetryUtils.DEFAULT_RETRY_TEMPLATE
+        );
     }
 
     /**
      * Ollama 임베딩 모델 생성.
+     * Spring AI 1.1.0+ Builder API 사용.
      *
      * @param config RAG 설정
      * @return Ollama EmbeddingModel
@@ -89,9 +105,12 @@ public class DynamicEmbeddingClientFactory {
             throw new IllegalStateException("Ollama base URL is not configured");
         }
 
-        OllamaApi ollamaApi = new OllamaApi(baseUrl);
+        // Spring AI 1.1.0: Builder 패턴 사용
+        OllamaApi ollamaApi = OllamaApi.builder()
+                .baseUrl(baseUrl)
+                .build();
 
-        var options = org.springframework.ai.ollama.api.OllamaOptions.builder()
+        OllamaEmbeddingOptions options = OllamaEmbeddingOptions.builder()
                 .model(config.getEmbeddingModel())
                 .build();
 
