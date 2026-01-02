@@ -1,5 +1,7 @@
 package com.docst.llm;
 
+import com.docst.llm.tools.DocumentTools;
+import com.docst.llm.tools.GitTools;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -13,7 +15,7 @@ import java.util.UUID;
  * LLM 서비스
  *
  * DynamicChatClientFactory를 사용하여 프로젝트별 크리덴셜 기반 LLM 대화 처리.
- * Tool Calling을 통해 문서 관리, 검색, Git 작업 자동 수행.
+ * @Tool annotation 기반 Tool Calling으로 문서 관리, 검색, Git 작업 자동 수행.
  */
 @Service
 @Slf4j
@@ -21,6 +23,8 @@ import java.util.UUID;
 public class LlmService {
 
     private final DynamicChatClientFactory chatClientFactory;
+    private final DocumentTools documentTools;
+    private final GitTools gitTools;
 
     /**
      * LLM과 대화 (동기 호출)
@@ -38,8 +42,8 @@ public class LlmService {
 
             return chatClient.prompt()
                 .user(userMessage)
-                // Tools 등록 - Function Bean 이름으로 참조
-                .toolNames("searchDocuments", "listDocuments", "getDocument")
+                // @Tool annotation 기반 Tools 등록
+                .tools(documentTools, gitTools)
                 // ToolContext로 projectId 전달
                 .advisors(spec -> spec
                     .param("projectId", projectId.toString())
@@ -69,7 +73,7 @@ public class LlmService {
 
             return chatClient.prompt()
                 .user(userMessage)
-                .toolNames("searchDocuments", "listDocuments", "getDocument")
+                .tools(documentTools, gitTools)
                 .advisors(spec -> spec
                     .param("projectId", projectId.toString())
                     .param("sessionId", sessionId)
@@ -105,7 +109,7 @@ public class LlmService {
 
             return chatClient.prompt()
                 .user(userMessage)
-                .toolNames("searchDocuments", "listDocuments", "getDocument")
+                .tools(documentTools, gitTools)
                 .advisors(spec -> spec
                     .param("projectId", projectId.toString())
                     .param("sessionId", sessionId)

@@ -10,6 +10,7 @@ import com.docst.domain.Credential;
 import com.docst.domain.ProjectRole;
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
+import com.docst.git.BranchService;
 import com.docst.repository.CredentialRepository;
 import com.docst.service.RepositoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,7 @@ public class RepositoriesController {
 
     private final RepositoryService repositoryService;
     private final CredentialRepository credentialRepository;
+    private final BranchService branchService;
 
     /**
      * 프로젝트의 모든 레포지토리를 조회한다.
@@ -178,6 +180,76 @@ public class RepositoriesController {
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+    // ===== Branch Management APIs =====
+
+    /**
+     * 레포지토리의 모든 브랜치를 조회한다.
+     */
+    @Operation(summary = "브랜치 목록 조회", description = "레포지토리의 모든 브랜치를 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/repositories/{id}/branches")
+    @RequireRepositoryAccess(role = ProjectRole.VIEWER, repositoryIdParam = "id")
+    public ResponseEntity<List<String>> listBranches(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID id
+    ) {
+        List<String> branches = branchService.listBranches(id);
+        return ResponseEntity.ok(branches);
+    }
+
+    /**
+     * 새 브랜치를 생성한다.
+     */
+    @Operation(summary = "브랜치 생성", description = "새 브랜치를 생성합니다.")
+    @ApiResponse(responseCode = "201", description = "생성 성공")
+    @PostMapping("/repositories/{id}/branches")
+    @RequireRepositoryAccess(role = ProjectRole.EDITOR, repositoryIdParam = "id")
+    public ResponseEntity<BranchResult> createBranch(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID id,
+            @RequestBody CreateBranchRequest request
+    ) {
+        String ref = branchService.createBranch(
+            id,
+            request.branchName(),
+            request.fromBranch() != null ? request.fromBranch() : "main"
+        );
+        return ResponseEntity.status(201)
+            .body(new BranchResult(request.branchName(), ref, true));
+    }
+
+    /**
+     * 브랜치를 전환한다.
+     */
+    @Operation(summary = "브랜치 전환", description = "다른 브랜치로 전환합니다.")
+    @ApiResponse(responseCode = "200", description = "전환 성공")
+    @PostMapping("/repositories/{id}/branches/{branchName}/switch")
+    @RequireRepositoryAccess(role = ProjectRole.EDITOR, repositoryIdParam = "id")
+    public ResponseEntity<BranchResult> switchBranch(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID id,
+            @Parameter(description = "브랜치명") @PathVariable String branchName
+    ) {
+        branchService.switchBranch(id, branchName);
+        return ResponseEntity.ok(new BranchResult(branchName, null, true));
+    }
+
+    /**
+     * 현재 브랜치를 조회한다.
+     */
+    @Operation(summary = "현재 브랜치 조회", description = "현재 체크아웃된 브랜치를 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/repositories/{id}/branches/current")
+    @RequireRepositoryAccess(role = ProjectRole.VIEWER, repositoryIdParam = "id")
+    public ResponseEntity<CurrentBranchResponse> getCurrentBranch(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID id
+    ) {
+        String branchName = branchService.getCurrentBranch(id);
+        return ResponseEntity.ok(new CurrentBranchResponse(branchName));
+    }
+
+    // Branch DTOs
+    public record CreateBranchRequest(String branchName, String fromBranch) {}
+    public record BranchResult(String branchName, String ref, boolean success) {}
+    public record CurrentBranchResponse(String branchName) {}
 
     /**
      * Repository 엔티티를 응답 DTO로 변환한다.

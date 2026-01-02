@@ -350,6 +350,96 @@ NEXT_PUBLIC_API_BASE=http://localhost:8080
 
 ---
 
+## LLM Integration
+
+### Tool Definition with @Tool Annotation
+
+**Spring AI 1.1.0+** 권장 방식: `@Tool` annotation을 사용한 선언적 Tool 정의
+
+**위치**: `backend/src/main/java/com/docst/llm/tools/`
+
+#### Pattern
+
+```java
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class DocumentTools {
+
+    private final DocumentService documentService;
+
+    @Tool(description = "Search documents in a project using keywords. Returns top matching documents with snippets.")
+    public List<DocumentSearchResult> searchDocuments(
+        @ToolParam(description = "The search query keywords") String query,
+        @ToolParam(description = "The project ID to search within") String projectId,
+        @ToolParam(description = "Maximum number of results (default: 10)", required = false) Integer topK
+    ) {
+        UUID projId = UUID.fromString(projectId);
+        int limit = (topK != null && topK > 0) ? topK : 10;
+        List<SearchResult> results = searchService.searchByKeyword(projId, query, limit);
+        return results.stream()
+            .map(r -> new DocumentSearchResult(r.documentId().toString(), r.path(), r.snippet(), r.score()))
+            .toList();
+    }
+}
+```
+
+#### 사용 방법
+
+```java
+@Service
+@RequiredArgsConstructor
+public class LlmService {
+    private final DocumentTools documentTools;
+    private final GitTools gitTools;
+
+    public String chat(String userMessage, UUID projectId, String sessionId) {
+        ChatClient chatClient = chatClientFactory.getChatClient(projectId);
+        return chatClient.prompt()
+            .user(userMessage)
+            .tools(documentTools, gitTools)  // @Tool annotation 기반
+            .call()
+            .content();
+    }
+}
+```
+
+#### Available Tools
+
+**DocumentTools** (`DocumentTools.java`):
+- `searchDocuments`: 키워드 검색
+- `listDocuments`: 문서 목록 조회
+- `getDocument`: 문서 내용 조회
+
+**GitTools** (`GitTools.java`):
+- `listBranches`: 브랜치 목록
+- `createBranch`: 브랜치 생성
+- `switchBranch`: 브랜치 전환
+- `getCurrentBranch`: 현재 브랜치 조회
+- `syncRepository`: 레포지토리 동기화
+
+#### 장점
+
+- **간결성**: Function Bean 방식 대비 74% 코드 감소
+- **타입 안정성**: 컴파일 타임 검증
+- **자동 스캔**: Spring이 @Tool 메서드 자동 감지
+- **가독성**: 비즈니스 로직과 Tool 정의가 통합
+
+#### Legacy Approach (Deprecated)
+
+`LlmToolsConfig.java`의 Function Bean 방식은 Spring AI 1.1.0+에서 deprecated:
+
+```java
+// ❌ Deprecated: Function Bean with Records
+@Bean
+@Description("Search documents...")
+public Function<SearchDocumentsRequest, SearchDocumentsResponse> searchDocuments() {
+    return request -> { /* ... */ };
+}
+```
+
+---
+
 ## Running Locally
 
 ### 1. 서버 실행

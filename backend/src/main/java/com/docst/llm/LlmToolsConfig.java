@@ -22,12 +22,18 @@ import java.util.function.Function;
 /**
  * LLM Tools Configuration - Spring AI Function Beans
  *
+ * @deprecated This class is deprecated as of Phase 6 Week 3-4.
+ *             Use {@link com.docst.llm.tools.DocumentTools} instead with @Tool annotation.
+ *             This approach is replaced by the more modern @Tool annotation pattern
+ *             which is the recommended way in Spring AI 1.1.0+.
+ *
  * Spring AI 1.1.0+ 에서 Tool Calling을 위한 Function Bean 정의.
  * 각 Tool은 java.util.function.Function<Request, Response> 형태로 정의되며,
  * @Description 어노테이션으로 LLM에게 Tool의 용도를 설명.
  */
+@Deprecated(since = "Phase 6 Week 3-4", forRemoval = true)
 @Configuration
-@ConditionalOnProperty(prefix = "docst.llm", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "docst.llm", name = "enabled", havingValue = "true", matchIfMissing = false)
 @RequiredArgsConstructor
 @Slf4j
 public class LlmToolsConfig {
