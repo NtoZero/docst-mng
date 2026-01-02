@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLlmChat } from '@/hooks/use-llm-chat';
 import { StreamingMessage } from './streaming-message';
+import { TemplateSelector } from './template-selector';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/types';
 
@@ -85,31 +86,39 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t">
-        <div className="flex gap-2">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about your documents..."
-            className="min-h-[60px] resize-none"
-            disabled={isStreaming}
-          />
+        <div className="space-y-2">
+          {/* Template Selector */}
+          <div className="flex justify-end">
+            <TemplateSelector onSelect={(prompt) => setInput(prompt)} />
+          </div>
 
-          {isStreaming ? (
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              onClick={cancelStream}
-            >
-              <Square className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button type="submit" size="icon" disabled={!input.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
-          )}
+          {/* Input Area */}
+          <div className="flex gap-2">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about your documents..."
+              className="min-h-[60px] resize-none"
+              disabled={isStreaming}
+            />
+
+            {isStreaming ? (
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                onClick={cancelStream}
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button type="submit" size="icon" disabled={!input.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </form>
     </div>

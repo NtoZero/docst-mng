@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { ChatInterface } from '@/components/playground/chat-interface';
 import { BranchSelector } from '@/components/playground/branch-selector';
 import { SessionManager } from '@/components/playground/session-manager';
+import { ProjectSelector } from '@/components/playground/project-selector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { ChatMessage } from '@/lib/types';
@@ -12,10 +13,15 @@ import type { ChatMessage } from '@/lib/types';
 export default function PlaygroundPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const projectId = params.projectId as string | undefined;
+  const urlProjectId = params.projectId as string | undefined;
   const repositoryId = searchParams?.get('repositoryId') as string | undefined;
 
+  // State for selected project (from URL or user selection)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(urlProjectId);
   const [chatKey, setChatKey] = useState(0);
+
+  // Use selected project or fallback to URL project
+  const projectId = selectedProjectId || urlProjectId;
 
   const handleNewSession = () => {
     setChatKey((prev) => prev + 1);
@@ -28,20 +34,11 @@ export default function PlaygroundPage() {
     setChatKey((prev) => prev + 1);
   };
 
-  if (!projectId) {
-    return (
-      <div className="container mx-auto p-6 h-[calc(100vh-4rem)]">
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-2">No Project Selected</h2>
-            <p className="text-muted-foreground">
-              Please select a project from the sidebar to use the AI Playground.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleProjectChange = (newProjectId: string) => {
+    setSelectedProjectId(newProjectId);
+    // Reset chat when project changes
+    setChatKey((prev) => prev + 1);
+  };
 
   return (
     <div className="container mx-auto p-6 h-[calc(100vh-4rem)]">
@@ -61,25 +58,44 @@ export default function PlaygroundPage() {
                 onBranchChange={(branch) => console.log('Switched to branch:', branch)}
               />
             )}
-            <SessionManager
-              projectId={projectId}
-              onLoadSession={handleLoadSession}
-              onNewSession={handleNewSession}
-            />
-            <Badge variant="default" className="text-sm">
-              Phase 6 Week 3-4
-            </Badge>
+            {projectId && (
+              <SessionManager
+                projectId={projectId}
+                onLoadSession={handleLoadSession}
+                onNewSession={handleNewSession}
+              />
+            )}
           </div>
+        </div>
+
+        {/* Project Selector */}
+        <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+          <span className="text-sm font-medium">Select Project:</span>
+          <ProjectSelector
+            selectedProjectId={projectId}
+            onProjectChange={handleProjectChange}
+          />
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex gap-6 min-h-0">
           {/* Chat Area */}
-          <Card className="flex-1 flex flex-col min-h-0">
-            <CardContent className="flex-1 p-0 flex flex-col min-h-0">
-              <ChatInterface key={chatKey} projectId={projectId} />
-            </CardContent>
-          </Card>
+          {projectId ? (
+            <Card className="flex-1 flex flex-col min-h-0">
+              <CardContent className="flex-1 p-0 flex flex-col min-h-0">
+                <ChatInterface key={chatKey} projectId={projectId} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="flex-1 flex flex-col items-center justify-center">
+              <CardContent className="text-center p-8">
+                <h3 className="text-xl font-semibold mb-2">No Project Selected</h3>
+                <p className="text-muted-foreground">
+                  Please select a project from the dropdown above to start chatting with AI.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Sidebar */}
           <Card className="w-80 flex flex-col">
@@ -108,6 +124,8 @@ export default function PlaygroundPage() {
                         <li>• searchDocuments</li>
                         <li>• listDocuments</li>
                         <li>• getDocument</li>
+                        <li>• updateDocument</li>
+                        <li>• createDocument</li>
                       </ul>
                     </div>
                     <div>
@@ -116,6 +134,7 @@ export default function PlaygroundPage() {
                         <li>• listBranches</li>
                         <li>• createBranch</li>
                         <li>• switchBranch</li>
+                        <li>• getCurrentBranch</li>
                         <li>• syncRepository</li>
                       </ul>
                     </div>

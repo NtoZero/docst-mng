@@ -534,3 +534,19 @@ export interface ChatRequest {
 export interface ChatResponse {
   content: string;
 }
+
+export interface TemplateVariable {
+  name: string;
+  label: string;
+  placeholder: string;
+  defaultValue?: string | null;
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  template: string;
+  variables: TemplateVariable[];
+}

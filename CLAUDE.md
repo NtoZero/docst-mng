@@ -214,6 +214,9 @@ docst-mng/
 | GET | `/api/documents/{id}` | 문서 상세 |
 | GET | `/api/documents/{id}/versions` | 버전 목록 |
 | GET | `/api/projects/{id}/search?q=...` | 검색 |
+| POST | `/api/llm/chat` | LLM 채팅 (동기) |
+| POST | `/api/llm/chat/stream` | LLM 채팅 (스트리밍) |
+| GET | `/api/llm/templates` | 프롬프트 템플릿 목록 |
 
 ### MCP Tools
 | Tool | Description |
@@ -410,6 +413,8 @@ public class LlmService {
 - `searchDocuments`: 키워드 검색
 - `listDocuments`: 문서 목록 조회
 - `getDocument`: 문서 내용 조회
+- `updateDocument`: 문서 내용 업데이트 (새 버전 생성)
+- `createDocument`: 새 문서 생성
 
 **GitTools** (`GitTools.java`):
 - `listBranches`: 브랜치 목록

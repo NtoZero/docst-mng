@@ -52,7 +52,9 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 // MCP endpoints (JSON-RPC 2.0 transport)
                                 "/mcp",
-                                "/mcp/**"
+                                "/mcp/**",
+                                // LLM endpoints (requires authentication in production)
+                                "/api/llm/**"
                         ).permitAll()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()

@@ -108,6 +108,96 @@ public class DocumentTools {
         );
     }
 
+    /**
+     * 문서 내용 업데이트 Tool
+     *
+     * 기존 문서의 내용을 새 내용으로 업데이트.
+     */
+    @Tool(description = "Update the content of an existing document. Creates a new version with the updated content.")
+    public DocumentUpdateResult updateDocument(
+        @ToolParam(description = "The document ID to update") String documentId,
+        @ToolParam(description = "The new content for the document") String content
+    ) {
+        log.info("Tool: updateDocument - documentId={}, contentLength={}", documentId, content.length());
+
+        UUID docId = UUID.fromString(documentId);
+        Document doc = documentService.findById(docId)
+            .orElseThrow(() -> new RuntimeException("Document not found: " + documentId));
+
+        // LLM이 생성한 버전임을 명시
+        String commitSha = "llm-" + UUID.randomUUID().toString().substring(0, 8);
+
+        DocumentVersion newVersion = documentService.upsertDocument(
+            doc.getRepository().getId(),
+            doc.getPath(),
+            commitSha,
+            content,
+            "LLM Assistant",
+            "llm@docst.ai",
+            java.time.Instant.now(),
+            "Updated by LLM"
+        );
+
+        if (newVersion != null) {
+            return new DocumentUpdateResult(
+                doc.getId().toString(),
+                doc.getPath(),
+                newVersion.getCommitSha(),
+                "Document updated successfully"
+            );
+        } else {
+            return new DocumentUpdateResult(
+                doc.getId().toString(),
+                doc.getPath(),
+                commitSha,
+                "No changes detected (content identical)"
+            );
+        }
+    }
+
+    /**
+     * 새 문서 생성 Tool
+     *
+     * 레포지토리에 새 문서를 생성.
+     */
+    @Tool(description = "Create a new document in a repository. Provide the repository ID, file path, and initial content.")
+    public DocumentCreateResult createDocument(
+        @ToolParam(description = "The repository ID where the document will be created") String repositoryId,
+        @ToolParam(description = "The file path for the new document (e.g., 'docs/new-guide.md')") String path,
+        @ToolParam(description = "The initial content of the document") String content
+    ) {
+        log.info("Tool: createDocument - repositoryId={}, path={}, contentLength={}",
+            repositoryId, path, content.length());
+
+        UUID repoId = UUID.fromString(repositoryId);
+
+        // LLM이 생성한 버전임을 명시
+        String commitSha = "llm-" + UUID.randomUUID().toString().substring(0, 8);
+
+        DocumentVersion newVersion = documentService.upsertDocument(
+            repoId,
+            path,
+            commitSha,
+            content,
+            "LLM Assistant",
+            "llm@docst.ai",
+            java.time.Instant.now(),
+            "Created by LLM"
+        );
+
+        // upsertDocument는 항상 Document를 생성하므로, 다시 조회
+        Document doc = documentService.findById(newVersion.getDocument().getId())
+            .orElseThrow(() -> new RuntimeException("Failed to retrieve created document"));
+
+        return new DocumentCreateResult(
+            doc.getId().toString(),
+            doc.getPath(),
+            doc.getTitle(),
+            newVersion.getCommitSha(),
+            "Document created successfully"
+        );
+    }
+
     // ===== Response Records =====
 
     /**
@@ -139,5 +229,26 @@ public class DocumentTools {
         String title,
         String content,
         String commitSha
+    ) {}
+
+    /**
+     * 문서 업데이트 결과
+     */
+    public record DocumentUpdateResult(
+        String documentId,
+        String path,
+        String commitSha,
+        String message
+    ) {}
+
+    /**
+     * 문서 생성 결과
+     */
+    public record DocumentCreateResult(
+        String documentId,
+        String path,
+        String title,
+        String commitSha,
+        String message
     ) {}
 }

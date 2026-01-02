@@ -1,4 +1,4 @@
-import type { ChatRequest, ChatResponse } from './types';
+import type { ChatRequest, ChatResponse, PromptTemplate } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
 
@@ -114,4 +114,31 @@ export async function* streamChatMessage(
   } finally {
     reader.releaseLock();
   }
+}
+
+/**
+ * 프롬프트 템플릿 목록 조회
+ *
+ * 시스템 기본 템플릿을 가져옵니다.
+ */
+export async function getPromptTemplates(): Promise<PromptTemplate[]> {
+  const token = await getAuthToken();
+
+  const headers: HeadersInit = {};
+
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}/api/llm/templates`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || response.statusText);
+  }
+
+  return response.json();
 }

@@ -66,12 +66,34 @@ PostgreSQL + Documents
 | CLAUDE.md (API Key 정책) | ✅ | `CLAUDE.md` |
 | dynamic-llm.md (상세 문서) | ✅ | `docs/impl/phase6/dynamic-llm.md` |
 
-### Week 3-4: 고급 UI (예정)
+### Week 3-4: Git Tools + WRITE Tools ✅
 
-- [ ] Branch Selector (Git 브랜치 선택/생성)
-- [ ] Session Manager (대화 히스토리 저장)
-- [ ] Template Selector (프롬프트 템플릿)
-- [ ] Tool Call Progress Indicator
+| 컴포넌트 | 상태 | 파일 |
+|---------|------|------|
+| @Tool annotation 리팩토링 | ✅ | `DocumentTools.java`, `GitTools.java` |
+| WRITE Tools (update/create) | ✅ | `DocumentTools.java` |
+| Git Tools (5개) | ✅ | `GitTools.java` |
+| Branch REST API | ✅ | `RepositoriesController.java` |
+| BranchService | ✅ | `BranchService.java` |
+| BranchSelector 컴포넌트 | ✅ | `branch-selector.tsx` |
+| SessionManager 컴포넌트 | ✅ | `session-manager.tsx` |
+| use-branches Hook | ✅ | `use-branches.ts` |
+| use-session Hook | ✅ | `use-session.ts` |
+| shadcn/ui Components | ✅ | `command.tsx`, `popover.tsx`, `sheet.tsx` |
+
+### Week 5-6: 템플릿 시스템 + Rate Limiting ✅
+
+| 컴포넌트 | 상태 | 파일 |
+|---------|------|------|
+| PromptTemplate 클래스 | ✅ | `PromptTemplate.java` |
+| Template REST API | ✅ | `LlmController.java` |
+| TemplateSelector 컴포넌트 | ✅ | `template-selector.tsx` |
+| RateLimitService | ✅ | `RateLimitService.java` |
+| LlmController Rate Limiting | ✅ | `LlmController.java` |
+
+### Week 5-6: 미완료 항목
+
+없음 - 모두 완료됨!
 
 ---
 
@@ -147,13 +169,27 @@ data:  파일을
 
 ## 등록된 Tools
 
-LLM이 자동으로 호출할 수 있는 Function Bean Tools:
+LLM이 자동으로 호출할 수 있는 @Tool annotation Tools:
+
+### Document Tools
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `searchDocuments` | 키워드로 문서 검색 | query, projectId, topK? |
 | `listDocuments` | 프로젝트의 모든 문서 목록 | projectId |
 | `getDocument` | 문서 ID로 전체 내용 조회 | documentId |
+| `updateDocument` | 문서 내용 업데이트 | documentId, content |
+| `createDocument` | 새 문서 생성 | repositoryId, path, content |
+
+### Git Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `listBranches` | 브랜치 목록 조회 | repositoryId |
+| `createBranch` | 새 브랜치 생성 | repositoryId, branchName, fromBranch? |
+| `switchBranch` | 브랜치 전환 | repositoryId, branchName |
+| `getCurrentBranch` | 현재 브랜치 조회 | repositoryId |
+| `syncRepository` | 레포지토리 동기화 | repositoryId, branch? |
 
 ---
 
@@ -270,22 +306,38 @@ npm run dev
 
 ---
 
-## 다음 단계
+## Phase 6 완료 상태
 
-### Week 3-4 계획
+### 완료된 기능 ✅
 
-1. **Branch Selector**: Git 브랜치 선택/생성 UI
-2. **Session Manager**: 대화 히스토리 LocalStorage 저장
-3. **Template Selector**: 자주 사용하는 프롬프트 템플릿
-4. **Tool Call Indicator**: 도구 호출 진행 상황 시각화
+**Week 1-2: 백엔드 기초**
+- ✅ Spring AI 1.1.0 통합
+- ✅ LlmService, LlmController
+- ✅ @Tool annotation 클래스
 
-### 추가 Tools (Week 5-6)
+**Week 3-4: 프론트엔드 통합 + Git Tools**
+- ✅ ChatInterface, StreamingMessage
+- ✅ WRITE Tools (update/create Document)
+- ✅ Git Tools (5개)
+- ✅ BranchSelector, SessionManager
 
-1. **updateDocument**: 문서 내용 수정
-2. **createDocument**: 새 문서 생성
-3. **listBranches**: 브랜치 목록 조회
-4. **createBranch**: 새 브랜치 생성
-5. **syncRepository**: 레포지토리 동기화
+**Week 5-6: 템플릿 시스템 + Rate Limiting**
+- ✅ 프롬프트 템플릿 (8개)
+- ✅ TemplateSelector UI
+- ✅ Rate Limiting (분당 20 요청)
+
+### 다음 단계 (Phase 7+)
+
+**선택 사항**:
+- Tool Call Progress Indicator - 도구 호출 시각화
+- 마크다운 렌더링 - ChatInterface에 렌더러 통합
+- Redis 기반 Rate Limiting - 다중 서버 환경 지원
+- DB 기반 템플릿 관리 - 사용자 커스텀 템플릿
+
+**Phase 7 계획**:
+- Multi-tenant 지원
+- 팀 협업 기능
+- 권한 관리 고도화
 
 ---
 

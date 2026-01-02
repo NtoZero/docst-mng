@@ -4,6 +4,117 @@
 
 ---
 
+## [Week 5-6] 2025-01-03 - 템플릿 시스템 + Rate Limiting
+
+### 추가된 기능 ✨
+
+#### 백엔드
+- **프롬프트 템플릿 시스템**:
+  - `PromptTemplate`: 8개 기본 템플릿 (검색, 요약, 생성, 수정, 목록, Git, 설명, 예제)
+  - `GET /api/llm/templates` - 템플릿 목록 조회 API
+  - 변수 치환 기능 (`{{variable}}` 패턴)
+  - 카테고리별 분류 (search, summarize, create, update, list, git, explain)
+- **Rate Limiting**:
+  - `RateLimitService`: Sliding Window 방식 Rate Limiter
+  - 프로젝트 + IP 기반 제한 (분당 20 요청)
+  - LLM Chat API에 자동 적용
+  - HTTP 429 응답 + 리셋 시간 정보 제공
+
+#### 프론트엔드
+- **TemplateSelector 컴포넌트**:
+  - 템플릿 선택 드롭다운 (카테고리별 그룹화)
+  - 변수 입력 폼 (자동 생성)
+  - 미리보기 기능
+  - ChatInterface에 통합
+
+### 변경된 사항 🔧
+
+#### 백엔드
+- **LlmController**: Rate Limiting 체크 추가
+  - `getIdentifier()`: 프로젝트 + IP 식별자 생성
+  - `getClientIp()`: X-Forwarded-For 헤더 지원
+- **ChatInterface**: 템플릿 선택 버튼 추가
+
+### 개선된 사항 📈
+
+- **UX 향상**: 자주 사용하는 프롬프트를 템플릿으로 빠르게 입력
+- **비용 관리**: Rate Limiting으로 과도한 LLM API 호출 방지
+- **확장성**: 템플릿은 시스템 레벨로 하드코딩 (나중에 DB 확장 가능)
+
+### 빌드 결과 ✅
+
+```bash
+# Backend
+./gradlew build
+# BUILD SUCCESSFUL
+
+# Frontend
+npm run build
+# Compiled successfully
+```
+
+---
+
+## [Week 3-4] 2025-01-03 - WRITE Tools 추가 + @Tool 패턴 리팩토링
+
+### 추가된 기능 ✨
+
+#### 백엔드
+- **@Tool annotation 패턴 도입**: Function Bean → @Tool annotation 마이그레이션
+  - `DocumentTools.java`: @Tool annotation 기반 재구현
+  - `GitTools.java`: @Tool annotation 기반 재구현
+  - `LlmToolsConfig.java`: Deprecated 처리
+- **WRITE Tools 추가**:
+  - `updateDocument`: 기존 문서 내용 업데이트 (새 버전 생성)
+  - `createDocument`: 새 문서 생성
+- **Git Tools 확장**:
+  - `listBranches`, `createBranch`, `switchBranch`, `getCurrentBranch`, `syncRepository`
+- **Branch Management REST API**:
+  - `GET /api/repositories/{id}/branches` - 브랜치 목록
+  - `POST /api/repositories/{id}/branches` - 브랜치 생성
+  - `POST /api/repositories/{id}/branches/{name}/switch` - 브랜치 전환
+  - `GET /api/repositories/{id}/branches/current` - 현재 브랜치
+
+#### 프론트엔드
+- **BranchSelector 컴포넌트**: Git 브랜치 선택 및 생성 UI
+- **SessionManager 컴포넌트**: 대화 히스토리 저장/로드
+- **use-branches Hook**: 브랜치 관리 TanStack Query Hook
+- **use-session Hook**: LocalStorage 기반 세션 관리
+- **shadcn/ui 컴포넌트**: Command, Popover, Sheet 추가
+
+### 변경된 사항 🔧
+
+#### 백엔드
+- **Tool 정의 방식**: Function Bean → @Tool annotation
+  - 코드량 74% 감소 (boilerplate 제거)
+  - `@ToolParam`으로 파라미터 설명 명시
+  - Jackson annotations 제거
+- **LlmService**: `.toolNames()` → `.tools(documentTools, gitTools)`
+  - @Tool annotation 기반 Components 직접 주입
+
+#### 문서
+- **CLAUDE.md**: LLM Integration 섹션 추가
+  - @Tool annotation 패턴 설명
+  - Available Tools 목록
+  - Legacy vs Modern 비교
+
+### 개선된 사항 📈
+
+- **코드 간결성**: Function Bean 방식 대비 74% 코드 감소
+- **타입 안전성**: 컴파일 타임 검증
+- **자동 스캔**: Spring이 @Tool 메서드 자동 감지
+- **확장성**: 새 Tool 추가가 매우 간단 (메서드 하나만 추가)
+
+### 빌드 결과 ✅
+
+```bash
+./gradlew build
+# BUILD SUCCESSFUL
+# All tests passed
+```
+
+---
+
 ## [Week 2-3] 2025-01-03 - 동적 API Key 관리 + 리팩토링
 
 ### 추가된 기능 ✨
