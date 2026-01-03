@@ -100,22 +100,34 @@ export async function* streamChatMessage(
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        // 빈 줄 체크 (trim 사용)
-        if (line.trim() === '') continue;
+        // 빈 줄 체크 - SSE에서 빈 줄은 이벤트 구분자
+        if (line === '') continue;
 
         // SSE format: "data: <content>" 또는 "data:<content>"
         if (line.startsWith('data:')) {
           // "data:" 제거 (5글자)
-          let data = line.substring(5);
+          const rawData = line.substring(5);
 
-          // "data: " 형식인 경우 첫 번째 공백 하나만 제거
-          if (data.startsWith(' ')) {
-            data = data.substring(1);
-          }
+          // SSE 스펙: "data:" 바로 뒤의 선행 공백 하나만 선택적 제거
+          const data = rawData.startsWith(' ') ? rawData.substring(1) : rawData;
 
-          // 디버깅: 실제 청크 내용 로깅
-          if (data !== '' && data !== '[DONE]') {
-            console.log('SSE chunk:', JSON.stringify(data), 'length:', data.length);
+          // [DONE] 마커는 스킵
+          if (data === '[DONE]') continue;
+
+          // 빈 문자열 스킵
+          if (data === '') continue;
+
+          // JSON 형식 파싱 (공백 보존을 위해 백엔드에서 JSON으로 전송)
+          // Format: {"content":"actual text with spaces"}
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed && typeof parsed.content === 'string') {
+              console.log('SSE chunk (parsed):', JSON.stringify(parsed.content), 'length:', parsed.content.length);
+              yield parsed.content;
+            }
+          } catch {
+            // JSON 파싱 실패 시 raw data 그대로 사용 (fallback)
+            console.log('SSE chunk (raw):', JSON.stringify(data), 'length:', data.length);
             yield data;
           }
         }

@@ -71,6 +71,9 @@ public class LlmController {
      *
      * 응답을 실시간으로 스트리밍하여 전송.
      * 긴 응답이나 Tool 호출이 많은 경우 사용자 경험 향상.
+     *
+     * 주의: 공백 보존을 위해 JSON 형식으로 전송.
+     * 프론트엔드에서 {"content":"..."} 형식 파싱 필요.
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> chatStream(
@@ -95,9 +98,19 @@ public class LlmController {
             request.message(),
             request.projectId(),
             request.sessionId()
-        ).doOnNext(chunk -> {
+        ).map(chunk -> {
+            // 공백 보존을 위해 JSON 형식으로 인코딩
+            // SSE에서 plain text 전송 시 선행 공백이 구분자로 오인되는 문제 방지
+            String escaped = chunk
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+            return "{\"content\":\"" + escaped + "\"}";
+        }).doOnNext(chunk -> {
             // SSE 청크 로깅 (디버깅용)
-            log.debug("SSE chunk: [{}] (length={})", chunk.replace("\n", "\\n"), chunk.length());
+            log.debug("SSE chunk (JSON): {}", chunk);
         });
     }
 
