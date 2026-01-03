@@ -3,7 +3,6 @@ package com.docst.llm;
 import com.docst.domain.Credential.CredentialType;
 import com.docst.service.DynamicCredentialResolver;
 import com.docst.service.SystemConfigService;
-import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -13,7 +12,6 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.ai.retry.RetryUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -150,14 +148,12 @@ public class DynamicChatClientFactory {
         log.info("Created OpenAI ChatModel for project {}: model={}, temperature={}, maxTokens={}",
                 projectId, model, temperature, maxTokens);
 
-        // Spring AI 1.1.0: ChatModel 생성 (5개 파라미터 필요)
-        return new OpenAiChatModel(
-                openAiApi,
-                options,
-                null,  // ToolCallingManager (nullable)
-                RetryUtils.DEFAULT_RETRY_TEMPLATE,
-                ObservationRegistry.NOOP
-        );
+        // Spring AI 1.1.0+: OpenAiChatModel 생성 (2개 파라미터)
+        // Tools는 ChatClient.prompt().tools()에서 등록됨
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
     }
 
     /**

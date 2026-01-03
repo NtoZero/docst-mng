@@ -4,6 +4,7 @@ import com.docst.domain.Document;
 import com.docst.domain.DocumentVersion;
 import com.docst.service.DocumentService;
 import com.docst.service.SearchService;
+import com.docst.service.SemanticSearchService;
 import com.docst.service.SearchService.SearchResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,24 +28,34 @@ public class DocumentTools {
 
     private final DocumentService documentService;
     private final SearchService searchService;
+    private final SemanticSearchService semanticSearchService;
 
     /**
      * 문서 검색 Tool
      *
-     * 프로젝트 내 문서를 키워드로 검색.
+     * 프로젝트 내 문서를 의미 검색(벡터 검색)으로 검색.
+     * 키워드 매칭이 아닌 의미적 유사도로 검색하여 더 정확한 결과 제공.
      */
-    @Tool(description = "Search documents in a project using keywords. Returns top matching documents with snippets and relevance scores.")
+    @Tool(description = "Search documents in a project using semantic search (vector similarity). " +
+          "Returns top matching documents with snippets and relevance scores based on meaning, not just keywords.")
     public List<DocumentSearchResult> searchDocuments(
-        @ToolParam(description = "The search query keywords") String query,
+        @ToolParam(description = "The search query (natural language question or keywords)") String query,
         @ToolParam(description = "The project ID to search within") String projectId,
         @ToolParam(description = "Maximum number of results to return (default: 10)", required = false) Integer topK
     ) {
-        log.info("Tool: searchDocuments - query={}, projectId={}, topK={}", query, projectId, topK);
+        log.info("Tool: searchDocuments (semantic) - query={}, projectId={}, topK={}", query, projectId, topK);
 
         UUID projId = UUID.fromString(projectId);
         int limit = (topK != null && topK > 0) ? topK : 10;
 
-        List<SearchResult> results = searchService.searchByKeyword(projId, query, limit);
+        // 의미 검색 사용 (벡터 유사도)
+        List<SearchResult> results = semanticSearchService.searchSemantic(projId, query, limit);
+
+        // 결과가 없으면 키워드 검색으로 폴백
+        if (results.isEmpty()) {
+            log.info("No semantic search results, falling back to keyword search");
+            results = searchService.searchByKeyword(projId, query, limit);
+        }
 
         return results.stream()
             .map(r -> new DocumentSearchResult(

@@ -386,6 +386,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
           <h1 className="text-3xl font-bold">{project.name}</h1>
           {project.description && <p className="text-muted-foreground">{project.description}</p>}
         </div>
+        <Button variant="outline" asChild>
+          <Link href={`/projects/${projectId}/settings/credentials`}>
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Link>
+        </Button>
       </div>
 
       <div className="space-y-4">

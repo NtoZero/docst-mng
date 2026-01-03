@@ -100,12 +100,22 @@ export async function* streamChatMessage(
       buffer = lines.pop() || '';
 
       for (const line of lines) {
+        // 빈 줄 체크 (trim 사용)
         if (line.trim() === '') continue;
 
-        // SSE format: "data: <content>"
+        // SSE format: "data: <content>" 또는 "data:<content>"
         if (line.startsWith('data:')) {
-          const data = line.slice(5).trim();
-          if (data && data !== '[DONE]') {
+          // "data:" 제거 (5글자)
+          let data = line.substring(5);
+
+          // "data: " 형식인 경우 첫 번째 공백 하나만 제거
+          if (data.startsWith(' ')) {
+            data = data.substring(1);
+          }
+
+          // 디버깅: 실제 청크 내용 로깅
+          if (data !== '' && data !== '[DONE]') {
+            console.log('SSE chunk:', JSON.stringify(data), 'length:', data.length);
             yield data;
           }
         }

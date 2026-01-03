@@ -114,7 +114,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 space-y-3 text-center text-sm">
-            <p className="text-muted-foreground">Demo credentials: demo@docst.dev / demo123</p>
+            <p className="text-muted-foreground">Demo credentials: dev@localhost / DevPassword123!</p>
             <div className="text-muted-foreground">
               Don't have an account?{' '}
               <Link href="/register" className="text-primary hover:underline font-medium">

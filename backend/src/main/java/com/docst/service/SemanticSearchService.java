@@ -47,6 +47,9 @@ public class SemanticSearchService {
      * @return 검색 결과 목록
      */
     public List<SearchService.SearchResult> searchSemantic(UUID projectId, String query, int topK, double similarityThreshold) {
+        log.info("Semantic search started: projectId={}, query='{}', topK={}, threshold={}",
+            projectId, query, topK, similarityThreshold);
+
         // Spring AI SearchRequest 구성
         SearchRequest request = SearchRequest.builder()
             .query(query)
@@ -61,21 +64,43 @@ public class SemanticSearchService {
             .build();
 
         // 벡터 검색 실행
-        List<org.springframework.ai.document.Document> aiDocuments = vectorStore.similaritySearch(request);
+        List<org.springframework.ai.document.Document> aiDocuments;
+        try {
+            aiDocuments = vectorStore.similaritySearch(request);
+            log.info("Vector store search completed: found {} documents", aiDocuments.size());
+        } catch (Exception e) {
+            log.error("Vector store search failed", e);
+            return List.of();
+        }
+
+        if (aiDocuments.isEmpty()) {
+            log.warn("No results from vector store for query: '{}'", query);
+            return List.of();
+        }
 
         log.debug("Semantic search: query='{}', topK={}, results={}", query, topK, aiDocuments.size());
 
         // Spring AI Document → DocChunk ID 추출
-        List<UUID> chunkIds = aiDocuments.stream()
-            .map(doc -> {
+        List<UUID> chunkIds = new ArrayList<>();
+        for (org.springframework.ai.document.Document doc : aiDocuments) {
+            try {
                 String chunkIdStr = (String) doc.getMetadata().get("doc_chunk_id");
-                return UUID.fromString(chunkIdStr);
-            })
-            .toList();
+                if (chunkIdStr == null) {
+                    log.warn("Document missing doc_chunk_id in metadata: {}", doc.getId());
+                    continue;
+                }
+                chunkIds.add(UUID.fromString(chunkIdStr));
+            } catch (Exception e) {
+                log.error("Failed to extract chunk ID from document: {}", doc.getId(), e);
+            }
+        }
 
         if (chunkIds.isEmpty()) {
+            log.warn("No valid chunk IDs extracted from {} documents", aiDocuments.size());
             return List.of();
         }
+
+        log.info("Extracted {} chunk IDs from vector search results", chunkIds.size());
 
         // DocChunk 조회 (순서 보존 필요)
         List<DocChunk> chunks = docChunkRepository.findAllById(chunkIds);

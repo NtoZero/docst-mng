@@ -40,8 +40,16 @@ public class LlmService {
             // 프로젝트별 ChatClient 가져오기 (크리덴셜 기반)
             ChatClient chatClient = chatClientFactory.getChatClient(projectId);
 
+            // User Message에 projectId 컨텍스트 추가
+            String contextualizedMessage = String.format(
+                "[Context: projectId=%s]\n\nUser Question: %s\n\n" +
+                "IMPORTANT: When using searchDocuments, listDocuments, or getDocument tools, " +
+                "you MUST use projectId=\"%s\"",
+                projectId, userMessage, projectId
+            );
+
             return chatClient.prompt()
-                .user(userMessage)
+                .user(contextualizedMessage)
                 // @Tool annotation 기반 Tools 등록
                 .tools(documentTools, gitTools)
                 // ToolContext로 projectId 전달
@@ -71,8 +79,16 @@ public class LlmService {
             // 프로젝트별 ChatClient 가져오기 (크리덴셜 기반)
             ChatClient chatClient = chatClientFactory.getChatClient(projectId);
 
+            // User Message에 projectId 컨텍스트 추가
+            String contextualizedMessage = String.format(
+                "[Context: projectId=%s]\n\nUser Question: %s\n\n" +
+                "IMPORTANT: When using searchDocuments, listDocuments, or getDocument tools, " +
+                "you MUST use projectId=\"%s\"",
+                projectId, userMessage, projectId
+            );
+
             return chatClient.prompt()
-                .user(userMessage)
+                .user(contextualizedMessage)
                 .tools(documentTools, gitTools)
                 .advisors(spec -> spec
                     .param("projectId", projectId.toString())

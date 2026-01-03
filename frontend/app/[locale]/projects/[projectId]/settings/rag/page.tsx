@@ -1,17 +1,14 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { useRagConfig, useUpdateRagConfig, useRagDefaults } from '@/hooks/use-rag-config';
 import { RagConfigForm } from '@/components/rag-config/rag-config-form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Settings2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { UpdateRagConfigRequest } from '@/lib/types';
 
 export default function RagConfigPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const t = useTranslations('ragConfig');
 
   const { data: config, isLoading, error } = useRagConfig(projectId);
   const { data: defaults } = useRagDefaults(projectId);
@@ -29,7 +26,7 @@ export default function RagConfigPage() {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>{t('loadError')}</AlertDescription>
+        <AlertDescription>Failed to load RAG configuration</AlertDescription>
       </Alert>
     );
   }
@@ -43,15 +40,7 @@ export default function RagConfigPage() {
   };
 
   return (
-    <div className="container py-6 max-w-4xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Settings2 className="w-8 h-8" />
-        <div>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('description')}</p>
-        </div>
-      </div>
-
+    <div className="space-y-6">
       <RagConfigForm
         config={config}
         defaults={defaults}

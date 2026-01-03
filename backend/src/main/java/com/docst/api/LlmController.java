@@ -95,7 +95,10 @@ public class LlmController {
             request.message(),
             request.projectId(),
             request.sessionId()
-        );
+        ).doOnNext(chunk -> {
+            // SSE 청크 로깅 (디버깅용)
+            log.debug("SSE chunk: [{}] (length={})", chunk.replace("\n", "\\n"), chunk.length());
+        });
     }
 
     /**

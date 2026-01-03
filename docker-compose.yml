@@ -39,10 +39,8 @@ services:
     image: neo4j:5.15-community
     environment:
       NEO4J_AUTH: neo4j/password
-      NEO4J_PLUGINS: '["apoc"]'
-      NEO4J_apoc_export_file_enabled: "true"
-      NEO4J_apoc_import_file_enabled: "true"
-      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      # APOC 플러그인은 Phase 4 Graph RAG에서 필요 시 수동 설치
+      # NEO4J_PLUGINS 자동 설치는 반복 실행 시 충돌 발생
       NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
       NEO4J_dbms_security_procedures_allowlist: "apoc.*"
     ports:
