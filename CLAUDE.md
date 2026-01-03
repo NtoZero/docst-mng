@@ -268,19 +268,52 @@ dm_sync_job (id, repository_id, status, target_branch,
 - **모든 API Key는 웹 UI의 Credential 관리 메뉴에서 암호화하여 저장합니다**
 - **프로젝트별 또는 시스템 레벨로 API Key 관리 가능**
 
-지원 API Key 타입:
+지원 Credential 타입:
 - `OPENAI_API_KEY`: OpenAI API (LLM Chat + Embedding 통합)
 - `ANTHROPIC_API_KEY`: Anthropic Claude API
 - `GITHUB_PAT`: GitHub Personal Access Token
-- `NEO4J_AUTH`: Neo4j 인증 정보
+- `NEO4J_AUTH`: Neo4j 인증 정보 (`{"username": "...", "password": "..."}`)
+- `PGVECTOR_AUTH`: PgVector DB 인증 정보 (`{"username": "...", "password": "..."}`)
 - `CUSTOM_API_KEY`: 커스텀 API Key
 
-**API Key 등록 방법**:
+**Credential 등록 방법**:
 1. 웹 UI 로그인 후 Settings → Credentials 이동
 2. "Add Credential" 클릭
 3. 타입 선택 (예: OPENAI_API_KEY)
 4. API Key 입력 (AES-256으로 암호화 저장)
 5. 프로젝트별 설정 또는 시스템 공용으로 선택
+
+### 데이터소스 관리 정책
+
+**중요**: Docst는 외부 데이터소스(PgVector, Neo4j) 연결 정보를 **yml 파일에서 정적으로 관리하지 않습니다**.
+
+- **모든 데이터소스 연결 정보는 웹 UI의 Admin Settings에서 동적으로 관리합니다**
+- **연결 정보 변경 시 애플리케이션 재시작 없이 즉시 반영됩니다**
+- **인증 정보는 Credential로 암호화하여 저장합니다**
+
+#### PgVector (Semantic Search용)
+
+| 설정 위치 | 키 | 설명 |
+|----------|---|------|
+| Admin Settings → PgVector | `pgvector.enabled` | 활성화 여부 |
+| Admin Settings → PgVector | `pgvector.host` | PostgreSQL 호스트 |
+| Admin Settings → PgVector | `pgvector.port` | PostgreSQL 포트 |
+| Admin Settings → PgVector | `pgvector.database` | 데이터베이스명 |
+| Admin Settings → PgVector | `pgvector.schema` | 스키마명 |
+| Admin Settings → PgVector | `pgvector.table` | 벡터 테이블명 |
+| Admin Settings → PgVector | `pgvector.dimensions` | 벡터 차원 |
+| Credentials | `PGVECTOR_AUTH` | DB 인증 정보 |
+
+#### Neo4j (Graph RAG용)
+
+| 설정 위치 | 키 | 설명 |
+|----------|---|------|
+| Admin Settings → Neo4j | `neo4j.enabled` | 활성화 여부 |
+| Admin Settings → Neo4j | `neo4j.uri` | Bolt URI |
+| Admin Settings → Neo4j | `neo4j.max-hop` | 그래프 탐색 깊이 |
+| Credentials | `NEO4J_AUTH` | 인증 정보 |
+
+**주의**: `application.yml`에 PgVector/Neo4j 연결 정보를 추가하지 마세요. 모든 설정은 Admin UI(`/admin/settings`)에서 관리합니다.
 
 ### Backend Environment Variables
 
@@ -325,26 +358,23 @@ spring:
   autoconfigure:
     exclude:
       # Spring AI: 모든 AI 관련 Auto-configuration 비활성화
-      # 동적 Credential 기반 Factory에서 ChatModel, EmbeddingModel 생성
+      # 동적 Credential 기반 Factory에서 ChatModel, EmbeddingModel, VectorStore 생성
       - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
       - org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration
       - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
-
-  ai:
-    vectorstore:
-      pgvector:
-        index-type: HNSW
-        distance-type: COSINE_DISTANCE
-        dimensions: 1536
-        initialize-schema: true
+      - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
 
 docst:
   llm:
     enabled: true  # LLM 기능 활성화 (Phase 6)
 ```
 
-**API Key 설정**: 환경 변수가 아닌 웹 UI Credential 관리 사용
+**제거된 yml 설정** (Admin UI에서 동적 관리):
+- ~~spring.ai.vectorstore.pgvector.*~~ → Admin Settings → PgVector
+- ~~spring.neo4j.*~~ → Admin Settings → Neo4j
+
+**API Key/DB 인증 설정**: 환경 변수가 아닌 웹 UI Credential 관리 사용
 
 ### Frontend (.env.local)
 ```
