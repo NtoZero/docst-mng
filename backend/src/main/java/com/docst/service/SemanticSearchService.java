@@ -2,19 +2,32 @@ package com.docst.service;
 
 import com.docst.domain.DocChunk;
 import com.docst.domain.Document;
+import com.docst.embedding.DynamicEmbeddingClientFactory;
+import com.docst.rag.config.RagConfigService;
+import com.docst.rag.config.ResolvedRagConfig;
 import com.docst.repository.DocChunkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 의미 검색 서비스 (Phase 2-C).
  * Spring AI VectorStore를 활용한 벡터 유사도 검색을 제공한다.
+ *
+ * Phase 6 리팩토링:
+ * - 프로젝트별 Credential 기반 동적 EmbeddingModel 지원
+ * - VectorStore를 프로젝트별로 동적 생성 (Spring AI 1.1.0+ 표준)
+ * - 캐싱을 통한 성능 최적화
  */
 @Service
 @Transactional(readOnly = true)
@@ -22,8 +35,14 @@ import java.util.*;
 @Slf4j
 public class SemanticSearchService {
 
-    private final VectorStore vectorStore;  // Spring AI 자동 주입
+    private final PgVectorDataSourceManager dataSourceManager;
+    private final DynamicEmbeddingClientFactory embeddingClientFactory;
+    private final RagConfigService ragConfigService;
     private final DocChunkRepository docChunkRepository;
+    private final SystemConfigService systemConfigService;
+
+    // 프로젝트별 VectorStore 캐시 (projectId -> VectorStore)
+    private final ConcurrentHashMap<UUID, VectorStore> vectorStoreCache = new ConcurrentHashMap<>();
 
     /**
      * 프로젝트 범위 내에서 의미 검색을 수행한다.
@@ -50,17 +69,23 @@ public class SemanticSearchService {
         log.info("Semantic search started: projectId={}, query='{}', topK={}, threshold={}",
             projectId, query, topK, similarityThreshold);
 
+        // 프로젝트별 VectorStore 가져오기 (동적 생성)
+        VectorStore vectorStore;
+        try {
+            vectorStore = getOrCreateVectorStore(projectId);
+        } catch (Exception e) {
+            log.error("Failed to create VectorStore for project {}: {}", projectId, e.getMessage());
+            return List.of();
+        }
+
         // Spring AI SearchRequest 구성
         SearchRequest request = SearchRequest.builder()
             .query(query)
             .topK(topK)
             .similarityThreshold(similarityThreshold)
             // TODO: Filter Expression 추가 (project_id 필터링)
-            // Spring AI M5 버전에서는 Filter 지원이 제한적일 수 있음
-            // .filterExpression(Filter.builder()
-            //     .key("project_id")
-            //     .value(projectId.toString())
-            //     .build())
+            // Spring AI 1.1.0에서는 Filter 지원이 제한적일 수 있음
+            // .filterExpression("project_id == '" + projectId + "'")
             .build();
 
         // 벡터 검색 실행
@@ -154,5 +179,80 @@ public class SemanticSearchService {
         }
 
         return results;
+    }
+
+    /**
+     * 프로젝트별 VectorStore를 가져오거나 새로 생성한다.
+     * Spring AI 1.1.0+ 표준: PgVectorStore.builder()로 동적 생성.
+     *
+     * @param projectId 프로젝트 ID
+     * @return 프로젝트별 VectorStore
+     */
+    private VectorStore getOrCreateVectorStore(UUID projectId) {
+        return vectorStoreCache.computeIfAbsent(projectId, this::createVectorStore);
+    }
+
+    /**
+     * 프로젝트별 VectorStore를 생성한다.
+     *
+     * @param projectId 프로젝트 ID
+     * @return 새로 생성된 VectorStore
+     */
+    private VectorStore createVectorStore(UUID projectId) {
+        log.info("Creating VectorStore for project: {}", projectId);
+
+        // 동적 JdbcTemplate 획득
+        JdbcTemplate jdbcTemplate = dataSourceManager.getOrCreateJdbcTemplate();
+        if (jdbcTemplate == null) {
+            throw new IllegalStateException("PgVector is not configured or disabled");
+        }
+
+        // 프로젝트별 RAG 설정 가져오기
+        ResolvedRagConfig config = ragConfigService.resolve(projectId, null);
+
+        // 프로젝트별 EmbeddingModel 생성 (Credential 기반)
+        EmbeddingModel embeddingModel = embeddingClientFactory.createEmbeddingModel(projectId, config);
+
+        // SystemConfigService에서 설정 읽기
+        String schemaName = systemConfigService.getString(SystemConfigService.PGVECTOR_SCHEMA, "public");
+        String tableName = systemConfigService.getString(SystemConfigService.PGVECTOR_TABLE, "vector_store");
+
+        // Spring AI 1.1.0+ 표준: PgVectorStore.builder() 사용
+        VectorStore vectorStore = PgVectorStore.builder(jdbcTemplate, embeddingModel)
+            .dimensions(config.getEmbeddingDimensions())
+            .distanceType(PgVectorStore.PgDistanceType.COSINE_DISTANCE)
+            .indexType(PgVectorStore.PgIndexType.HNSW)
+            .schemaName(schemaName)
+            .vectorTableName(tableName)
+            .initializeSchema(false)  // 스키마는 이미 생성됨
+            .build();
+
+        log.info("VectorStore created for project {}: provider={}, model={}, dimensions={}",
+            projectId, config.getEmbeddingProvider(), config.getEmbeddingModel(), config.getEmbeddingDimensions());
+
+        return vectorStore;
+    }
+
+    /**
+     * 프로젝트의 VectorStore 캐시를 무효화한다.
+     * Credential 변경 시 호출하여 새로운 EmbeddingModel로 재생성하도록 함.
+     *
+     * @param projectId 프로젝트 ID
+     */
+    public void invalidateCache(UUID projectId) {
+        VectorStore removed = vectorStoreCache.remove(projectId);
+        if (removed != null) {
+            log.info("VectorStore cache invalidated for project: {}", projectId);
+        }
+    }
+
+    /**
+     * 모든 VectorStore 캐시를 무효화한다.
+     * PgVector 연결 변경 시 호출하여 모든 프로젝트의 VectorStore 재생성.
+     */
+    public void invalidateAllVectorStores() {
+        int size = vectorStoreCache.size();
+        vectorStoreCache.clear();
+        log.info("All VectorStore caches invalidated due to PgVector connection change: {} entries removed", size);
     }
 }

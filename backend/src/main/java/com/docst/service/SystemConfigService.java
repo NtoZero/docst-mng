@@ -33,6 +33,17 @@ public class SystemConfigService {
     // 설정 키 상수
     // ============================================================
 
+    // PostgreSQL (PgVector)
+    public static final String PGVECTOR_ENABLED = "pgvector.enabled";
+    public static final String PGVECTOR_HOST = "pgvector.host";
+    public static final String PGVECTOR_PORT = "pgvector.port";
+    public static final String PGVECTOR_DATABASE = "pgvector.database";
+    public static final String PGVECTOR_SCHEMA = "pgvector.schema";
+    public static final String PGVECTOR_TABLE = "pgvector.table";
+    public static final String PGVECTOR_DIMENSIONS = "pgvector.dimensions";
+    public static final String PGVECTOR_DISTANCE_TYPE = "pgvector.distance-type";
+    public static final String PGVECTOR_INDEX_TYPE = "pgvector.index-type";
+
     // Neo4j
     public static final String NEO4J_URI = "neo4j.uri";
     public static final String NEO4J_ENABLED = "neo4j.enabled";

@@ -202,6 +202,7 @@ export type CredentialType =
   | 'SSH_KEY'
   | 'OPENAI_API_KEY'
   | 'NEO4J_AUTH'
+  | 'PGVECTOR_AUTH'
   | 'ANTHROPIC_API_KEY'
   | 'CUSTOM_API_KEY';
 

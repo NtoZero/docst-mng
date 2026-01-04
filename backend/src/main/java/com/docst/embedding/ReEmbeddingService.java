@@ -2,11 +2,16 @@ package com.docst.embedding;
 
 import com.docst.domain.DocChunk;
 import com.docst.domain.DocumentVersion;
+import com.docst.rag.config.RagConfigService;
+import com.docst.rag.config.ResolvedRagConfig;
 import com.docst.repository.DocChunkRepository;
 import com.docst.repository.DocumentVersionRepository;
+import com.docst.service.PgVectorDataSourceManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +34,9 @@ public class ReEmbeddingService {
     private final DocumentVersionRepository documentVersionRepository;
     private final DocChunkRepository docChunkRepository;
     private final DocstEmbeddingService embeddingService;
-    private final VectorStore vectorStore;
+    private final PgVectorDataSourceManager pgVectorDataSourceManager;
+    private final DynamicEmbeddingClientFactory embeddingClientFactory;
+    private final RagConfigService ragConfigService;
 
     // 프로젝트별 재임베딩 진행 상태 추적
     private final ConcurrentHashMap<UUID, ReEmbeddingStatus> statusMap = new ConcurrentHashMap<>();
@@ -103,6 +110,7 @@ public class ReEmbeddingService {
 
     /**
      * 프로젝트의 기존 임베딩을 모두 삭제한다.
+     * Phase 6: 동적 VectorStore 사용.
      *
      * @param projectId 프로젝트 ID
      * @return 삭제된 임베딩 수
@@ -116,6 +124,13 @@ public class ReEmbeddingService {
             return 0;
         }
 
+        // 동적 VectorStore 생성
+        PgVectorStore vectorStore = createVectorStore(projectId);
+        if (vectorStore == null) {
+            log.warn("PgVector not available for deleting project embeddings");
+            return 0;
+        }
+
         // VectorStore에서 삭제
         List<String> chunkIds = chunks.stream()
             .map(chunk -> chunk.getId().toString())
@@ -124,6 +139,40 @@ public class ReEmbeddingService {
         vectorStore.delete(chunkIds);
 
         return chunkIds.size();
+    }
+
+    /**
+     * 동적 PgVectorStore 생성.
+     * Phase 6: PgVectorDataSourceManager를 통해 JdbcTemplate 및 설정 획득.
+     *
+     * @param projectId 프로젝트 ID
+     * @return PgVectorStore 또는 null (비활성화 시)
+     */
+    private PgVectorStore createVectorStore(UUID projectId) {
+        if (!pgVectorDataSourceManager.isEnabled()) {
+            return null;
+        }
+
+        JdbcTemplate jdbcTemplate = pgVectorDataSourceManager.getOrCreateJdbcTemplate();
+        if (jdbcTemplate == null) {
+            return null;
+        }
+
+        // 프로젝트 RAG 설정 조회
+        ResolvedRagConfig config = ragConfigService.resolve(projectId, null);
+
+        // 동적 임베딩 모델 생성
+        EmbeddingModel embeddingModel = embeddingClientFactory.createEmbeddingModel(projectId, config);
+
+        return PgVectorStore.builder(jdbcTemplate, embeddingModel)
+            .dimensions(pgVectorDataSourceManager.getDimensions())
+            .distanceType(PgVectorStore.PgDistanceType.COSINE_DISTANCE)
+            .indexType(PgVectorStore.PgIndexType.HNSW)
+            .removeExistingVectorStoreTable(false)
+            .initializeSchema(false)
+            .schemaName(pgVectorDataSourceManager.getSchemaName())
+            .vectorTableName(pgVectorDataSourceManager.getTableName())
+            .build();
     }
 
     /**

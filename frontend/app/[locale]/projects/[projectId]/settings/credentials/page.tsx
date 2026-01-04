@@ -31,6 +31,7 @@ function getCredentialLabel(type: CredentialType): string {
     OPENAI_API_KEY: 'OpenAI API Key',
     ANTHROPIC_API_KEY: 'Anthropic API Key',
     NEO4J_AUTH: 'Neo4j Auth',
+    PGVECTOR_AUTH: 'PgVector Auth',
     CUSTOM_API_KEY: 'Custom API Key',
   };
   return labels[type] || type;

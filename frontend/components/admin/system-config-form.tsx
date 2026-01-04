@@ -24,16 +24,6 @@ interface ConfigGroup {
 
 const CONFIG_GROUPS: ConfigGroup[] = [
   {
-    title: 'PostgreSQL (PgVector)',
-    description: 'PostgreSQL database connection for vector storage',
-    configs: ['postgresql.host', 'postgresql.port', 'postgresql.database', 'postgresql.schema'],
-  },
-  {
-    title: 'Neo4j',
-    description: 'Graph database configuration',
-    configs: ['neo4j.uri', 'neo4j.enabled', 'neo4j.max-hop', 'neo4j.entity-extraction-model'],
-  },
-  {
     title: 'Ollama',
     description: 'Local LLM server configuration',
     configs: ['ollama.base-url', 'ollama.enabled'],

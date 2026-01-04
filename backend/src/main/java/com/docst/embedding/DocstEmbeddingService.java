@@ -5,17 +5,18 @@ import com.docst.domain.DocumentVersion;
 import com.docst.rag.config.RagConfigService;
 import com.docst.rag.config.ResolvedRagConfig;
 import com.docst.repository.DocChunkRepository;
+import com.docst.service.PgVectorDataSourceManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,11 +32,10 @@ import java.util.UUID;
 @Slf4j
 public class DocstEmbeddingService {
 
-    private final VectorStore vectorStore;
+    private final PgVectorDataSourceManager pgVectorDataSourceManager;
     private final DocChunkRepository docChunkRepository;
     private final DynamicEmbeddingClientFactory embeddingClientFactory;
     private final RagConfigService ragConfigService;
-    private final JdbcTemplate jdbcTemplate;
 
     /**
      * DocumentVersion의 모든 청크를 임베딩하여 VectorStore에 저장한다.
@@ -68,6 +68,7 @@ public class DocstEmbeddingService {
     /**
      * DocChunk 목록을 임베딩하여 VectorStore에 저장한다.
      * Phase 4-E: 프로젝트별 동적 임베딩 모델을 사용한다.
+     * Phase 6: PgVectorDataSourceManager를 통해 동적 JdbcTemplate 사용.
      *
      * @param projectId 프로젝트 ID
      * @param chunks 청크 목록
@@ -79,6 +80,18 @@ public class DocstEmbeddingService {
             return 0;
         }
 
+        // PgVector 활성화 여부 확인
+        if (!pgVectorDataSourceManager.isEnabled()) {
+            log.warn("PgVector is not enabled. Skipping embedding.");
+            return 0;
+        }
+
+        JdbcTemplate jdbcTemplate = pgVectorDataSourceManager.getOrCreateJdbcTemplate();
+        if (jdbcTemplate == null) {
+            log.error("Failed to get PgVector JdbcTemplate. Check configuration.");
+            return 0;
+        }
+
         // 프로젝트 RAG 설정 조회
         ResolvedRagConfig config = ragConfigService.resolve(projectId, null);
 
@@ -87,13 +100,13 @@ public class DocstEmbeddingService {
 
         // 프로젝트별 임시 VectorStore 생성 (동적 임베딩 모델 사용)
         PgVectorStore projectVectorStore = PgVectorStore.builder(jdbcTemplate, embeddingModel)
-            .dimensions(config.getEmbeddingDimensions())
+            .dimensions(pgVectorDataSourceManager.getDimensions())
             .distanceType(PgVectorStore.PgDistanceType.COSINE_DISTANCE)
             .indexType(PgVectorStore.PgIndexType.HNSW)
             .removeExistingVectorStoreTable(false)
             .initializeSchema(false)  // 스키마는 이미 초기화되어 있음
-            .schemaName("public")
-            .vectorTableName("vector_store")
+            .schemaName(pgVectorDataSourceManager.getSchemaName())
+            .vectorTableName(pgVectorDataSourceManager.getTableName())
             .build();
 
         // DocChunk를 Spring AI Document로 변환
@@ -146,6 +159,7 @@ public class DocstEmbeddingService {
 
     /**
      * 의미 검색을 수행한다.
+     * Phase 6: 동적 VectorStore 사용.
      *
      * @param query 검색 쿼리
      * @param topK 상위 K개 결과
@@ -157,6 +171,7 @@ public class DocstEmbeddingService {
 
     /**
      * 의미 검색을 수행한다 (유사도 임계값 지정).
+     * Phase 6: 동적 VectorStore 사용.
      *
      * @param query 검색 쿼리
      * @param topK 상위 K개 결과
@@ -164,6 +179,12 @@ public class DocstEmbeddingService {
      * @return 검색된 Spring AI Document 목록
      */
     public List<Document> semanticSearch(String query, int topK, double similarityThreshold) {
+        PgVectorStore vectorStore = createVectorStore(null);
+        if (vectorStore == null) {
+            log.warn("PgVector not available for semantic search");
+            return Collections.emptyList();
+        }
+
         SearchRequest request = SearchRequest.builder()
             .query(query)
             .topK(topK)
@@ -175,6 +196,7 @@ public class DocstEmbeddingService {
 
     /**
      * 프로젝트 범위 내에서 의미 검색을 수행한다.
+     * Phase 6: 동적 VectorStore 사용.
      *
      * @param projectId 프로젝트 ID
      * @param query 검색 쿼리
@@ -182,6 +204,12 @@ public class DocstEmbeddingService {
      * @return 검색된 DocChunk 목록
      */
     public List<DocChunk> semanticSearchInProject(UUID projectId, String query, int topK) {
+        PgVectorStore vectorStore = createVectorStore(projectId);
+        if (vectorStore == null) {
+            log.warn("PgVector not available for semantic search in project {}", projectId);
+            return Collections.emptyList();
+        }
+
         SearchRequest request = SearchRequest.builder()
             .query(query)
             .topK(topK)
@@ -215,6 +243,7 @@ public class DocstEmbeddingService {
 
     /**
      * DocumentVersion의 임베딩을 VectorStore에서 삭제한다.
+     * Phase 6: 동적 VectorStore 사용.
      *
      * @param documentVersionId 문서 버전 ID
      * @return 삭제된 청크 수
@@ -225,6 +254,12 @@ public class DocstEmbeddingService {
         List<DocChunk> chunks = docChunkRepository.findByDocumentVersionId(documentVersionId);
 
         if (chunks.isEmpty()) {
+            return 0;
+        }
+
+        PgVectorStore vectorStore = createVectorStore(null);
+        if (vectorStore == null) {
+            log.warn("PgVector not available for deleting embeddings");
             return 0;
         }
 
@@ -240,5 +275,43 @@ public class DocstEmbeddingService {
             documentIds.size(), documentVersionId);
 
         return documentIds.size();
+    }
+
+    // ============================================================
+    // Helper Methods
+    // ============================================================
+
+    /**
+     * 동적 PgVectorStore 생성.
+     * Phase 6: PgVectorDataSourceManager를 통해 JdbcTemplate 및 설정 획득.
+     *
+     * @param projectId 프로젝트 ID (null이면 시스템 기본)
+     * @return PgVectorStore 또는 null (비활성화 시)
+     */
+    private PgVectorStore createVectorStore(UUID projectId) {
+        if (!pgVectorDataSourceManager.isEnabled()) {
+            return null;
+        }
+
+        JdbcTemplate jdbcTemplate = pgVectorDataSourceManager.getOrCreateJdbcTemplate();
+        if (jdbcTemplate == null) {
+            return null;
+        }
+
+        // 프로젝트 RAG 설정 조회
+        ResolvedRagConfig config = ragConfigService.resolve(projectId, null);
+
+        // 동적 임베딩 모델 생성
+        EmbeddingModel embeddingModel = embeddingClientFactory.createEmbeddingModel(projectId, config);
+
+        return PgVectorStore.builder(jdbcTemplate, embeddingModel)
+            .dimensions(pgVectorDataSourceManager.getDimensions())
+            .distanceType(PgVectorStore.PgDistanceType.COSINE_DISTANCE)
+            .indexType(PgVectorStore.PgIndexType.HNSW)
+            .removeExistingVectorStoreTable(false)
+            .initializeSchema(false)
+            .schemaName(pgVectorDataSourceManager.getSchemaName())
+            .vectorTableName(pgVectorDataSourceManager.getTableName())
+            .build();
     }
 }

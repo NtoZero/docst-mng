@@ -4,6 +4,7 @@ import { getMessages } from 'next-intl/server';
 import { QueryProvider } from '@/providers/query-provider';
 import { Header } from '@/components/header';
 import { Sidebar } from '@/components/sidebar';
+import { Toaster } from '@/components/ui/sonner';
 import '../globals.css';
 
 export function generateStaticParams() {
@@ -53,6 +54,7 @@ export default async function LocaleLayout({
                 </main>
               </div>
             </div>
+            <Toaster />
           </QueryProvider>
         </NextIntlClientProvider>
       </body>

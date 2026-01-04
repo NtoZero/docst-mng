@@ -5,6 +5,7 @@ import { SystemConfigForm } from '@/components/admin/system-config-form';
 import { CredentialList } from '@/components/admin/credential-list';
 import { CredentialFormDialog } from '@/components/admin/credential-form-dialog';
 import { Neo4jConfig } from '@/components/admin/neo4j-config';
+import { PgVectorConfig } from '@/components/admin/pgvector-config';
 import { HealthStatus } from '@/components/admin/health-status';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslations } from 'next-intl';
@@ -45,6 +46,7 @@ export default function AdminSettingsPage() {
         <TabsList>
           <TabsTrigger value="config">Configuration</TabsTrigger>
           <TabsTrigger value="credentials">Credentials</TabsTrigger>
+          <TabsTrigger value="pgvector">PgVector</TabsTrigger>
           <TabsTrigger value="neo4j">Neo4j</TabsTrigger>
           <TabsTrigger value="health">Health</TabsTrigger>
         </TabsList>
@@ -58,6 +60,10 @@ export default function AdminSettingsPage() {
             onCreateClick={handleCreateCredential}
             onEditClick={handleEditCredential}
           />
+        </TabsContent>
+
+        <TabsContent value="pgvector" className="space-y-4">
+          <PgVectorConfig />
         </TabsContent>
 
         <TabsContent value="neo4j" className="space-y-4">

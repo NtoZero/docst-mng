@@ -38,6 +38,7 @@ interface CredentialFormDialogProps {
 const CREDENTIAL_TYPES: CredentialType[] = [
   'OPENAI_API_KEY',
   'NEO4J_AUTH',
+  'PGVECTOR_AUTH',
   'ANTHROPIC_API_KEY',
   'CUSTOM_API_KEY',
 ];
@@ -57,9 +58,9 @@ export function CredentialFormDialog({
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Neo4j Auth 전용 필드
-  const [neo4jUsername, setNeo4jUsername] = useState('');
-  const [neo4jPassword, setNeo4jPassword] = useState('');
+  // DB Auth 전용 필드 (NEO4J_AUTH, PGVECTOR_AUTH)
+  const [dbUsername, setDbUsername] = useState('');
+  const [dbPassword, setDbPassword] = useState('');
 
   const isEditMode = !!credential;
 
@@ -69,15 +70,15 @@ export function CredentialFormDialog({
       setType(credential.type);
       setSecret('');
       setDescription(credential.description || '');
-      setNeo4jUsername('');
-      setNeo4jPassword('');
+      setDbUsername('');
+      setDbPassword('');
     } else {
       setName('');
       setType('OPENAI_API_KEY');
       setSecret('');
       setDescription('');
-      setNeo4jUsername('');
-      setNeo4jPassword('');
+      setDbUsername('');
+      setDbPassword('');
     }
     setError(null);
   }, [credential, open]);
@@ -91,16 +92,17 @@ export function CredentialFormDialog({
       return;
     }
 
-    // Neo4j Auth 검증
-    if (type === 'NEO4J_AUTH') {
-      if (!isEditMode && (!neo4jUsername.trim() || !neo4jPassword.trim())) {
-        setError('Username and password are required for Neo4j Auth');
+    // DB Auth 검증 (NEO4J_AUTH, PGVECTOR_AUTH)
+    const isDbAuth = type === 'NEO4J_AUTH' || type === 'PGVECTOR_AUTH';
+    if (isDbAuth) {
+      if (!isEditMode && (!dbUsername.trim() || !dbPassword.trim())) {
+        setError('Username and password are required for database authentication');
         return;
       }
-      if (isEditMode && (neo4jUsername.trim() || neo4jPassword.trim())) {
+      if (isEditMode && (dbUsername.trim() || dbPassword.trim())) {
         // 둘 다 입력되어야 함
-        if (!neo4jUsername.trim() || !neo4jPassword.trim()) {
-          setError('Both username and password must be provided to update Neo4j Auth');
+        if (!dbUsername.trim() || !dbPassword.trim()) {
+          setError('Both username and password must be provided to update');
           return;
         }
       }
@@ -113,12 +115,12 @@ export function CredentialFormDialog({
     }
 
     try {
-      // Neo4j Auth일 때 JSON 생성
+      // DB Auth일 때 JSON 생성
       let finalSecret = secret.trim();
-      if (type === 'NEO4J_AUTH' && neo4jUsername.trim() && neo4jPassword.trim()) {
+      if (isDbAuth && dbUsername.trim() && dbPassword.trim()) {
         finalSecret = JSON.stringify({
-          username: neo4jUsername.trim(),
-          password: neo4jPassword.trim(),
+          username: dbUsername.trim(),
+          password: dbPassword.trim(),
         });
       }
 
@@ -210,31 +212,31 @@ export function CredentialFormDialog({
               )}
             </div>
 
-            {type === 'NEO4J_AUTH' ? (
+            {type === 'NEO4J_AUTH' || type === 'PGVECTOR_AUTH' ? (
               <>
                 <div className="grid gap-2">
-                  <Label htmlFor="neo4j-username">
+                  <Label htmlFor="db-username">
                     Username {!isEditMode && '*'}
                     {isEditMode && ' (leave empty to keep current)'}
                   </Label>
                   <Input
-                    id="neo4j-username"
-                    value={neo4jUsername}
-                    onChange={(e) => setNeo4jUsername(e.target.value)}
-                    placeholder="neo4j"
+                    id="db-username"
+                    value={dbUsername}
+                    onChange={(e) => setDbUsername(e.target.value)}
+                    placeholder={type === 'NEO4J_AUTH' ? 'neo4j' : 'postgres'}
                     required={!isEditMode}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="neo4j-password">
+                  <Label htmlFor="db-password">
                     Password {!isEditMode && '*'}
                     {isEditMode && ' (leave empty to keep current)'}
                   </Label>
                   <Input
-                    id="neo4j-password"
+                    id="db-password"
                     type="password"
-                    value={neo4jPassword}
-                    onChange={(e) => setNeo4jPassword(e.target.value)}
+                    value={dbPassword}
+                    onChange={(e) => setDbPassword(e.target.value)}
                     placeholder="your-password"
                     required={!isEditMode}
                   />

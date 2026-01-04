@@ -154,6 +154,8 @@ public class Credential {
         OPENAI_API_KEY,
         /** Neo4j 인증정보 (JSON: {"username":"...", "password":"..."}) */
         NEO4J_AUTH,
+        /** PgVector 인증정보 (JSON: {"username":"...", "password":"..."}) */
+        PGVECTOR_AUTH,
         /** Anthropic API Key */
         ANTHROPIC_API_KEY,
         /** 커스텀 API Key (확장용) */
