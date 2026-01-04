@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { authApi, projectsApi, repositoriesApi, documentsApi, credentialsApi, commitsApi, setupApi, statsApi } from '@/lib/api';
+import { authApi, apiKeysApi, projectsApi, repositoriesApi, documentsApi, credentialsApi, commitsApi, setupApi, statsApi } from '@/lib/api';
 import type {
   CreateProjectRequest,
   UpdateProjectRequest,
@@ -12,6 +12,7 @@ import type {
   LoginRequest,
   RegisterRequest,
   ChangePasswordRequest,
+  CreateApiKeyRequest,
   InitializeRequest,
   CreateCredentialRequest,
   UpdateCredentialRequest,
@@ -25,6 +26,9 @@ import { useAuthStore } from '@/lib/store';
 export const queryKeys = {
   auth: {
     me: ['auth', 'me'] as const,
+  },
+  apiKeys: {
+    all: ['api-keys'] as const,
   },
   projects: {
     all: ['projects'] as const,
@@ -436,5 +440,35 @@ export function useStats() {
   return useQuery({
     queryKey: queryKeys.stats.all,
     queryFn: () => statsApi.get(),
+  });
+}
+
+// ===== API Keys Hooks =====
+export function useApiKeys() {
+  return useQuery({
+    queryKey: queryKeys.apiKeys.all,
+    queryFn: () => apiKeysApi.list(),
+  });
+}
+
+export function useCreateApiKey() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateApiKeyRequest) => apiKeysApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.all });
+    },
+  });
+}
+
+export function useRevokeApiKey() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => apiKeysApi.revoke(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.all });
+    },
   });
 }

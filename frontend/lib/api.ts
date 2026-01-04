@@ -4,6 +4,9 @@ import type {
   LoginRequest,
   RegisterRequest,
   ChangePasswordRequest,
+  ApiKey,
+  CreateApiKeyRequest,
+  ApiKeyCreationResponse,
   SetupStatusResponse,
   InitializeRequest,
   InitializeResponse,
@@ -80,8 +83,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new ApiError(response.status, message || response.statusText);
+    let errorMessage = response.statusText;
+    try {
+      const text = await response.text();
+      if (text) {
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use text as-is
+          errorMessage = text;
+        }
+      }
+    } catch {
+      // Keep default statusText
+    }
+    throw new ApiError(response.status, errorMessage);
   }
 
   if (response.status === 204) {
@@ -112,6 +129,22 @@ export const authApi = {
     }),
 
   me: (): Promise<User> => request('/api/auth/me'),
+};
+
+// ===== API Keys API =====
+export const apiKeysApi = {
+  list: (): Promise<ApiKey[]> => request('/api/auth/api-keys'),
+
+  create: (data: CreateApiKeyRequest): Promise<ApiKeyCreationResponse> =>
+    request('/api/auth/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  revoke: (id: string): Promise<void> =>
+    request(`/api/auth/api-keys/${id}`, {
+      method: 'DELETE',
+    }),
 };
 
 // ===== Setup API =====

@@ -3,7 +3,9 @@ package com.docst.api;
 import com.docst.api.ApiModels.AuthTokenResponse;
 import com.docst.api.ApiModels.UserResponse;
 import com.docst.auth.JwtService;
+import com.docst.domain.ApiKey;
 import com.docst.domain.User;
+import com.docst.service.ApiKeyService;
 import com.docst.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,6 +42,7 @@ public class AuthController {
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final ApiKeyService apiKeyService;
 
     /**
      * LOCAL 사용자 회원가입.
@@ -204,6 +207,135 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    // ===== API Key Management =====
+
+    /**
+     * Create a new API key.
+     * The full API key is returned only once at creation time.
+     *
+     * @param request API key creation request
+     * @param authentication Current user authentication
+     * @return API key creation response with full key
+     */
+    @Operation(summary = "Create API Key", description = "Generate a new API key for MCP client authentication. The full key is shown only once.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "API key created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request or duplicate name"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    @PostMapping("/api-keys")
+    public ResponseEntity<?> createApiKey(
+            @Valid @RequestBody CreateApiKeyRequest request,
+            Authentication authentication
+    ) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "UNAUTHORIZED", "message", "Authentication required"));
+        }
+
+        User user = (User) authentication.getPrincipal();
+
+        try {
+            java.time.Instant expiresAt = request.expiresInDays() != null
+                    ? java.time.Instant.now().plus(request.expiresInDays(), java.time.temporal.ChronoUnit.DAYS)
+                    : null;
+
+            ApiKeyService.ApiKeyCreationResult result = apiKeyService.createApiKey(
+                    user.getId(),
+                    request.name(),
+                    expiresAt
+            );
+
+            ApiKeyCreationResponse response = new ApiKeyCreationResponse(
+                    result.apiKey().getId(),
+                    result.apiKey().getName(),
+                    result.fullKey(),  // Only returned once!
+                    result.apiKey().getKeyPrefix(),
+                    result.apiKey().getExpiresAt(),
+                    result.apiKey().getCreatedAt()
+            );
+
+            log.info("API key created for user {}: {}", user.getId(), request.name());
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("API key creation failed for user {}: {}", user.getId(), e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "INVALID_REQUEST", "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * List all API keys for the current user (without secrets).
+     *
+     * @param authentication Current user authentication
+     * @return List of API keys
+     */
+    @Operation(summary = "List API Keys", description = "List all API keys for the authenticated user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "API keys retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    @GetMapping("/api-keys")
+    public ResponseEntity<?> listApiKeys(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "UNAUTHORIZED", "message", "Authentication required"));
+        }
+
+        User user = (User) authentication.getPrincipal();
+        java.util.List<ApiKey> keys = apiKeyService.findByUserId(user.getId());
+
+        java.util.List<ApiKeyResponse> response = keys.stream()
+                .map(k -> new ApiKeyResponse(
+                        k.getId(),
+                        k.getName(),
+                        k.getKeyPrefix(),
+                        k.getLastUsedAt(),
+                        k.getExpiresAt(),
+                        k.isActive(),
+                        k.getCreatedAt()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Revoke an API key.
+     *
+     * @param id API key ID
+     * @param authentication Current user authentication
+     * @return 204 No Content
+     */
+    @Operation(summary = "Revoke API Key", description = "Revoke an existing API key.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "API key revoked successfully"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated"),
+            @ApiResponse(responseCode = "404", description = "API key not found or access denied")
+    })
+    @DeleteMapping("/api-keys/{id}")
+    public ResponseEntity<?> revokeApiKey(
+            @Parameter(description = "API key ID") @PathVariable UUID id,
+            Authentication authentication
+    ) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "UNAUTHORIZED", "message", "Authentication required"));
+        }
+
+        User user = (User) authentication.getPrincipal();
+
+        try {
+            apiKeyService.revokeApiKey(id, user.getId());
+            log.info("API key revoked: {} by user {}", id, user.getId());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            log.warn("API key revocation failed for user {}: {}", user.getId(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "NOT_FOUND", "message", e.getMessage()));
+        }
+    }
+
     /**
      * 회원가입 요청.
      */
@@ -243,5 +375,43 @@ public class AuthController {
             @NotBlank(message = "New password is required")
             @Size(min = 8, max = 128, message = "New password must be between 8 and 128 characters")
             String newPassword
+    ) {}
+
+    /**
+     * API Key 생성 요청.
+     */
+    public record CreateApiKeyRequest(
+            @NotBlank(message = "Name is required")
+            @Size(max = 100, message = "Name must be 100 characters or less")
+            String name,
+
+            @jakarta.validation.constraints.Min(value = 1, message = "Expiration must be at least 1 day")
+            @jakarta.validation.constraints.Max(value = 365, message = "Expiration must be 365 days or less")
+            Integer expiresInDays
+    ) {}
+
+    /**
+     * API Key 생성 응답.
+     */
+    public record ApiKeyCreationResponse(
+            UUID id,
+            String name,
+            String key,  // Full key - only shown once!
+            String keyPrefix,
+            java.time.Instant expiresAt,
+            java.time.Instant createdAt
+    ) {}
+
+    /**
+     * API Key 조회 응답.
+     */
+    public record ApiKeyResponse(
+            UUID id,
+            String name,
+            String keyPrefix,
+            java.time.Instant lastUsedAt,
+            java.time.Instant expiresAt,
+            boolean active,
+            java.time.Instant createdAt
     ) {}
 }

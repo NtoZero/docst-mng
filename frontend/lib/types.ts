@@ -30,6 +30,31 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+// ===== API Keys =====
+export interface ApiKey {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface CreateApiKeyRequest {
+  name: string;
+  expiresInDays?: number;
+}
+
+export interface ApiKeyCreationResponse {
+  id: string;
+  name: string;
+  key: string;  // Full key - only shown once!
+  keyPrefix: string;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
 export interface SetupStatusResponse {
   needsSetup: boolean;
   message: string;

@@ -14,3 +14,4 @@ frontend/.next/
 # Test data
 /tmp/test-git/
 /data/
+/frontend/tsconfig.tsbuildinfo

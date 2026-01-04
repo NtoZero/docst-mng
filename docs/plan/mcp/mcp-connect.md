@@ -75,21 +75,46 @@ Docst는 MCP (Model Context Protocol) 서버를 제공하여 AI 에이전트(Cla
 
 ### 설정 예시 (API Key 권장)
 
+**중요**: Claude Desktop은 HTTP transport를 직접 지원하지 않습니다. HTTP → stdio 프록시를 사용해야 합니다.
+
+#### 옵션 1: npx mcp-client-http (권장)
+
 ```json
 {
   "mcpServers": {
     "docst": {
-      "url": "http://localhost:8342/mcp",
-      "transport": "http",
-      "headers": {
-        "X-API-Key": "<YOUR_API_KEY>"
-      }
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-client-http",
+        "http://localhost:8342/mcp",
+        "--header",
+        "X-API-Key: <YOUR_API_KEY>"
+      ]
     }
   }
 }
 ```
 
-> **Tip**: API Key는 Settings → API Keys에서 발급받으세요. 자세한 방법은 [6. 인증 관리](#6-인증-관리) 참조.
+#### 옵션 2: Docst Stdio Wrapper (개발 예정)
+
+Docst 전용 stdio wrapper를 개발 중입니다. 출시 시 다음과 같이 사용할 수 있습니다:
+
+```json
+{
+  "mcpServers": {
+    "docst": {
+      "command": "npx",
+      "args": ["-y", "@docst/mcp-client"]
+    }
+  }
+}
+```
+
+> **Note**:
+> - Claude Desktop은 stdio transport만 지원합니다.
+> - HTTP MCP 서버를 사용하려면 프록시가 필요합니다.
+> - API Key는 Settings → API Keys에서 발급받으세요.
 
 ---
 
