@@ -92,7 +92,15 @@ public class SemanticSearchService {
         List<org.springframework.ai.document.Document> aiDocuments;
         try {
             aiDocuments = vectorStore.similaritySearch(request);
-            log.info("Vector store search completed: found {} documents", aiDocuments.size());
+            log.info("Vector store search completed: found {} documents (threshold={})",
+                aiDocuments.size(), similarityThreshold);
+
+            // 디버그: 반환된 문서의 메타데이터 로깅
+            for (int i = 0; i < Math.min(3, aiDocuments.size()); i++) {
+                var doc = aiDocuments.get(i);
+                log.debug("Result {}: distance={}, metadata={}",
+                    i, doc.getMetadata().get("distance"), doc.getMetadata());
+            }
         } catch (Exception e) {
             log.error("Vector store search failed", e);
             return List.of();

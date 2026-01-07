@@ -2,6 +2,8 @@ package com.docst.llm.tools;
 
 import com.docst.domain.Document;
 import com.docst.domain.DocumentVersion;
+import com.docst.rag.config.RagConfigService;
+import com.docst.rag.config.ResolvedRagConfig;
 import com.docst.service.DocumentService;
 import com.docst.service.SearchService;
 import com.docst.service.SemanticSearchService;
@@ -29,6 +31,7 @@ public class DocumentTools {
     private final DocumentService documentService;
     private final SearchService searchService;
     private final SemanticSearchService semanticSearchService;
+    private final RagConfigService ragConfigService;
 
     /**
      * 문서 검색 Tool
@@ -48,8 +51,12 @@ public class DocumentTools {
         UUID projId = UUID.fromString(projectId);
         int limit = (topK != null && topK > 0) ? topK : 10;
 
+        // RAG 설정에서 similarity threshold 가져오기
+        ResolvedRagConfig config = ragConfigService.resolve(projId, null);
+        double threshold = config.getSimilarityThreshold();
+
         // 의미 검색 사용 (벡터 유사도)
-        List<SearchResult> results = semanticSearchService.searchSemantic(projId, query, limit);
+        List<SearchResult> results = semanticSearchService.searchSemantic(projId, query, limit, threshold);
 
         // 결과가 없으면 키워드 검색으로 폴백
         if (results.isEmpty()) {

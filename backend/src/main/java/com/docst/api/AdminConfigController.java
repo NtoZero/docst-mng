@@ -39,11 +39,12 @@ public class AdminConfigController {
 
     /**
      * 특정 시스템 설정 조회.
+     * 정규식 :.+ 를 사용하여 key에 점(.)이 포함되어도 올바르게 매칭되도록 함.
      *
      * @param key 설정 키
      * @return 시스템 설정
      */
-    @GetMapping("/{key}")
+    @GetMapping("/{key:.+}")
     public ResponseEntity<ApiModels.SystemConfigResponse> getConfig(@PathVariable String key) {
         log.debug("Fetching system config: {}", key);
 
@@ -55,12 +56,13 @@ public class AdminConfigController {
 
     /**
      * 시스템 설정 업데이트.
+     * 정규식 :.+ 를 사용하여 key에 점(.)이 포함되어도 올바르게 매칭되도록 함.
      *
      * @param key 설정 키
      * @param request 업데이트 요청
      * @return 업데이트된 시스템 설정
      */
-    @PutMapping("/{key}")
+    @PutMapping("/{key:.+}")
     public ResponseEntity<ApiModels.SystemConfigResponse> updateConfig(
             @PathVariable String key,
             @RequestBody ApiModels.UpdateSystemConfigRequest request

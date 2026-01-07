@@ -24,10 +24,14 @@ import { Loader2, CheckCircle2, XCircle, AlertCircle, ExternalLink, RefreshCw } 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthStore } from '@/lib/store';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
 
 export function PgVectorConfig() {
   const t = useTranslations('admin');
   const { toast } = useToast();
+  const token = useAuthStore((state) => state.token);
   const { data: configs, isLoading: configsLoading, error: configsError } = useSystemConfigs();
   const { data: credentials, isLoading: credentialsLoading } = useSystemCredentials();
   const { data: health, refetch: refetchHealth } = useHealthCheck();
@@ -76,8 +80,11 @@ export function PgVectorConfig() {
   const handleTestConnection = async () => {
     setTestingConnection(true);
     try {
-      const response = await fetch('/api/admin/pgvector/test-connection', {
+      const response = await fetch(`${API_BASE}/api/admin/pgvector/test-connection`, {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       const result = await response.json();
 
@@ -104,8 +111,11 @@ export function PgVectorConfig() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const response = await fetch('/api/admin/pgvector/refresh', {
+      const response = await fetch(`${API_BASE}/api/admin/pgvector/refresh`, {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       const result = await response.json();
 
