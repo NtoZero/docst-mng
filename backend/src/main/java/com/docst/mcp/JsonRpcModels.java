@@ -154,4 +154,59 @@ public final class JsonRpcModels {
             String name,
             Object arguments
     ) {}
+
+    // ========================================
+    // MCP Protocol Response DTOs
+    // ========================================
+
+    /**
+     * MCP initialize 응답.
+     *
+     * @param protocolVersion MCP 프로토콜 버전
+     * @param serverInfo 서버 정보
+     * @param capabilities 서버 기능
+     */
+    public record InitializeResult(
+            String protocolVersion,
+            ServerInfo serverInfo,
+            Capabilities capabilities
+    ) {}
+
+    /**
+     * MCP 서버 정보.
+     *
+     * @param name 서버 이름
+     * @param version 서버 버전
+     */
+    public record ServerInfo(
+            String name,
+            String version
+    ) {}
+
+    /**
+     * MCP 서버 기능.
+     *
+     * @param tools 도구 기능
+     */
+    public record Capabilities(
+            ToolsCapability tools
+    ) {}
+
+    /**
+     * MCP 도구 기능.
+     *
+     * @param listChanged 도구 목록 변경 알림 지원 여부
+     */
+    public record ToolsCapability(
+            boolean listChanged
+    ) {}
+
+    /**
+     * MCP ping 응답.
+     *
+     * @param status 상태 (pong)
+     */
+    public record PingResult(
+            String status
+    ) {}
 }

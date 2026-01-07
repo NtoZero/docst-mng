@@ -60,10 +60,14 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 if (userOpt.isPresent()) {
                     User user = userOpt.get();
 
+                    // Convert to UserPrincipal to avoid LazyInitializationException
+                    // when Spring MVC calls authentication.getName() after session close
+                    UserPrincipal principal = UserPrincipal.from(user);
+
                     // Create authentication token
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
-                                    user,
+                                    principal,
                                     null,
                                     Collections.emptyList()
                             );
@@ -74,7 +78,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                     // Set authentication in SecurityContext
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    log.debug("API key authentication successful for user: {}", user.getEmail());
+                    log.debug("API key authentication successful for user: {}", principal.email());
                 } else {
                     log.debug("API key authentication failed: invalid or expired key");
                 }

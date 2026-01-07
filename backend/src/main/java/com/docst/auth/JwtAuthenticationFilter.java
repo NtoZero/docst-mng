@@ -43,9 +43,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 User user = userRepository.findById(userId).orElse(null);
                 if (user != null) {
+                    // Convert to UserPrincipal to avoid LazyInitializationException
+                    // when Spring MVC calls authentication.getName() after session close
+                    UserPrincipal principal = UserPrincipal.from(user);
+
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
-                                    user,
+                                    principal,
                                     null,
                                     Collections.emptyList()
                             );

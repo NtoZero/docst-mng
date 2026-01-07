@@ -1,6 +1,7 @@
 package com.docst.mcp;
 
 import com.docst.mcp.JsonRpcModels.*;
+import static com.docst.mcp.JsonRpcModels.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -187,19 +188,12 @@ public class McpTransportController {
      * @param params 초기화 파라미터
      * @return 서버 정보
      */
-    private Object handleInitialize(Object params) {
+    private InitializeResult handleInitialize(Object params) {
         log.info("MCP initialize called");
-        return java.util.Map.of(
-                "protocolVersion", "2024-11-05",
-                "serverInfo", java.util.Map.of(
-                        "name", "Docst MCP Server",
-                        "version", "1.0.0"
-                ),
-                "capabilities", java.util.Map.of(
-                        "tools", java.util.Map.of(
-                                "listChanged", false
-                        )
-                )
+        return new InitializeResult(
+                "2024-11-05",
+                new ServerInfo("Docst MCP Server", "1.0.0"),
+                new Capabilities(new ToolsCapability(false))
         );
     }
 
@@ -208,8 +202,8 @@ public class McpTransportController {
      *
      * @return pong
      */
-    private Object handlePing() {
-        return java.util.Map.of("status", "pong");
+    private PingResult handlePing() {
+        return new PingResult("pong");
     }
 
     /**
