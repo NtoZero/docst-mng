@@ -137,6 +137,8 @@ public class SemanticSearchService {
 
         // DocChunk 조회 (순서 보존 필요)
         List<DocChunk> chunks = docChunkRepository.findAllById(chunkIds);
+        log.info("DocChunk query returned {} chunks for {} IDs", chunks.size(), chunkIds.size());
+
         Map<UUID, DocChunk> chunkMap = new HashMap<>();
         chunks.forEach(chunk -> chunkMap.put(chunk.getId(), chunk));
 
@@ -149,6 +151,7 @@ public class SemanticSearchService {
 
             DocChunk chunk = chunkMap.get(chunkId);
             if (chunk == null) {
+                log.debug("Chunk not found in DB: {}", chunkId);
                 continue;
             }
 
@@ -156,6 +159,8 @@ public class SemanticSearchService {
             Document doc = chunk.getDocumentVersion().getDocument();
             UUID docProjectId = doc.getRepository().getProject().getId();
             if (!docProjectId.equals(projectId)) {
+                log.debug("Chunk {} filtered out: docProjectId={} != projectId={}",
+                    chunkId, docProjectId, projectId);
                 continue;
             }
 
