@@ -93,7 +93,9 @@ public class ApiKeyService {
         }
 
         String keyHash = hashKey(apiKey);
-        Optional<ApiKey> found = apiKeyRepository.findByKeyHashAndActiveTrue(keyHash);
+        // Use fetch join query to eagerly load User and avoid LazyInitializationException
+        // when User fields are accessed after transaction ends
+        Optional<ApiKey> found = apiKeyRepository.findByKeyHashAndActiveTrueWithUser(keyHash);
 
         if (found.isEmpty()) {
             return Optional.empty();

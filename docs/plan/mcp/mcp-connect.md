@@ -77,17 +77,26 @@ Docst는 MCP (Model Context Protocol) 서버를 제공하여 AI 에이전트(Cla
 
 **중요**: Claude Desktop은 HTTP transport를 직접 지원하지 않습니다. HTTP → stdio 프록시를 사용해야 합니다.
 
-#### 옵션 1: npx mcp-client-http (권장)
+#### 옵션 1: mcp-remote 전역 설치 (권장)
+
+Windows에서 Node.js가 `C:\Program Files\nodejs`에 설치된 경우, 경로 공백 문제로 `npx` 명령이 실패할 수 있습니다.
+**mcp-remote를 전역 설치하고 직접 경로를 지정**하는 것을 권장합니다.
+
+**1단계: mcp-remote 전역 설치**
+
+```bash
+npm install -g mcp-remote
+```
+
+**2단계: Claude Desktop 설정**
 
 ```json
 {
   "mcpServers": {
     "docst": {
-      "command": "npx",
+      "command": "C:\\Users\\<USERNAME>\\AppData\\Roaming\\npm\\mcp-remote.cmd",
       "args": [
-        "-y",
-        "mcp-client-http",
-        "http://localhost:8342/mcp",
+        "http://localhost:8342/mcp/stream",
         "--header",
         "X-API-Key: <YOUR_API_KEY>"
       ]
@@ -96,7 +105,32 @@ Docst는 MCP (Model Context Protocol) 서버를 제공하여 AI 에이전트(Cla
 }
 ```
 
-#### 옵션 2: Docst Stdio Wrapper (개발 예정)
+> **Note**:
+> - `<USERNAME>`을 실제 Windows 사용자명으로 변경하세요.
+> - `mcp-remote`는 SSE 엔드포인트(`/mcp/stream`)에 연결합니다.
+
+#### 옵션 2: npx 사용 (macOS/Linux)
+
+macOS나 Linux에서는 npx를 직접 사용할 수 있습니다:
+
+```json
+{
+  "mcpServers": {
+    "docst": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://localhost:8342/mcp/stream",
+        "--header",
+        "X-API-Key: <YOUR_API_KEY>"
+      ]
+    }
+  }
+}
+```
+
+#### 옵션 3: Docst Stdio Wrapper (개발 예정)
 
 Docst 전용 stdio wrapper를 개발 중입니다. 출시 시 다음과 같이 사용할 수 있습니다:
 

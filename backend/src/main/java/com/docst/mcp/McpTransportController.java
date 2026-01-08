@@ -139,6 +139,22 @@ public class McpTransportController {
     }
 
     /**
+     * SSE 스트림을 통한 JSON-RPC 요청 처리.
+     * MCP SSE transport에서 클라이언트 → 서버 메시지 전송에 사용.
+     * mcp-remote 등의 클라이언트는 GET으로 SSE 연결을 열고, POST로 메시지를 보냄.
+     *
+     * @param request JSON-RPC 요청
+     * @return JSON-RPC 응답
+     */
+    @PostMapping(value = "/stream",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonRpcResponse> handleStreamPost(@RequestBody JsonRpcRequest request) {
+        log.info("SSE POST request: method={}, id={}", request.method(), request.id());
+        return handleJsonRpc(request);
+    }
+
+    /**
      * MCP 도구 목록 조회.
      * tools/list 메서드 핸들러.
      *

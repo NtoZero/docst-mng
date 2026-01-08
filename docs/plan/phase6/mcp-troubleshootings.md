@@ -28,7 +28,7 @@ Claude Desktop 로그에 다음과 같은 오류 발생:
 Claude Desktop이 `npx` 명령을 실행할 때 Windows의 `cmd.exe`를 통해 실행합니다:
 
 ```
-C:\WINDOWS\System32\cmd.exe /C C:\Program Files\nodejs\npx.cmd -y mcp-client-http ...
+C:\WINDOWS\System32\cmd.exe /C C:\Program Files\nodejs\npx.cmd -y mcp-remote ...
 ```
 
 `C:\Program Files\nodejs\npx.cmd` 경로에 **공백**이 포함되어 있어, `cmd.exe`가 이를 `C:\Program`과 `Files\nodejs\npx.cmd`로 분리하여 해석합니다.
@@ -43,11 +43,11 @@ C:\WINDOWS\System32\cmd.exe /C C:\Program Files\nodejs\npx.cmd -y mcp-client-htt
 3. 환경 변수 PATH 업데이트 확인
 4. Claude Desktop 재시작
 
-#### 방법 2: mcp-client-http 전역 설치 후 직접 실행
+#### 방법 2: mcp-remote 전역 설치 후 직접 실행
 
-1. mcp-client-http를 전역으로 설치:
+1. mcp-remote를 전역으로 설치:
    ```bash
-   npm install -g mcp-client-http
+   npm install -g mcp-remote
    ```
 
 2. 설치 경로 확인:
@@ -61,9 +61,9 @@ C:\WINDOWS\System32\cmd.exe /C C:\Program Files\nodejs\npx.cmd -y mcp-client-htt
    {
      "mcpServers": {
        "docst": {
-         "command": "C:\\Users\\username\\AppData\\Roaming\\npm\\mcp-client-http.cmd",
+         "command": "C:\\Users\\username\\AppData\\Roaming\\npm\\mcp-remote.cmd",
          "args": [
-           "http://localhost:8342/mcp",
+           "http://localhost:8342/mcp/stream",
            "--header",
            "X-API-Key: docst_ak_xxxxxxxxxxxxxxxxxxxx"
          ]
@@ -83,9 +83,9 @@ C:\WINDOWS\System32\cmd.exe /C C:\Program Files\nodejs\npx.cmd -y mcp-client-htt
 
 2. PATH 환경 변수에 `C:\npm-global` 추가
 
-3. mcp-client-http 설치:
+3. mcp-remote 설치:
    ```bash
-   npm install -g mcp-client-http
+   npm install -g mcp-remote
    ```
 
 4. Claude Desktop 설정:
@@ -93,9 +93,9 @@ C:\WINDOWS\System32\cmd.exe /C C:\Program Files\nodejs\npx.cmd -y mcp-client-htt
    {
      "mcpServers": {
        "docst": {
-         "command": "C:\\npm-global\\mcp-client-http.cmd",
+         "command": "C:\\npm-global\\mcp-remote.cmd",
          "args": [
-           "http://localhost:8342/mcp",
+           "http://localhost:8342/mcp/stream",
            "--header",
            "X-API-Key: docst_ak_xxxxxxxxxxxxxxxxxxxx"
          ]
@@ -115,7 +115,7 @@ C:\WINDOWS\System32\cmd.exe /C C:\Program Files\nodejs\npx.cmd -y mcp-client-htt
       "command": "powershell",
       "args": [
         "-Command",
-        "& 'C:\\Program Files\\nodejs\\npx.cmd' -y mcp-client-http http://localhost:8342/mcp --header 'X-API-Key: docst_ak_xxxxxxxxxxxxxxxxxxxx'"
+        "& 'C:\\Program Files\\nodejs\\npx.cmd' -y mcp-remote http://localhost:8342/mcp/stream --header 'X-API-Key: docst_ak_xxxxxxxxxxxxxxxxxxxx'"
       ]
     }
   }
@@ -248,7 +248,7 @@ Claude Desktop에서 도구 목록이 표시되지 않음
 
 ---
 
-## 문제 5: mcp-client-http 패키지 오류
+## 문제 5: mcp-remote 패키지 오류
 
 ### 증상
 
@@ -273,7 +273,7 @@ npm ERR! syscall getaddrinfo
 
 3. **대체 레지스트리 사용**:
    ```bash
-   npm install -g mcp-client-http --registry https://registry.npmmirror.com
+   npm install -g mcp-remote --registry https://registry.npmmirror.com
    ```
 
 ---
@@ -317,13 +317,49 @@ org.hibernate.LazyInitializationException: Could not initialize proxy [com.docst
 2. **Content-Length 불일치**
    - 정상 응답이 먼저 전송된 후 에러 메타데이터가 추가로 전송됨
    - HTTP 연결이 비정상 종료
-   - `mcp-client-http`가 JSON 파싱 실패하여 크래시
+   - `mcp-remote`가 JSON 파싱 실패하여 크래시
 
 ### 해결 방법
 
-**백엔드 코드 수정이 필요합니다.**
+**백엔드 코드 수정이 필요합니다.** 두 가지 방법이 있습니다.
 
-#### 1. UserPrincipal DTO 생성
+---
+
+#### 방법 A: Fetch Join으로 User를 즉시 로드 (권장)
+
+트랜잭션 내에서 User를 미리 로드하여 세션 종료 후에도 접근 가능하게 합니다.
+
+**1. ApiKeyRepository에 Fetch Join 쿼리 추가**
+
+`backend/src/main/java/com/docst/repository/ApiKeyRepository.java`:
+
+```java
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+@Query("SELECT ak FROM ApiKey ak JOIN FETCH ak.user WHERE ak.keyHash = :keyHash AND ak.active = true")
+Optional<ApiKey> findByKeyHashAndActiveTrueWithUser(@Param("keyHash") String keyHash);
+```
+
+**2. ApiKeyService에서 새 쿼리 사용**
+
+`backend/src/main/java/com/docst/service/ApiKeyService.java`:
+
+```java
+// 수정 전
+Optional<ApiKey> found = apiKeyRepository.findByKeyHashAndActiveTrue(keyHash);
+
+// 수정 후
+Optional<ApiKey> found = apiKeyRepository.findByKeyHashAndActiveTrueWithUser(keyHash);
+```
+
+---
+
+#### 방법 B: UserPrincipal DTO 사용
+
+Hibernate 프록시 대신 순수 DTO를 사용하여 프록시 접근 문제를 방지합니다.
+
+**1. UserPrincipal DTO 생성**
 
 `backend/src/main/java/com/docst/auth/UserPrincipal.java`:
 
@@ -349,7 +385,7 @@ public record UserPrincipal(
 }
 ```
 
-#### 2. ApiKeyAuthenticationFilter 수정
+**2. ApiKeyAuthenticationFilter 수정**
 
 `User` 대신 `UserPrincipal`을 principal로 사용:
 
@@ -364,11 +400,19 @@ UsernamePasswordAuthenticationToken authentication =
         new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
 ```
 
-#### 3. JwtAuthenticationFilter도 동일하게 수정
+**3. JwtAuthenticationFilter도 동일하게 수정**
 
 JWT 인증에서도 같은 문제가 발생할 수 있으므로 함께 수정.
 
-#### 4. 테스트
+---
+
+#### 최종 해결: 방법 A + B 조합
+
+**방법 A**(Fetch Join)와 **방법 B**(UserPrincipal)를 함께 적용하면 가장 안전합니다:
+- Fetch Join으로 User 필드를 미리 로드
+- UserPrincipal로 Hibernate 프록시 의존성 완전 제거
+
+**4. 테스트
 
 ```bash
 curl -X POST http://localhost:8342/mcp \
@@ -385,6 +429,81 @@ curl -X POST http://localhost:8342/mcp \
 ### 관련 커밋
 
 - `fix(auth): use UserPrincipal DTO to avoid LazyInitializationException in MCP responses`
+- `fix(mcp): add fetch join query to eagerly load User in API key authentication`
+
+---
+
+## 문제 7: POST /mcp/stream 지원 안 됨
+
+### 증상
+
+백엔드 로그에 다음 오류 발생:
+
+```
+org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'POST' is not supported
+```
+
+Claude Desktop에서 "Server disconnected" 표시
+
+### 원인
+
+MCP SSE transport 프로토콜에서 `mcp-remote`는 두 가지 HTTP 메서드를 사용합니다:
+
+| 메서드 | 엔드포인트 | 용도 |
+|--------|-----------|------|
+| `GET` | `/mcp/stream` | SSE 연결 수립 (서버 → 클라이언트 스트림) |
+| `POST` | `/mcp/stream` | JSON-RPC 메시지 전송 (클라이언트 → 서버) |
+
+기존 `McpTransportController`는 GET만 지원하고 POST를 지원하지 않았습니다:
+
+```java
+// 기존 코드 - GET만 지원
+@GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public SseEmitter stream(...) { ... }
+```
+
+### 해결 방법
+
+**POST /mcp/stream 핸들러 추가**
+
+`backend/src/main/java/com/docst/mcp/McpTransportController.java`:
+
+```java
+/**
+ * SSE 스트림을 통한 JSON-RPC 요청 처리.
+ * MCP SSE transport에서 클라이언트 → 서버 메시지 전송에 사용.
+ * mcp-remote 등의 클라이언트는 GET으로 SSE 연결을 열고, POST로 메시지를 보냄.
+ *
+ * @param request JSON-RPC 요청
+ * @return JSON-RPC 응답
+ */
+@PostMapping(value = "/stream",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE)
+public ResponseEntity<JsonRpcResponse> handleStreamPost(@RequestBody JsonRpcRequest request) {
+    log.info("SSE POST request: method={}, id={}", request.method(), request.id());
+    return handleJsonRpc(request);
+}
+```
+
+### 테스트
+
+```bash
+# POST /mcp/stream 테스트
+curl -X POST http://localhost:8342/mcp/stream \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: docst_ak_xxxxxxxxxxxxxxxxxxxx" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"initialize","params":{}}'
+```
+
+정상 응답:
+```json
+{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2024-11-05","serverInfo":{"name":"Docst MCP Server","version":"1.0.0"},"capabilities":{"tools":{"listChanged":false}}}}
+```
+
+### 관련 커밋
+
+- `fix(mcp): add POST handler for /mcp/stream to support MCP SSE transport`
 
 ---
 
@@ -404,13 +523,13 @@ curl -X POST http://localhost:8342/mcp \
 
 ### 수동 연결 테스트
 
-mcp-client-http를 직접 실행하여 연결 테스트:
+mcp-remote를 직접 실행하여 연결 테스트:
 
 ```bash
-npx -y mcp-client-http http://localhost:8342/mcp --header "X-API-Key: docst_ak_xxx"
+npx -y mcp-remote http://localhost:8342/mcp/stream --header "X-API-Key: docst_ak_xxx"
 ```
 
-정상 작동 시 JSON-RPC 명령을 입력할 수 있는 인터랙티브 모드로 진입합니다.
+정상 작동 시 SSE 연결이 수립되고 JSON-RPC 명령을 입력할 수 있는 인터랙티브 모드로 진입합니다.
 
 ---
 

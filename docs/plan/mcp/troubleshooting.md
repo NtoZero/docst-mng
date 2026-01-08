@@ -129,7 +129,7 @@ npx docst-mcp-server
 
 ```
 ┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
-│ Claude Desktop   │ stdio   │ mcp-client-http  │  HTTP   │ Docst MCP Server │
+│ Claude Desktop   │ stdio   │ mcp-remote  │  HTTP   │ Docst MCP Server │
 │                  │────────→│ (Proxy)          │────────→│ (Port 8342)      │
 │                  │←────────│                  │←────────│                  │
 └──────────────────┘         └──────────────────┘         └──────────────────┘
@@ -140,7 +140,7 @@ npx docst-mcp-server
 #### 1. **Transport 변환**
 
 ```javascript
-// mcp-client-http 내부 동작 (의사 코드)
+// mcp-remote 내부 동작 (의사 코드)
 
 // stdin에서 JSON-RPC 요청 읽기
 process.stdin.on('data', async (data) => {
@@ -169,8 +169,8 @@ process.stdin.on('data', async (data) => {
 # Claude Desktop 설정
 "args": [
   "-y",
-  "mcp-client-http",
-  "http://localhost:8342/mcp",
+  "mcp-remote",
+  "http://localhost:8342/mcp/stream",  # SSE 엔드포인트 사용
   "--header",
   "X-API-Key: docst_ak_xxx"  # ← 프록시가 모든 요청에 이 헤더 추가
 ]
@@ -201,7 +201,7 @@ if (!response.ok) {
 
 ## 4. 프록시 사용법
 
-### 옵션 1: mcp-client-http (NPM 패키지)
+### 옵션 1: mcp-remote (NPM 패키지)
 
 ```json
 {
@@ -210,8 +210,8 @@ if (!response.ok) {
       "command": "npx",
       "args": [
         "-y",
-        "mcp-client-http",
-        "http://localhost:8342/mcp",
+        "mcp-remote",
+        "http://localhost:8342/mcp/stream",
         "--header",
         "X-API-Key: docst_ak_xxx"
       ]
@@ -219,6 +219,8 @@ if (!response.ok) {
   }
 }
 ```
+
+> **Note**: `mcp-remote`는 SSE 엔드포인트(`/mcp/stream`)에 연결합니다.
 
 **장점:**
 - NPM 패키지로 배포됨 (자동 설치)
@@ -312,8 +314,8 @@ if (!response.ok) {
 
 ### Q4. 프록시가 API Key를 탈취할 위험은 없나요?
 
-**A:** mcp-client-http는 오픈소스이며 로컬에서만 실행됩니다.
-- 코드 검증 가능: https://www.npmjs.com/package/mcp-client-http
+**A:** mcp-remote는 오픈소스이며 로컬에서만 실행됩니다.
+- 코드 검증 가능: https://www.npmjs.com/package/mcp-remote
 - 네트워크 외부로 전송하지 않음
 - 로컬 프로세스 간 통신만 수행
 
@@ -323,7 +325,7 @@ if (!response.ok) {
 
 ### Claude Desktop 사용자
 
-✅ **mcp-client-http 프록시 사용** (현재 최선의 방법)
+✅ **mcp-remote 프록시 사용** (현재 최선의 방법)
 
 ```json
 {
@@ -332,8 +334,8 @@ if (!response.ok) {
       "command": "npx",
       "args": [
         "-y",
-        "mcp-client-http",
-        "http://localhost:8342/mcp",
+        "mcp-remote",
+        "http://localhost:8342/mcp/stream",
         "--header",
         "X-API-Key: <YOUR_API_KEY>"
       ]
@@ -373,5 +375,5 @@ claude mcp add docst \
 ## 8. 참고 자료
 
 - [MCP Specification - Transports](https://modelcontextprotocol.io/specification#transports)
-- [mcp-client-http NPM Package](https://www.npmjs.com/package/mcp-client-http)
+- [mcp-remote NPM Package](https://www.npmjs.com/package/mcp-remote)
 - [Claude Desktop MCP Configuration](https://docs.anthropic.com/claude/docs/mcp)

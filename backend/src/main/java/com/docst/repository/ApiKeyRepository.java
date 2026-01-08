@@ -2,6 +2,8 @@ package com.docst.repository;
 
 import com.docst.domain.ApiKey;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -47,6 +49,17 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
      * @return Optional API key
      */
     Optional<ApiKey> findByKeyHashAndActiveTrue(String keyHash);
+
+    /**
+     * Find an active API key by key hash with User eagerly fetched.
+     * Used for authentication to avoid LazyInitializationException
+     * when accessing User fields after transaction ends.
+     *
+     * @param keyHash SHA-256 hash of the API key
+     * @return Optional API key with User loaded
+     */
+    @Query("SELECT ak FROM ApiKey ak JOIN FETCH ak.user WHERE ak.keyHash = :keyHash AND ak.active = true")
+    Optional<ApiKey> findByKeyHashAndActiveTrueWithUser(@Param("keyHash") String keyHash);
 
     /**
      * Find an API key by user ID and name
