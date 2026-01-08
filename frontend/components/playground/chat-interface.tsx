@@ -8,6 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLlmChat } from '@/hooks/use-llm-chat';
 import { StreamingMessage } from './streaming-message';
 import { TemplateSelector } from './template-selector';
+import { CitationsSection } from './citations-section';
+import { MarkdownViewer } from '@/components/markdown-viewer';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/types';
 
@@ -137,10 +139,20 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           message.isError && 'bg-destructive text-destructive-foreground'
         )}
       >
-        {message.isStreaming ? (
+        {isUser ? (
+          // User: plain text
+          <div className="whitespace-pre-wrap">{message.content}</div>
+        ) : message.isStreaming ? (
+          // Assistant (streaming): Markdown + spinner
           <StreamingMessage content={message.content} isStreaming={true} />
         ) : (
-          <div className="whitespace-pre-wrap">{message.content}</div>
+          // Assistant (complete): Markdown + Citations
+          <div>
+            <MarkdownViewer content={message.content} className="prose-sm" />
+            {message.citations && message.citations.length > 0 && (
+              <CitationsSection citations={message.citations} />
+            )}
+          </div>
         )}
 
         <div className="text-xs opacity-70 mt-1">

@@ -2,6 +2,8 @@ package com.docst.llm.tools;
 
 import com.docst.domain.Document;
 import com.docst.domain.DocumentVersion;
+import com.docst.llm.CitationCollector;
+import com.docst.llm.model.Citation;
 import com.docst.rag.config.RagConfigService;
 import com.docst.rag.config.ResolvedRagConfig;
 import com.docst.service.DocumentService;
@@ -32,6 +34,7 @@ public class DocumentTools {
     private final SearchService searchService;
     private final SemanticSearchService semanticSearchService;
     private final RagConfigService ragConfigService;
+    private final CitationCollector citationCollector;
 
     /**
      * 문서 검색 Tool
@@ -64,10 +67,25 @@ public class DocumentTools {
             results = searchService.searchByKeyword(projId, query, limit);
         }
 
+        // Citation 수집 (RAG 응답에서 출처 표시용)
+        results.forEach(r -> citationCollector.add(Citation.withHeading(
+            r.documentId().toString(),
+            r.repositoryId() != null ? r.repositoryId().toString() : null,
+            r.path(),
+            r.headingPath(),
+            r.chunkId() != null ? r.chunkId().toString() : null,
+            r.score(),
+            r.snippet()
+        )));
+
+        log.info("Collected {} citations from search results", results.size());
+
         return results.stream()
             .map(r -> new DocumentSearchResult(
                 r.documentId().toString(),
                 r.path(),
+                r.headingPath(),
+                r.chunkId() != null ? r.chunkId().toString() : null,
                 r.snippet(),
                 r.score()
             ))
@@ -224,6 +242,8 @@ public class DocumentTools {
     public record DocumentSearchResult(
         String documentId,
         String path,
+        String headingPath,
+        String chunkId,
         String snippet,
         double score
     ) {}

@@ -3,6 +3,10 @@ package com.docst.api;
 import com.docst.llm.LlmService;
 import com.docst.llm.PromptTemplate;
 import com.docst.llm.RateLimitService;
+import com.docst.llm.model.Citation;
+import com.docst.llm.model.StreamEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +35,7 @@ public class LlmController {
 
     private final LlmService llmService;
     private final RateLimitService rateLimitService;
+    private final ObjectMapper objectMapper;
 
     /**
      * LLM Chat (동기)
@@ -72,8 +77,9 @@ public class LlmController {
      * 응답을 실시간으로 스트리밍하여 전송.
      * 긴 응답이나 Tool 호출이 많은 경우 사용자 경험 향상.
      *
-     * 주의: 공백 보존을 위해 JSON 형식으로 전송.
-     * 프론트엔드에서 {"content":"..."} 형식 파싱 필요.
+     * SSE 이벤트 형식:
+     * - Content 이벤트: {"type":"content","content":"text chunk"}
+     * - Citations 이벤트: {"type":"citations","citations":[...]}
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> chatStream(
@@ -94,24 +100,43 @@ public class LlmController {
             ));
         }
 
-        return llmService.streamChat(
+        return llmService.streamChatWithCitations(
             request.message(),
             request.projectId(),
             request.sessionId()
-        ).map(chunk -> {
-            // 공백 보존을 위해 JSON 형식으로 인코딩
-            // SSE에서 plain text 전송 시 선행 공백이 구분자로 오인되는 문제 방지
-            String escaped = chunk
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-            return "{\"content\":\"" + escaped + "\"}";
-        }).doOnNext(chunk -> {
+        ).map(this::streamEventToJson)
+        .doOnNext(chunk -> {
             // SSE 청크 로깅 (디버깅용)
-            log.debug("SSE chunk (JSON): {}", chunk);
+            log.debug("SSE chunk: {}", chunk);
         });
+    }
+
+    /**
+     * StreamEvent를 JSON 문자열로 변환
+     */
+    private String streamEventToJson(StreamEvent event) {
+        return switch (event) {
+            case StreamEvent.ContentEvent contentEvent -> {
+                // Content 이벤트: 공백 보존을 위해 수동 JSON 인코딩
+                String escaped = contentEvent.content()
+                    .replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "\\r")
+                    .replace("\t", "\\t");
+                yield "{\"type\":\"content\",\"content\":\"" + escaped + "\"}";
+            }
+            case StreamEvent.CitationsEvent citationsEvent -> {
+                // Citations 이벤트: ObjectMapper로 JSON 직렬화
+                try {
+                    String citationsJson = objectMapper.writeValueAsString(citationsEvent.citations());
+                    yield "{\"type\":\"citations\",\"citations\":" + citationsJson + "}";
+                } catch (JsonProcessingException e) {
+                    log.error("Failed to serialize citations", e);
+                    yield "{\"type\":\"citations\",\"citations\":[]}";
+                }
+            }
+        };
     }
 
     /**

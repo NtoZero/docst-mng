@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { streamChatMessage } from '@/lib/llm-api';
-import type { ChatRequest, ChatMessage } from '@/lib/types';
+import type { ChatRequest, ChatMessage, Citation } from '@/lib/types';
 
 // Generate UUID compatible with browser
 function generateId(): string {
@@ -63,26 +63,43 @@ export function useLlmChat(projectId: string) {
         };
 
         let assistantContent = '';
+        let citations: Citation[] = [];
 
-        for await (const chunk of streamChatMessage(
+        for await (const event of streamChatMessage(
           request,
           abortControllerRef.current.signal
         )) {
-          assistantContent += chunk;
+          if (event.type === 'content') {
+            // Content event: 텍스트 청크 누적
+            assistantContent += event.content;
 
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMsgId
-                ? { ...msg, content: assistantContent }
-                : msg
-            )
-          );
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId
+                  ? { ...msg, content: assistantContent }
+                  : msg
+              )
+            );
+          } else if (event.type === 'citations') {
+            // Citations event: RAG 출처 정보 저장
+            citations = event.citations;
+
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId
+                  ? { ...msg, citations }
+                  : msg
+              )
+            );
+          }
         }
 
         // 5. Mark streaming complete
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === assistantMsgId ? { ...msg, isStreaming: false } : msg
+            msg.id === assistantMsgId
+              ? { ...msg, isStreaming: false, citations }
+              : msg
           )
         );
       } catch (error) {

@@ -1,5 +1,7 @@
 package com.docst.llm;
 
+import com.docst.llm.model.Citation;
+import com.docst.llm.model.StreamEvent;
 import com.docst.llm.tools.DocumentTools;
 import com.docst.llm.tools.GitTools;
 import lombok.RequiredArgsConstructor;
@@ -8,7 +10,9 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -25,6 +29,7 @@ public class LlmService {
     private final DynamicChatClientFactory chatClientFactory;
     private final DocumentTools documentTools;
     private final GitTools gitTools;
+    private final CitationCollector citationCollector;
 
     /**
      * LLM과 대화 (동기 호출)
@@ -103,6 +108,62 @@ public class LlmService {
         } catch (Exception e) {
             log.error("Error creating ChatClient", e);
             return Flux.just("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * LLM과 대화 (스트리밍 + Citation)
+     *
+     * 텍스트 청크와 함께 RAG Citation 정보를 제공.
+     * 스트리밍 완료 후 마지막에 CitationsEvent를 전송.
+     */
+    public Flux<StreamEvent> streamChatWithCitations(String userMessage, UUID projectId, String sessionId) {
+        log.info("LLM stream chat with citations: projectId={}, sessionId={}, message length={}",
+            projectId, sessionId, userMessage.length());
+
+        // 시작 전 Citation 컬렉터 초기화
+        citationCollector.clear();
+
+        try {
+            // 프로젝트별 ChatClient 가져오기 (크리덴셜 기반)
+            ChatClient chatClient = chatClientFactory.getChatClient(projectId);
+
+            // User Message에 projectId 컨텍스트 추가
+            String contextualizedMessage = String.format(
+                "[Context: projectId=%s]\n\nUser Question: %s\n\n" +
+                "IMPORTANT: When using searchDocuments, listDocuments, or getDocument tools, " +
+                "you MUST use projectId=\"%s\"",
+                projectId, userMessage, projectId
+            );
+
+            // Content 이벤트 스트림
+            Flux<StreamEvent> contentFlux = chatClient.prompt()
+                .user(contextualizedMessage)
+                .tools(documentTools, gitTools)
+                .advisors(spec -> spec
+                    .param("projectId", projectId.toString())
+                    .param("sessionId", sessionId)
+                )
+                .stream()
+                .content()
+                .filter(chunk -> chunk != null && !chunk.isEmpty())
+                .<StreamEvent>map(StreamEvent.ContentEvent::new)
+                .onErrorResume(e -> {
+                    log.error("Error during LLM stream chat", e);
+                    return Flux.just(new StreamEvent.ContentEvent("Error: " + e.getMessage()));
+                });
+
+            // 스트리밍 완료 후 Citation 이벤트 추가
+            return contentFlux.concatWith(Mono.fromSupplier(() -> {
+                List<Citation> citations = citationCollector.getAndClear();
+                log.info("Sending {} citations at end of stream", citations.size());
+                return new StreamEvent.CitationsEvent(citations);
+            }));
+
+        } catch (Exception e) {
+            log.error("Error creating ChatClient", e);
+            citationCollector.clear();
+            return Flux.just(new StreamEvent.ContentEvent("Error: " + e.getMessage()));
         }
     }
 

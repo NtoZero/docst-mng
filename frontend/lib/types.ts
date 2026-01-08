@@ -526,6 +526,7 @@ export interface ChatMessage {
   toolCalls?: ToolCall[];
   isError?: boolean;
   isStreaming?: boolean;  // Phase 6: streaming indicator
+  citations?: Citation[];  // Phase 6: RAG citations
 }
 
 export interface ToolCall {
@@ -581,3 +582,20 @@ export interface PromptTemplate {
   template: string;
   variables: TemplateVariable[];
 }
+
+// RAG Citation (document source referenced during LLM response)
+export interface Citation {
+  documentId: string;
+  repositoryId: string | null;
+  path: string;
+  title: string | null;
+  headingPath: string | null;
+  chunkId: string | null;
+  score: number;
+  snippet: string;
+}
+
+// SSE Stream Event types for LLM chat
+export type SSEEvent =
+  | { type: 'content'; content: string }
+  | { type: 'citations'; citations: Citation[] };

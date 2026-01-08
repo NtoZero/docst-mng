@@ -1,4 +1,4 @@
-import type { ChatRequest, ChatResponse, PromptTemplate } from './types';
+import type { ChatRequest, ChatResponse, PromptTemplate, SSEEvent } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
 
@@ -48,20 +48,28 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
  * LLM Chat API (스트리밍)
  *
  * Server-Sent Events를 통해 실시간 응답을 수신합니다.
- * AsyncGenerator로 청크 단위 텍스트를 반환합니다.
+ * AsyncGenerator로 SSEEvent를 반환합니다.
+ *
+ * SSE Event Types:
+ * - { type: 'content', content: string } - 텍스트 청크
+ * - { type: 'citations', citations: Citation[] } - RAG 출처 정보 (스트리밍 완료 후)
  *
  * @example
  * ```ts
  * const request = { message: "Hello", projectId: "...", sessionId: "..." };
- * for await (const chunk of streamChatMessage(request)) {
- *   console.log(chunk); // "Hello", " world", "!"
+ * for await (const event of streamChatMessage(request)) {
+ *   if (event.type === 'content') {
+ *     console.log(event.content); // "Hello", " world", "!"
+ *   } else if (event.type === 'citations') {
+ *     console.log(event.citations); // [{documentId, path, ...}, ...]
+ *   }
  * }
  * ```
  */
 export async function* streamChatMessage(
   request: ChatRequest,
   signal?: AbortSignal
-): AsyncGenerator<string> {
+): AsyncGenerator<SSEEvent> {
   const token = await getAuthToken();
 
   const headers: HeadersInit = {
@@ -117,18 +125,27 @@ export async function* streamChatMessage(
           // 빈 문자열 스킵
           if (data === '') continue;
 
-          // JSON 형식 파싱 (공백 보존을 위해 백엔드에서 JSON으로 전송)
-          // Format: {"content":"actual text with spaces"}
+          // JSON 형식 파싱
+          // Format: {"type":"content","content":"..."} or {"type":"citations","citations":[...]}
           try {
             const parsed = JSON.parse(data);
-            if (parsed && typeof parsed.content === 'string') {
-              console.log('SSE chunk (parsed):', JSON.stringify(parsed.content), 'length:', parsed.content.length);
-              yield parsed.content;
+
+            if (parsed.type === 'content' && typeof parsed.content === 'string') {
+              // Content 이벤트
+              console.log('SSE content:', JSON.stringify(parsed.content).slice(0, 50));
+              yield { type: 'content', content: parsed.content };
+            } else if (parsed.type === 'citations' && Array.isArray(parsed.citations)) {
+              // Citations 이벤트
+              console.log('SSE citations:', parsed.citations.length, 'items');
+              yield { type: 'citations', citations: parsed.citations };
+            } else if (typeof parsed.content === 'string') {
+              // Legacy format fallback: {"content":"..."}
+              yield { type: 'content', content: parsed.content };
             }
           } catch {
-            // JSON 파싱 실패 시 raw data 그대로 사용 (fallback)
-            console.log('SSE chunk (raw):', JSON.stringify(data), 'length:', data.length);
-            yield data;
+            // JSON 파싱 실패 시 raw data를 content로 사용 (fallback)
+            console.log('SSE chunk (raw):', JSON.stringify(data).slice(0, 50));
+            yield { type: 'content', content: data };
           }
         }
       }
