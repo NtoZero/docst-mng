@@ -507,6 +507,97 @@ curl -X POST http://localhost:8342/mcp/stream \
 
 ---
 
+## 문제 8: Java 8 date/time 직렬화 오류 (Instant not supported)
+
+### 증상
+
+MCP 도구 실행 시 다음 오류 발생:
+
+```
+com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Java 8 date/time type `java.time.Instant` not supported by default: add Module "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to enable handling
+```
+
+스택 트레이스:
+
+```
+at com.docst.mcp.McpTransportController.handleToolsCall(McpTransportController.java:203)
+(through reference chain: com.docst.mcp.McpModels$GetDocumentResult["committedAt"])
+```
+
+### 원인
+
+`McpTransportController`에서 **직접 `new ObjectMapper()`로 ObjectMapper를 생성**하여 사용:
+
+```java
+// 문제의 코드 (McpTransportController.java:31)
+private final ObjectMapper objectMapper = new ObjectMapper();  // JavaTimeModule 미등록
+```
+
+이 ObjectMapper에는 JavaTimeModule이 등록되지 않아 `java.time.Instant` 타입을 직렬화할 수 없습니다.
+
+`McpModels.java`의 다음 record들이 `Instant` 타입 필드를 가지고 있어 직렬화 실패:
+- `GetDocumentResult.committedAt`
+- `VersionSummary.committedAt`
+
+### 해결 방법
+
+**Spring Boot 자동 구성 ObjectMapper를 주입받아 사용**
+
+Spring Boot의 자동 구성된 ObjectMapper에는 JavaTimeModule이 기본 등록되어 있습니다.
+
+`backend/src/main/java/com/docst/mcp/McpTransportController.java`:
+
+```java
+// 수정 전
+private final ObjectMapper objectMapper = new ObjectMapper();
+
+// 수정 후
+private final ObjectMapper objectMapper;  // Spring Boot 자동 구성 ObjectMapper 주입
+```
+
+`@RequiredArgsConstructor`가 클래스에 적용되어 있으므로, `final` 필드로 선언하면 생성자를 통해 자동 주입됩니다.
+
+### 테스트
+
+```bash
+curl -X POST http://localhost:8342/mcp/stream \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: docst_ak_xxxxxxxxxxxxxxxxxxxx" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "tools/call",
+    "params": {
+      "name": "get_document",
+      "arguments": {"documentId": "your-doc-uuid"}
+    }
+  }'
+```
+
+정상 응답 (Instant가 ISO-8601 형식으로 직렬화됨):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "1",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"id\":\"...\",\"committedAt\":\"2026-01-08T12:00:00Z\",...}"
+      }
+    ],
+    "isError": false
+  }
+}
+```
+
+### 관련 커밋
+
+- `fix(mcp): use Spring auto-configured ObjectMapper for Java 8 date/time support`
+
+---
+
 ## 디버깅 팁
 
 ### Claude Desktop 로그 위치

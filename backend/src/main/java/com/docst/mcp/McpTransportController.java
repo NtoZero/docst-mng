@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class McpTransportController {
 
     private final McpToolDispatcher dispatcher;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;  // Spring Boot 자동 구성 ObjectMapper 주입 (JavaTimeModule 포함)
 
     // SSE 연결 관리
     private final ConcurrentHashMap<String, SseEmitter> sseEmitters = new ConcurrentHashMap<>();
