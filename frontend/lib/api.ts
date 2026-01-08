@@ -145,6 +145,12 @@ export const apiKeysApi = {
     request(`/api/auth/api-keys/${id}`, {
       method: 'DELETE',
     }),
+
+  updateDefaultProject: (id: string, projectId: string | null): Promise<ApiKey> =>
+    request(`/api/auth/api-keys/${id}/default-project`, {
+      method: 'PATCH',
+      body: JSON.stringify({ projectId }),
+    }),
 };
 
 // ===== Setup API =====

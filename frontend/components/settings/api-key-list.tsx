@@ -1,6 +1,6 @@
 'use client';
 
-import { useApiKeys, useRevokeApiKey } from '@/hooks/use-api';
+import { useApiKeys, useRevokeApiKey, useUpdateApiKeyDefaultProject, useProjects } from '@/hooks/use-api';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -10,6 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -33,7 +40,9 @@ interface ApiKeyListProps {
 
 export function ApiKeyList({ onCreateClick }: ApiKeyListProps) {
   const { data: apiKeys, isLoading } = useApiKeys();
+  const { data: projects } = useProjects();
   const revokeApiKey = useRevokeApiKey();
+  const updateDefaultProject = useUpdateApiKeyDefaultProject();
   const [revokeId, setRevokeId] = useState<string | null>(null);
 
   const handleRevoke = async () => {
@@ -47,6 +56,25 @@ export function ApiKeyList({ onCreateClick }: ApiKeyListProps) {
         toast.error(errorMessage);
       }
     }
+  };
+
+  const handleDefaultProjectChange = async (keyId: string, projectId: string) => {
+    try {
+      await updateDefaultProject.mutateAsync({
+        id: keyId,
+        projectId: projectId === 'none' ? null : projectId,
+      });
+      toast.success('Default project updated');
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to update default project';
+      toast.error(errorMessage);
+    }
+  };
+
+  const getProjectName = (projectId: string | null | undefined) => {
+    if (!projectId || !projects) return null;
+    const project = projects.find((p) => p.id === projectId);
+    return project?.name || null;
   };
 
   if (isLoading) {
@@ -98,6 +126,7 @@ export function ApiKeyList({ onCreateClick }: ApiKeyListProps) {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Key Prefix</TableHead>
+                  <TableHead>Default Project</TableHead>
                   <TableHead>Last Used</TableHead>
                   <TableHead>Expires</TableHead>
                   <TableHead>Status</TableHead>
@@ -110,6 +139,33 @@ export function ApiKeyList({ onCreateClick }: ApiKeyListProps) {
                     <TableCell className="font-medium">{key.name}</TableCell>
                     <TableCell>
                       <code className="text-xs bg-muted px-2 py-1 rounded">{key.keyPrefix}</code>
+                    </TableCell>
+                    <TableCell>
+                      {key.active ? (
+                        <Select
+                          value={key.defaultProjectId || 'none'}
+                          onValueChange={(value) => handleDefaultProjectChange(key.id, value)}
+                          disabled={updateDefaultProject.isPending}
+                        >
+                          <SelectTrigger className="w-[180px] h-8 text-sm">
+                            <SelectValue placeholder="Select project">
+                              {key.defaultProjectId ? getProjectName(key.defaultProjectId) || 'Unknown' : 'None'}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground">None</span>
+                            </SelectItem>
+                            {projects?.map((project) => (
+                              <SelectItem key={project.id} value={project.id}>
+                                {project.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {key.lastUsedAt

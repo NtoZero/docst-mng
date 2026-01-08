@@ -39,6 +39,11 @@ export interface ApiKey {
   expiresAt: string | null;
   active: boolean;
   createdAt: string;
+  defaultProjectId?: string | null;
+}
+
+export interface UpdateApiKeyDefaultProjectRequest {
+  projectId: string | null;
 }
 
 export interface CreateApiKeyRequest {

@@ -472,3 +472,15 @@ export function useRevokeApiKey() {
     },
   });
 }
+
+export function useUpdateApiKeyDefaultProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string | null }) =>
+      apiKeysApi.updateDefaultProject(id, projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.all });
+    },
+  });
+}
