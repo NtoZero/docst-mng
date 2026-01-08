@@ -3,6 +3,7 @@ package com.docst.service;
 import com.docst.domain.ApiKey;
 import com.docst.domain.User;
 import com.docst.repository.ApiKeyRepository;
+import com.docst.repository.ProjectRepository;
 import com.docst.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class ApiKeyService {
 
     private final ApiKeyRepository apiKeyRepository;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
 
     /**
      * Generate a new API key for the user.
@@ -81,20 +83,20 @@ public class ApiKeyService {
 
     /**
      * Authenticate using API key.
-     * Returns the user if valid, empty otherwise.
+     * Returns the ApiKey entity (with User and DefaultProject loaded) if valid, empty otherwise.
      *
      * @param apiKey Full API key string
-     * @return Optional User if authentication successful
+     * @return Optional ApiKey if authentication successful
      */
     @Transactional
-    public Optional<User> authenticateByApiKey(String apiKey) {
+    public Optional<ApiKey> authenticateByApiKey(String apiKey) {
         if (apiKey == null || !apiKey.startsWith(KEY_PREFIX)) {
             return Optional.empty();
         }
 
         String keyHash = hashKey(apiKey);
-        // Use fetch join query to eagerly load User and avoid LazyInitializationException
-        // when User fields are accessed after transaction ends
+        // Use fetch join query to eagerly load User and DefaultProject
+        // to avoid LazyInitializationException after transaction ends
         Optional<ApiKey> found = apiKeyRepository.findByKeyHashAndActiveTrueWithUser(keyHash);
 
         if (found.isEmpty()) {
@@ -115,7 +117,7 @@ public class ApiKeyService {
 
         log.debug("API key authentication successful: user={}, key={}", key.getUser().getId(), key.getName());
 
-        return Optional.of(key.getUser());
+        return Optional.of(key);
     }
 
     /**
@@ -158,6 +160,47 @@ public class ApiKeyService {
 
         apiKeyRepository.delete(apiKey);
         log.info("AUDIT: Deleted API key '{}' for user: {}", apiKey.getName(), userId);
+    }
+
+    /**
+     * API Key의 기본 프로젝트를 업데이트한다.
+     * MCP 도구 호출 시 projectId가 없으면 이 프로젝트가 사용된다.
+     *
+     * @param id        API Key ID
+     * @param userId    사용자 ID (권한 검증용)
+     * @param projectId 기본 프로젝트 ID (null이면 해제)
+     * @return 업데이트된 API Key
+     */
+    @Transactional
+    public ApiKey updateDefaultProject(UUID id, UUID userId, UUID projectId) {
+        ApiKey apiKey = apiKeyRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new IllegalArgumentException("API Key를 찾을 수 없거나 접근 권한이 없습니다"));
+
+        if (projectId != null) {
+            // 프로젝트 존재 여부 확인
+            var project = projectRepository.findById(projectId)
+                    .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다: " + projectId));
+            apiKey.setDefaultProject(project);
+        } else {
+            apiKey.setDefaultProject(null);
+        }
+
+        apiKeyRepository.save(apiKey);
+        log.info("AUDIT: API Key '{}' 기본 프로젝트 변경: {} (사용자: {})",
+                apiKey.getName(), projectId, userId);
+
+        return apiKey;
+    }
+
+    /**
+     * ID와 사용자 ID로 API Key를 조회한다.
+     *
+     * @param id     API Key ID
+     * @param userId 사용자 ID
+     * @return API Key (존재하면)
+     */
+    public Optional<ApiKey> findById(UUID id, UUID userId) {
+        return apiKeyRepository.findByIdAndUserId(id, userId);
     }
 
     /**

@@ -1,11 +1,15 @@
 package com.docst.mcp;
 
+import com.docst.auth.UserPrincipal;
+import com.docst.domain.ProjectMember;
 import com.docst.mcp.McpModels.*;
 import com.docst.service.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -26,6 +30,7 @@ public class McpToolDispatcher {
     private final SemanticSearchService semanticSearchService;
     private final HybridSearchService hybridSearchService;
     private final SyncService syncService;
+    private final ProjectService projectService;
 
     // Phase 5 쓰기 서비스들
     private final DocumentWriteService documentWriteService;
@@ -45,6 +50,7 @@ public class McpToolDispatcher {
     @PostConstruct
     public void registerHandlers() {
         // READ 도구들
+        registerHandler(McpTool.LIST_PROJECTS, this::handleListProjects);
         registerHandler(McpTool.LIST_DOCUMENTS, this::handleListDocuments);
         registerHandler(McpTool.GET_DOCUMENT, this::handleGetDocument);
         registerHandler(McpTool.LIST_DOCUMENT_VERSIONS, this::handleListDocumentVersions);
@@ -111,10 +117,39 @@ public class McpToolDispatcher {
 
     // ===== READ 도구 핸들러들 =====
 
+    private ListProjectsResult handleListProjects(ListProjectsInput input) throws Exception {
+        UserPrincipal principal = getCurrentUserPrincipal();
+        if (principal == null) {
+            throw new IllegalStateException("인증되지 않은 사용자입니다");
+        }
+
+        var members = projectService.findByMemberUserId(principal.id()).stream()
+                .map(project -> {
+                    // 해당 프로젝트에서 사용자의 역할 조회
+                    String role = projectService.findMember(project.getId(), principal.id())
+                            .map(m -> m.getRole().name())
+                            .orElse("VIEWER");
+                    return new ProjectSummary(
+                            project.getId(),
+                            project.getName(),
+                            project.getDescription(),
+                            role
+                    );
+                })
+                .toList();
+
+        return new ListProjectsResult(members);
+    }
+
     private ListDocumentsResult handleListDocuments(ListDocumentsInput input) throws Exception {
+        // repositoryId가 없을 때만 projectId 해결 (기본 프로젝트 폴백)
+        UUID projectId = input.repositoryId() == null
+                ? resolveProjectId(input.projectId())
+                : input.projectId();
+
         var documents = input.repositoryId() != null
                 ? documentService.findByRepositoryId(input.repositoryId(), input.pathPrefix(), input.type())
-                : documentService.findByProjectId(input.projectId());
+                : documentService.findByProjectId(projectId);
 
         var summaries = documents.stream()
                 .map(doc -> new DocumentSummary(
@@ -191,10 +226,13 @@ public class McpToolDispatcher {
         int topK = input.topK() != null ? input.topK() : 10;
         String mode = input.mode() != null ? input.mode() : "keyword";
 
+        // projectId 없으면 기본 프로젝트로 폴백
+        UUID projectId = resolveProjectId(input.projectId());
+
         var results = switch (mode.toLowerCase()) {
-            case "semantic" -> semanticSearchService.searchSemantic(input.projectId(), input.query(), topK);
-            case "hybrid" -> hybridSearchService.hybridSearch(input.projectId(), input.query(), topK);
-            default -> searchService.searchByKeyword(input.projectId(), input.query(), topK);
+            case "semantic" -> semanticSearchService.searchSemantic(projectId, input.query(), topK);
+            case "hybrid" -> hybridSearchService.hybridSearch(projectId, input.query(), topK);
+            default -> searchService.searchByKeyword(projectId, input.query(), topK);
         };
 
         var hits = results.stream()
@@ -223,19 +261,19 @@ public class McpToolDispatcher {
     // ===== WRITE 도구 핸들러들 =====
 
     private CreateDocumentResult handleCreateDocument(CreateDocumentInput input) throws Exception {
-        // TODO: SecurityContext에서 실제 사용자 정보 가져오기
-        // 임시로 더미 사용자 사용 (Phase 5에서는 인증 통합 안 함)
-        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        String username = "system";
-        return documentWriteService.createDocument(input, userId, username);
+        UserPrincipal principal = getCurrentUserPrincipal();
+        if (principal == null) {
+            throw new IllegalStateException("인증되지 않은 사용자입니다");
+        }
+        return documentWriteService.createDocument(input, principal.id(), principal.displayName());
     }
 
     private UpdateDocumentResult handleUpdateDocument(UpdateDocumentInput input) throws Exception {
-        // TODO: SecurityContext에서 실제 사용자 정보 가져오기
-        // 임시로 더미 사용자 사용 (Phase 5에서는 인증 통합 안 함)
-        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        String username = "system";
-        return documentWriteService.updateDocument(input, userId, username);
+        UserPrincipal principal = getCurrentUserPrincipal();
+        if (principal == null) {
+            throw new IllegalStateException("인증되지 않은 사용자입니다");
+        }
+        return documentWriteService.updateDocument(input, principal.id(), principal.displayName());
     }
 
     private PushToRemoteResult handlePushToRemote(PushToRemoteInput input) throws Exception {
@@ -258,6 +296,57 @@ public class McpToolDispatcher {
     }
 
     // ===== 유틸리티 메서드 =====
+
+    /**
+     * 현재 인증된 사용자의 UserPrincipal을 반환한다.
+     *
+     * @return UserPrincipal (인증되지 않은 경우 null)
+     */
+    private UserPrincipal getCurrentUserPrincipal() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof UserPrincipal principal) {
+            return principal;
+        }
+        return null;
+    }
+
+    /**
+     * 현재 인증된 사용자의 기본 프로젝트 ID를 반환한다.
+     * API Key에 설정된 defaultProjectId를 사용한다.
+     *
+     * @return 기본 프로젝트 ID (없으면 null)
+     */
+    private UUID getCurrentUserDefaultProjectId() {
+        UserPrincipal principal = getCurrentUserPrincipal();
+        if (principal != null) {
+            return principal.defaultProjectId();
+        }
+        return null;
+    }
+
+    /**
+     * projectId를 해결한다.
+     * 입력값이 있으면 그대로 사용하고, 없으면 기본 프로젝트를 사용한다.
+     *
+     * @param inputProjectId 입력 projectId (nullable)
+     * @return 해결된 projectId
+     * @throws IllegalArgumentException projectId가 없고 기본 프로젝트도 없는 경우
+     */
+    private UUID resolveProjectId(UUID inputProjectId) {
+        if (inputProjectId != null) {
+            return inputProjectId;
+        }
+
+        UUID defaultProjectId = getCurrentUserDefaultProjectId();
+        if (defaultProjectId != null) {
+            log.debug("API Key의 기본 프로젝트 사용: {}", defaultProjectId);
+            return defaultProjectId;
+        }
+
+        throw new IllegalArgumentException(
+                "projectId가 필요합니다. list_projects로 사용 가능한 프로젝트를 확인하거나, " +
+                "API Key 설정에서 기본 프로젝트를 지정하세요.");
+    }
 
     private String buildDiff(String from, String to, String fromSha, String toSha) {
         var fromLines = from == null ? java.util.List.<String>of() : java.util.List.of(from.split("\\n", -1));

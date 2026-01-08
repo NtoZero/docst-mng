@@ -209,4 +209,28 @@ public final class JsonRpcModels {
     public record PingResult(
             String status
     ) {}
+
+    /**
+     * MCP tools/call 결과.
+     * MCP 프로토콜 스펙에 따른 도구 호출 결과 형식.
+     *
+     * @param content 결과 콘텐츠 배열
+     * @param isError 에러 여부 (true이면 content에 에러 메시지 포함)
+     */
+    public record ToolCallResult(
+            java.util.List<ToolContent> content,
+            boolean isError
+    ) {}
+
+    /**
+     * MCP 도구 결과 콘텐츠.
+     *
+     * @param type 콘텐츠 타입 ("text", "image", "resource" 등)
+     * @param text 텍스트 콘텐츠 (type이 "text"일 때)
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ToolContent(
+            String type,
+            String text
+    ) {}
 }

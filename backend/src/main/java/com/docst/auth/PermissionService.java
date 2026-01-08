@@ -146,7 +146,7 @@ public class PermissionService {
      * @throws PermissionDeniedException 권한이 없을 경우
      */
     public void requireProjectPermission(UUID projectId, ProjectRole required) {
-        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        UUID userId = SecurityUtils.requireCurrentUserId();
         requireProjectPermission(userId, projectId, required);
     }
 
@@ -158,7 +158,7 @@ public class PermissionService {
      * @throws PermissionDeniedException 권한이 없을 경우
      */
     public void requireRepositoryPermission(UUID repositoryId, ProjectRole required) {
-        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        UUID userId = SecurityUtils.requireCurrentUserId();
         requireRepositoryPermission(userId, repositoryId, required);
     }
 
@@ -223,7 +223,7 @@ public class PermissionService {
      * @throws PermissionDeniedException 권한이 없을 경우
      */
     public void requireDocumentPermission(UUID documentId, ProjectRole required) {
-        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        UUID userId = SecurityUtils.requireCurrentUserId();
         requireDocumentPermission(userId, documentId, required);
     }
 }

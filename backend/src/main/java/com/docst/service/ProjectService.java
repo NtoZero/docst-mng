@@ -6,6 +6,7 @@ import com.docst.domain.ProjectRole;
 import com.docst.domain.User;
 import com.docst.repository.ProjectMemberRepository;
 import com.docst.repository.ProjectRepository;
+import com.docst.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final UserRepository userRepository;
 
     /**
      * 모든 프로젝트를 조회한다.
@@ -81,6 +83,22 @@ public class ProjectService {
     public Project create(String name, String description) {
         Project project = new Project(name, description);
         return projectRepository.save(project);
+    }
+
+    /**
+     * 새 프로젝트를 생성하고 소유자를 설정한다 (userId 기반).
+     *
+     * @param name 프로젝트 이름
+     * @param description 프로젝트 설명
+     * @param ownerId 프로젝트 소유자 ID
+     * @return 생성된 프로젝트
+     * @throws IllegalArgumentException 사용자가 존재하지 않을 경우
+     */
+    @Transactional
+    public Project create(String name, String description, UUID ownerId) {
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + ownerId));
+        return create(name, description, owner);
     }
 
     /**

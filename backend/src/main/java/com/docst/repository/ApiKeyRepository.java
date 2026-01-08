@@ -51,14 +51,17 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
     Optional<ApiKey> findByKeyHashAndActiveTrue(String keyHash);
 
     /**
-     * Find an active API key by key hash with User eagerly fetched.
+     * Find an active API key by key hash with User and DefaultProject eagerly fetched.
      * Used for authentication to avoid LazyInitializationException
-     * when accessing User fields after transaction ends.
+     * when accessing User/Project fields after transaction ends.
      *
      * @param keyHash SHA-256 hash of the API key
-     * @return Optional API key with User loaded
+     * @return Optional API key with User and DefaultProject loaded
      */
-    @Query("SELECT ak FROM ApiKey ak JOIN FETCH ak.user WHERE ak.keyHash = :keyHash AND ak.active = true")
+    @Query("SELECT ak FROM ApiKey ak " +
+           "JOIN FETCH ak.user " +
+           "LEFT JOIN FETCH ak.defaultProject " +
+           "WHERE ak.keyHash = :keyHash AND ak.active = true")
     Optional<ApiKey> findByKeyHashAndActiveTrueWithUser(@Param("keyHash") String keyHash);
 
     /**

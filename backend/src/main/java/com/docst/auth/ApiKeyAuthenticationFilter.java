@@ -1,5 +1,6 @@
 package com.docst.auth;
 
+import com.docst.domain.ApiKey;
 import com.docst.domain.User;
 import com.docst.service.ApiKeyService;
 import jakarta.servlet.FilterChain;
@@ -55,14 +56,20 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             String apiKey = extractApiKey(request);
 
             if (apiKey != null) {
-                Optional<User> userOpt = apiKeyService.authenticateByApiKey(apiKey);
+                Optional<ApiKey> apiKeyOpt = apiKeyService.authenticateByApiKey(apiKey);
 
-                if (userOpt.isPresent()) {
-                    User user = userOpt.get();
+                if (apiKeyOpt.isPresent()) {
+                    ApiKey key = apiKeyOpt.get();
+                    User user = key.getUser();
 
-                    // Convert to UserPrincipal to avoid LazyInitializationException
-                    // when Spring MVC calls authentication.getName() after session close
-                    UserPrincipal principal = UserPrincipal.from(user);
+                    // Extract defaultProjectId from API Key (may be null)
+                    java.util.UUID defaultProjectId = key.getDefaultProject() != null
+                            ? key.getDefaultProject().getId()
+                            : null;
+
+                    // Convert to UserPrincipal with defaultProjectId
+                    // This avoids LazyInitializationException and provides MCP default project
+                    UserPrincipal principal = UserPrincipal.from(user, defaultProjectId);
 
                     // Create authentication token
                     UsernamePasswordAuthenticationToken authentication =
@@ -78,7 +85,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                     // Set authentication in SecurityContext
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    log.debug("API key authentication successful for user: {}", principal.email());
+                    log.debug("API key authentication successful for user: {}, defaultProject: {}",
+                            principal.email(), defaultProjectId);
                 } else {
                     log.debug("API key authentication failed: invalid or expired key");
                 }

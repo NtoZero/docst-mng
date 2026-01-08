@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -76,6 +77,15 @@ public class ApiKey {
      */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    /**
+     * Default project for MCP tool calls.
+     * When projectId is not provided in MCP requests, this project will be used.
+     */
+    @Setter
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "default_project_id")
+    private Project defaultProject;
 
     /**
      * Constructor for creating a new API key

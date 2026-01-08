@@ -125,20 +125,42 @@ public class AuthController {
     })
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+        if (authentication == null) {
             return ResponseEntity.status(401).build();
         }
 
-        User user = (User) authentication.getPrincipal();
-        UserResponse response = new UserResponse(
-                user.getId(),
-                user.getProvider().name(),
-                user.getProviderUserId(),
-                user.getEmail(),
-                user.getDisplayName(),
-                user.getCreatedAt()
-        );
-        return ResponseEntity.ok(response);
+        Object principal = authentication.getPrincipal();
+
+        // UserPrincipal (JWT/API Key 인증)
+        if (principal instanceof com.docst.auth.UserPrincipal userPrincipal) {
+            // DB에서 전체 사용자 정보 조회
+            return userService.findById(userPrincipal.id())
+                    .map(user -> new UserResponse(
+                            user.getId(),
+                            user.getProvider().name(),
+                            user.getProviderUserId(),
+                            user.getEmail(),
+                            user.getDisplayName(),
+                            user.getCreatedAt()
+                    ))
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.status(401).build());
+        }
+
+        // User 엔티티 직접 사용 (레거시 호환)
+        if (principal instanceof User user) {
+            UserResponse response = new UserResponse(
+                    user.getId(),
+                    user.getProvider().name(),
+                    user.getProviderUserId(),
+                    user.getEmail(),
+                    user.getDisplayName(),
+                    user.getCreatedAt()
+            );
+            return ResponseEntity.ok(response);
+        }
+
+        return ResponseEntity.status(401).build();
     }
 
     /**
@@ -160,7 +182,7 @@ public class AuthController {
             @Valid @RequestBody ChangePasswordRequest request,
             Authentication authentication
     ) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+        if (authentication == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of(
                             "error", "UNAUTHORIZED",
@@ -168,24 +190,38 @@ public class AuthController {
                     ));
         }
 
-        User user = (User) authentication.getPrincipal();
+        // UserPrincipal 또는 User에서 사용자 ID 추출
+        UUID userId;
+        String email;
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof com.docst.auth.UserPrincipal userPrincipal) {
+            userId = userPrincipal.id();
+            email = userPrincipal.email();
+        } else if (principal instanceof User user) {
+            userId = user.getId();
+            email = user.getEmail();
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "UNAUTHORIZED", "message", "Authentication required"));
+        }
 
         try {
-            userService.changePassword(user.getId(), request.oldPassword(), request.newPassword());
+            userService.changePassword(userId, request.oldPassword(), request.newPassword());
 
-            log.info("Password changed successfully for user: {}", user.getEmail());
+            log.info("Password changed successfully for user: {}", email);
             return ResponseEntity.ok(Map.of(
                     "message", "Password changed successfully"
             ));
         } catch (IllegalArgumentException e) {
-            log.warn("Password change failed for user {}: {}", user.getEmail(), e.getMessage());
+            log.warn("Password change failed for user {}: {}", email, e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of(
                             "error", "INVALID_REQUEST",
                             "message", e.getMessage()
                     ));
         } catch (BadCredentialsException e) {
-            log.warn("Password change failed for user {}: incorrect current password", user.getEmail());
+            log.warn("Password change failed for user {}: incorrect current password", email);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of(
                             "error", "INCORRECT_PASSWORD",
@@ -228,12 +264,11 @@ public class AuthController {
             @Valid @RequestBody CreateApiKeyRequest request,
             Authentication authentication
     ) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+        UUID userId = extractUserId(authentication);
+        if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "UNAUTHORIZED", "message", "Authentication required"));
         }
-
-        User user = (User) authentication.getPrincipal();
 
         try {
             java.time.Instant expiresAt = request.expiresInDays() != null
@@ -241,7 +276,7 @@ public class AuthController {
                     : null;
 
             ApiKeyService.ApiKeyCreationResult result = apiKeyService.createApiKey(
-                    user.getId(),
+                    userId,
                     request.name(),
                     expiresAt
             );
@@ -255,10 +290,10 @@ public class AuthController {
                     result.apiKey().getCreatedAt()
             );
 
-            log.info("API key created for user {}: {}", user.getId(), request.name());
+            log.info("API key created for user {}: {}", userId, request.name());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
-            log.warn("API key creation failed for user {}: {}", user.getId(), e.getMessage());
+            log.warn("API key creation failed for user {}: {}", userId, e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "INVALID_REQUEST", "message", e.getMessage()));
         }
@@ -277,13 +312,13 @@ public class AuthController {
     })
     @GetMapping("/api-keys")
     public ResponseEntity<?> listApiKeys(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+        UUID userId = extractUserId(authentication);
+        if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "UNAUTHORIZED", "message", "Authentication required"));
         }
 
-        User user = (User) authentication.getPrincipal();
-        java.util.List<ApiKey> keys = apiKeyService.findByUserId(user.getId());
+        java.util.List<ApiKey> keys = apiKeyService.findByUserId(userId);
 
         java.util.List<ApiKeyResponse> response = keys.stream()
                 .map(k -> new ApiKeyResponse(
@@ -293,7 +328,8 @@ public class AuthController {
                         k.getLastUsedAt(),
                         k.getExpiresAt(),
                         k.isActive(),
-                        k.getCreatedAt()
+                        k.getCreatedAt(),
+                        k.getDefaultProject() != null ? k.getDefaultProject().getId() : null
                 ))
                 .toList();
 
@@ -318,22 +354,101 @@ public class AuthController {
             @Parameter(description = "API key ID") @PathVariable UUID id,
             Authentication authentication
     ) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+        UUID userId = extractUserId(authentication);
+        if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "UNAUTHORIZED", "message", "Authentication required"));
         }
 
-        User user = (User) authentication.getPrincipal();
-
         try {
-            apiKeyService.revokeApiKey(id, user.getId());
-            log.info("API key revoked: {} by user {}", id, user.getId());
+            apiKeyService.revokeApiKey(id, userId);
+            log.info("API key revoked: {} by user {}", id, userId);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
-            log.warn("API key revocation failed for user {}: {}", user.getId(), e.getMessage());
+            log.warn("API key revocation failed for user {}: {}", userId, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "NOT_FOUND", "message", e.getMessage()));
         }
+    }
+
+    /**
+     * Update the default project for an API key.
+     * When MCP tools are called without a projectId, this project will be used.
+     *
+     * @param id API key ID
+     * @param request Default project update request
+     * @param authentication Current user authentication
+     * @return Updated API key
+     */
+    @Operation(summary = "Update Default Project", description = "Set the default project for MCP tool calls with this API key.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Default project updated successfully"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated"),
+            @ApiResponse(responseCode = "404", description = "API key or project not found")
+    })
+    @PatchMapping("/api-keys/{id}/default-project")
+    public ResponseEntity<?> updateDefaultProject(
+            @Parameter(description = "API key ID") @PathVariable UUID id,
+            @RequestBody UpdateDefaultProjectRequest request,
+            Authentication authentication
+    ) {
+        UUID userId = extractUserId(authentication);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "UNAUTHORIZED", "message", "Authentication required"));
+        }
+
+        try {
+            ApiKey apiKey = apiKeyService.updateDefaultProject(id, userId, request.projectId());
+            UUID defaultProjectId = apiKey.getDefaultProject() != null
+                    ? apiKey.getDefaultProject().getId()
+                    : null;
+
+            ApiKeyResponse response = new ApiKeyResponse(
+                    apiKey.getId(),
+                    apiKey.getName(),
+                    apiKey.getKeyPrefix(),
+                    apiKey.getLastUsedAt(),
+                    apiKey.getExpiresAt(),
+                    apiKey.isActive(),
+                    apiKey.getCreatedAt(),
+                    defaultProjectId
+            );
+
+            log.info("Default project updated for API key {}: {} by user {}", id, request.projectId(), userId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Default project update failed for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "NOT_FOUND", "message", e.getMessage()));
+        }
+    }
+
+    // ===== 유틸리티 메서드 =====
+
+    /**
+     * Authentication에서 사용자 ID를 추출한다.
+     * UserPrincipal (JWT/API Key) 또는 User (레거시) 타입을 처리한다.
+     *
+     * @param authentication Spring Security Authentication
+     * @return 사용자 ID (인증되지 않은 경우 null)
+     */
+    private UUID extractUserId(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof com.docst.auth.UserPrincipal userPrincipal) {
+            return userPrincipal.id();
+        }
+
+        if (principal instanceof User user) {
+            return user.getId();
+        }
+
+        return null;
     }
 
     /**
@@ -412,6 +527,14 @@ public class AuthController {
             java.time.Instant lastUsedAt,
             java.time.Instant expiresAt,
             boolean active,
-            java.time.Instant createdAt
+            java.time.Instant createdAt,
+            UUID defaultProjectId
+    ) {}
+
+    /**
+     * 기본 프로젝트 설정 요청.
+     */
+    public record UpdateDefaultProjectRequest(
+            UUID projectId  // null to clear default project
     ) {}
 }

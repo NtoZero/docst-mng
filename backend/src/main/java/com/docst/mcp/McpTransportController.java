@@ -1,7 +1,6 @@
 package com.docst.mcp;
 
 import com.docst.mcp.JsonRpcModels.*;
-import static com.docst.mcp.JsonRpcModels.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -189,12 +188,30 @@ public class McpTransportController {
         // Dispatcher로 도구 실행
         var response = dispatcher.dispatch(toolCall.name(), toolCall.arguments());
 
-        // McpResponse를 JSON-RPC 결과로 변환
+        // MCP 프로토콜 스펙에 맞게 결과 반환
+        // 에러도 isError=true인 ToolCallResult로 반환 (예외 던지지 않음)
         if (response.error() != null) {
-            throw new RuntimeException(response.error().message());
+            log.warn("도구 {} 에러: {}", toolCall.name(), response.error().message());
+            return new ToolCallResult(
+                    java.util.List.of(new ToolContent("text", response.error().message())),
+                    true  // 에러 플래그
+            );
         }
 
-        return response.result();
+        // 성공 결과를 JSON으로 직렬화
+        try {
+            String resultJson = objectMapper.writeValueAsString(response.result());
+            return new ToolCallResult(
+                    java.util.List.of(new ToolContent("text", resultJson)),
+                    false  // 정상 응답
+            );
+        } catch (Exception e) {
+            log.error("도구 결과 직렬화 실패", e);
+            return new ToolCallResult(
+                    java.util.List.of(new ToolContent("text", "결과 직렬화 실패: " + e.getMessage())),
+                    true  // 에러 플래그
+            );
+        }
     }
 
     /**

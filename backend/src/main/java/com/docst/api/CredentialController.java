@@ -41,7 +41,7 @@ public class CredentialController {
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
     public ResponseEntity<List<CredentialResponse>> list() {
-        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        UUID userId = SecurityUtils.requireCurrentUserId();
         List<Credential> credentials = credentialService.findByUserId(userId);
         return ResponseEntity.ok(credentials.stream().map(this::toResponse).toList());
     }
@@ -60,7 +60,7 @@ public class CredentialController {
     @GetMapping("/{id}")
     public ResponseEntity<CredentialResponse> get(
             @Parameter(description = "자격증명 ID") @PathVariable UUID id) {
-        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        UUID userId = SecurityUtils.requireCurrentUserId();
         return credentialService.findById(id, userId)
                 .map(this::toResponse)
                 .map(ResponseEntity::ok)
@@ -80,7 +80,7 @@ public class CredentialController {
     })
     @PostMapping
     public ResponseEntity<CredentialResponse> create(@RequestBody CreateCredentialRequest request) {
-        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        UUID userId = SecurityUtils.requireCurrentUserId();
         CredentialType type = CredentialType.valueOf(request.type());
         Credential credential = credentialService.create(
                 userId,
@@ -110,7 +110,7 @@ public class CredentialController {
             @Parameter(description = "자격증명 ID") @PathVariable UUID id,
             @RequestBody UpdateCredentialRequest request
     ) {
-        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        UUID userId = SecurityUtils.requireCurrentUserId();
         try {
             Credential credential = credentialService.update(
                     id,
@@ -146,7 +146,7 @@ public class CredentialController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @Parameter(description = "자격증명 ID") @PathVariable UUID id) {
-        UUID userId = SecurityUtils.requireCurrentUser().getId();
+        UUID userId = SecurityUtils.requireCurrentUserId();
         try {
             credentialService.delete(id, userId);
             return ResponseEntity.noContent().build();

@@ -47,6 +47,36 @@ public final class McpModels {
      */
     public record McpError(String message) {}
 
+    // ===== list_projects =====
+
+    /**
+     * list_projects 도구 입력.
+     * 파라미터 없음 - 인증된 사용자의 프로젝트 목록을 반환한다.
+     */
+    public record ListProjectsInput() {}
+
+    /**
+     * list_projects 도구 결과.
+     *
+     * @param projects 프로젝트 요약 목록
+     */
+    public record ListProjectsResult(List<ProjectSummary> projects) {}
+
+    /**
+     * 프로젝트 요약 정보.
+     *
+     * @param id 프로젝트 ID
+     * @param name 프로젝트 이름
+     * @param description 프로젝트 설명
+     * @param role 사용자의 역할 (OWNER, ADMIN, EDITOR, VIEWER)
+     */
+    public record ProjectSummary(
+            UUID id,
+            String name,
+            String description,
+            String role
+    ) {}
+
     // ===== list_documents =====
 
     /**

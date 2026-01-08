@@ -18,6 +18,12 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public enum McpTool {
     // ===== READ 도구 =====
+    LIST_PROJECTS(
+            "list_projects",
+            "List all projects the authenticated user has access to. Use this first to discover available projects before searching documents.",
+            ListProjectsInput.class,
+            ToolCategory.READ
+    ),
     LIST_DOCUMENTS(
             "list_documents",
             "List documents in a project or repository. Can filter by path prefix and document type.",

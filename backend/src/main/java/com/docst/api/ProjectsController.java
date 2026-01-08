@@ -7,7 +7,6 @@ import com.docst.auth.RequireProjectRole;
 import com.docst.auth.SecurityUtils;
 import com.docst.domain.Project;
 import com.docst.domain.ProjectRole;
-import com.docst.domain.User;
 import com.docst.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -62,8 +61,8 @@ public class ProjectsController {
     })
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(@RequestBody CreateProjectRequest request) {
-        User currentUser = SecurityUtils.requireCurrentUser();
-        Project project = projectService.create(request.name(), request.description(), currentUser);
+        UUID currentUserId = SecurityUtils.requireCurrentUserId();
+        Project project = projectService.create(request.name(), request.description(), currentUserId);
         ProjectResponse response = toResponse(project);
         return ResponseEntity.created(URI.create("/api/projects/" + project.getId())).body(response);
     }
