@@ -2,6 +2,8 @@ package com.docst.domain;
 
 import com.docst.rag.RagMode;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -52,6 +54,7 @@ public class Project {
 
     /** RAG 모드별 상세 설정 (Phase 4) */
     @Setter
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "rag_config", columnDefinition = "jsonb")
     private String ragConfig;
 
