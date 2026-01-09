@@ -17,7 +17,9 @@
       "WebSearch",
       "Bash(./gradlew compileJava:*)",
       "Bash(npm ls:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(.gradlew.bat compileJava)",
+      "Bash(./gradlew.bat:*)"
     ]
   }
 }

@@ -43,13 +43,16 @@ public class DocumentTools {
      * 키워드 매칭이 아닌 의미적 유사도로 검색하여 더 정확한 결과 제공.
      */
     @Tool(description = "Search documents in a project using semantic search (vector similarity). " +
-          "Returns top matching documents with snippets and relevance scores based on meaning, not just keywords.")
+          "Returns top matching documents with snippets and relevance scores based on meaning, not just keywords. " +
+          "IMPORTANT: You MUST always provide both projectId and sessionId parameters.")
     public List<DocumentSearchResult> searchDocuments(
         @ToolParam(description = "The search query (natural language question or keywords)") String query,
-        @ToolParam(description = "The project ID to search within") String projectId,
+        @ToolParam(description = "The project ID to search within (from context)") String projectId,
+        @ToolParam(description = "The session ID for citation tracking (from context)") String sessionId,
         @ToolParam(description = "Maximum number of results to return (default: 10)", required = false) Integer topK
     ) {
-        log.info("Tool: searchDocuments (semantic) - query={}, projectId={}, topK={}", query, projectId, topK);
+        log.info("Tool: searchDocuments (semantic) - query={}, projectId={}, sessionId={}, topK={}",
+            query, projectId, sessionId, topK);
 
         UUID projId = UUID.fromString(projectId);
         int limit = (topK != null && topK > 0) ? topK : 10;
@@ -67,8 +70,8 @@ public class DocumentTools {
             results = searchService.searchByKeyword(projId, query, limit);
         }
 
-        // Citation 수집 (RAG 응답에서 출처 표시용)
-        results.forEach(r -> citationCollector.add(Citation.withHeading(
+        // Citation 수집 (RAG 응답에서 출처 표시용) - sessionId 기반으로 저장
+        results.forEach(r -> citationCollector.add(sessionId, Citation.withHeading(
             r.documentId().toString(),
             r.repositoryId() != null ? r.repositoryId().toString() : null,
             r.path(),
@@ -78,7 +81,7 @@ public class DocumentTools {
             r.snippet()
         )));
 
-        log.info("Collected {} citations from search results", results.size());
+        log.info("Collected {} citations from search results for session {}", results.size(), sessionId);
 
         return results.stream()
             .map(r -> new DocumentSearchResult(

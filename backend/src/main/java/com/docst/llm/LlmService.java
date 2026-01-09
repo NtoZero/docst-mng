@@ -121,19 +121,22 @@ public class LlmService {
         log.info("LLM stream chat with citations: projectId={}, sessionId={}, message length={}",
             projectId, sessionId, userMessage.length());
 
-        // 시작 전 Citation 컬렉터 초기화
-        citationCollector.clear();
+        // 시작 전 Citation 컬렉터 초기화 (sessionId 기반)
+        citationCollector.clear(sessionId);
 
         try {
             // 프로젝트별 ChatClient 가져오기 (크리덴셜 기반)
             ChatClient chatClient = chatClientFactory.getChatClient(projectId);
 
-            // User Message에 projectId 컨텍스트 추가
+            // User Message에 projectId, sessionId 컨텍스트 추가
+            // Tool 호출 시 sessionId를 전달하도록 지시
             String contextualizedMessage = String.format(
-                "[Context: projectId=%s]\n\nUser Question: %s\n\n" +
-                "IMPORTANT: When using searchDocuments, listDocuments, or getDocument tools, " +
-                "you MUST use projectId=\"%s\"",
-                projectId, userMessage, projectId
+                "[Context: projectId=%s, sessionId=%s]\n\nUser Question: %s\n\n" +
+                "IMPORTANT: When using tools (searchDocuments, listDocuments, getDocument, etc.), " +
+                "you MUST ALWAYS include these parameters:\n" +
+                "- projectId=\"%s\"\n" +
+                "- sessionId=\"%s\"",
+                projectId, sessionId, userMessage, projectId, sessionId
             );
 
             // Content 이벤트 스트림
@@ -153,16 +156,16 @@ public class LlmService {
                     return Flux.just(new StreamEvent.ContentEvent("Error: " + e.getMessage()));
                 });
 
-            // 스트리밍 완료 후 Citation 이벤트 추가
+            // 스트리밍 완료 후 Citation 이벤트 추가 (sessionId 기반으로 조회)
             return contentFlux.concatWith(Mono.fromSupplier(() -> {
-                List<Citation> citations = citationCollector.getAndClear();
-                log.info("Sending {} citations at end of stream", citations.size());
+                List<Citation> citations = citationCollector.getAndClear(sessionId);
+                log.info("Sending {} citations at end of stream for session {}", citations.size(), sessionId);
                 return new StreamEvent.CitationsEvent(citations);
             }));
 
         } catch (Exception e) {
             log.error("Error creating ChatClient", e);
-            citationCollector.clear();
+            citationCollector.clear(sessionId);
             return Flux.just(new StreamEvent.ContentEvent("Error: " + e.getMessage()));
         }
     }
