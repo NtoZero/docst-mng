@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MarkdownViewer } from '@/components/markdown-viewer';
+import { TableOfContents } from '@/components/markdown';
 import { useDocument } from '@/hooks/use-api';
 import { useAuthHydrated } from '@/lib/store';
 
@@ -82,38 +83,54 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ docId
         </Button>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <User className="h-4 w-4" />
-              <span>{document.authorName || 'Unknown'}</span>
+      <div className="flex gap-6">
+        {/* Main Content */}
+        <Card className="flex-1 min-w-0">
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <span>{document.authorName || 'Unknown'}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                <span>
+                  {document.committedAt
+                    ? new Date(document.committedAt).toLocaleDateString()
+                    : 'Unknown'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <GitCommit className="h-4 w-4" />
+                <span className="font-mono">{document.latestCommitSha?.substring(0, 7)}</span>
+              </div>
+              <Badge variant="outline">{document.docType}</Badge>
             </div>
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              <span>
-                {document.committedAt
-                  ? new Date(document.committedAt).toLocaleDateString()
-                  : 'Unknown'}
-              </span>
+          </CardHeader>
+          <CardContent>
+            {document.docType === 'MD' ? (
+              <MarkdownViewer content={document.content || ''} />
+            ) : (
+              <pre className="overflow-x-auto rounded-lg bg-muted p-4 font-mono text-sm">
+                {document.content}
+              </pre>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* TOC Sidebar - only for Markdown */}
+        {document.docType === 'MD' && document.content && (
+          <aside className="hidden w-64 shrink-0 xl:block">
+            <div className="sticky top-6">
+              <Card>
+                <CardContent className="p-4">
+                  <TableOfContents content={document.content} />
+                </CardContent>
+              </Card>
             </div>
-            <div className="flex items-center gap-1">
-              <GitCommit className="h-4 w-4" />
-              <span className="font-mono">{document.latestCommitSha?.substring(0, 7)}</span>
-            </div>
-            <Badge variant="outline">{document.docType}</Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {document.docType === 'MD' ? (
-            <MarkdownViewer content={document.content || ''} />
-          ) : (
-            <pre className="overflow-x-auto rounded-lg bg-muted p-4 font-mono text-sm">
-              {document.content}
-            </pre>
-          )}
-        </CardContent>
-      </Card>
+          </aside>
+        )}
+      </div>
     </div>
   );
 }

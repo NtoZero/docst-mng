@@ -2,7 +2,7 @@
 
 > **작성일**: 2026-01-09
 > **전제 조건**: Phase 6 완료 (LLM 통합, Playground)
-> **목표**: 문서 렌더링 페이지 고도화 - Frontmatter, Syntax Highlighting, LaTeX, Mermaid 지원
+> **목표**: 문서 렌더링 페이지 고도화 - Frontmatter, Syntax Highlighting, LaTeX, Mermaid, TOC Sidebar 지원
 
 ---
 
@@ -23,6 +23,9 @@
 - **Copy Button**: 코드 블록 복사 기능
 - **LaTeX Rendering**: 인라인/블록 수식 렌더링
 - **Mermaid Diagrams**: 플로우차트, 시퀀스 다이어그램 등 시각화
+- **TOC Anchor Links**: 헤딩에 앵커 링크 자동 생성, 목차 클릭 시 해당 섹션으로 이동
+- **TOC Sidebar**: 노션 스타일의 사이드바 목차, 스크롤 스파이로 현재 섹션 하이라이팅
+- **Typography Enhancement**: 개행 간격 개선으로 가독성 향상
 
 ---
 
@@ -100,6 +103,60 @@ flowchart TD
     D --> B
 ```
 
+### 5. TOC Anchor Links
+
+헤딩(h1~h4)에 자동으로 앵커 링크를 생성하여 목차 네비게이션을 지원합니다.
+
+**기능**:
+- `rehype-slug`로 헤딩에 자동 id 생성
+- 헤딩 hover 시 링크 아이콘 표시
+- 클릭 시 해당 섹션으로 스크롤
+- `scroll-mt-4`로 스크롤 시 상단 여백 확보
+
+**예시**:
+```markdown
+## 설치 방법
+```
+→ `<h2 id="설치-방법">설치 방법</h2>` + 앵커 링크 아이콘
+
+### 6. TOC Sidebar (Notion Style)
+
+노션 스타일의 사이드바 목차를 제공합니다.
+
+**기능**:
+- 마크다운 콘텐츠에서 헤딩 자동 추출
+- 헤딩 레벨에 따른 들여쓰기
+- Intersection Observer 기반 스크롤 스파이
+- 현재 보고 있는 섹션 하이라이팅
+- 클릭 시 해당 섹션으로 부드러운 스크롤
+- 반응형: xl(1280px) 이상에서만 표시
+
+**레이아웃**:
+```
+┌─────────────────────────────────┬──────────────┐
+│                                 │   목차        │
+│         문서 본문                │   ├ 개요     │
+│                                 │   ├ 설치     │
+│                                 │   │ └ 요구사항│
+│                                 │   ├ 사용법   │ ← 현재 섹션
+│                                 │   └ 참고     │
+└─────────────────────────────────┴──────────────┘
+```
+
+### 7. Typography Enhancement
+
+문서 가독성을 위한 타이포그래피 개선:
+
+| 요소 | 설정 |
+|------|------|
+| 기본 줄 간격 | `line-height: 1.8` |
+| 문단 간격 | `margin-bottom: 1.25em` |
+| 헤딩 상단 간격 | `margin-top: 1.5em` |
+| 헤딩 하단 간격 | `margin-bottom: 0.75em` |
+| 리스트 간격 | `margin-bottom: 1.25em` |
+| 리스트 아이템 간격 | `margin-bottom: 0.5em` |
+| 코드 블록 간격 | `margin: 1.25em 0` |
+
 ---
 
 ## 아키텍처
@@ -113,7 +170,8 @@ frontend/components/
     ├── index.ts                      # Barrel export
     ├── frontmatter-card.tsx          # YAML 메타데이터 카드
     ├── code-block.tsx                # Syntax Highlighting + Copy
-    └── mermaid-diagram.tsx           # Mermaid 다이어그램 (Lazy Load)
+    ├── mermaid-diagram.tsx           # Mermaid 다이어그램 (Lazy Load)
+    └── table-of-contents.tsx         # TOC 사이드바 (Scroll Spy)
 ```
 
 ### 플러그인 체인
@@ -132,6 +190,7 @@ react-markdown
     │   └── remark-math (수식 파싱)
     │
     └── rehypePlugins
+        ├── rehype-slug (헤딩 id 자동 생성)
         ├── rehype-highlight (Syntax Highlighting)
         └── rehype-katex (수식 렌더링)
     │
@@ -149,7 +208,7 @@ Custom Components
 ### 신규 설치
 
 ```bash
-npm install gray-matter remark-math rehype-katex katex mermaid
+npm install gray-matter remark-math rehype-katex katex mermaid rehype-slug
 npm install -D @types/katex
 ```
 
@@ -158,6 +217,7 @@ npm install -D @types/katex
 | `gray-matter` | ^4.0.3 | YAML frontmatter 파싱 |
 | `remark-math` | ^6.0.0 | 수식 구문 파싱 |
 | `rehype-katex` | ^7.0.1 | KaTeX 렌더링 |
+| `rehype-slug` | ^6.0.0 | 헤딩에 id 자동 생성 (TOC) |
 | `katex` | ^0.16.x | 수식 렌더링 엔진 |
 | `mermaid` | ^11.x | 다이어그램 렌더링 |
 
@@ -177,7 +237,8 @@ npm install -D @types/katex
 |------|---------|
 | `frontend/package.json` | 의존성 추가 |
 | `frontend/components/markdown-viewer.tsx` | 플러그인 통합, 컴포넌트 연동 |
-| `frontend/app/globals.css` | highlight.js, KaTeX 스타일 추가 |
+| `frontend/app/globals.css` | highlight.js, KaTeX, Typography 스타일 추가 |
+| `frontend/app/[locale]/documents/[docId]/page.tsx` | TOC 사이드바 레이아웃 적용 |
 
 ### 신규 파일
 
@@ -187,6 +248,7 @@ npm install -D @types/katex
 | `frontend/components/markdown/frontmatter-card.tsx` | YAML 메타데이터 카드 |
 | `frontend/components/markdown/code-block.tsx` | 코드 블록 + Copy 버튼 |
 | `frontend/components/markdown/mermaid-diagram.tsx` | Mermaid 다이어그램 |
+| `frontend/components/markdown/table-of-contents.tsx` | TOC 사이드바 (Scroll Spy) |
 
 ---
 
@@ -229,6 +291,9 @@ npm install -D @types/katex
 4. **LaTeX**: 인라인/블록 수식 렌더링 확인
 5. **Mermaid**: 다양한 다이어그램 타입 렌더링 확인
 6. **Dark Mode**: 모든 기능 다크 모드 전환 확인
+7. **TOC Anchor Links**: 헤딩 hover 시 링크 아이콘 표시, 클릭 시 스크롤 확인
+8. **TOC Sidebar**: 사이드바 목차 표시, 현재 섹션 하이라이팅 확인
+9. **Typography**: 개행 간격, 문단 간격이 적절히 표시되는지 확인
 
 ### 테스트 문서
 

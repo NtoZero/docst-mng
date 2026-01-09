@@ -1,3 +1,6 @@
+/* KaTeX Styles Import - must be first */
+@import 'katex/dist/katex.min.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -56,4 +59,228 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ============================================
+   Syntax Highlighting (highlight.js - GitHub Theme)
+   ============================================ */
+.hljs {
+  color: #24292e;
+  background: hsl(var(--muted));
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-deletion {
+  color: #d73a49;
+}
+
+.hljs-string,
+.hljs-attr,
+.hljs-addition {
+  color: #032f62;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag .hljs-attr {
+  color: #005cc5;
+}
+
+.hljs-function .hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: #6f42c1;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #005cc5;
+}
+
+.hljs-type,
+.hljs-class .hljs-title {
+  color: #e36209;
+}
+
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #22863a;
+}
+
+/* ============================================
+   Dark Mode Syntax Highlighting
+   ============================================ */
+.dark .hljs {
+  color: #c9d1d9;
+  background: hsl(var(--muted));
+}
+
+.dark .hljs-comment,
+.dark .hljs-quote {
+  color: #8b949e;
+}
+
+.dark .hljs-keyword,
+.dark .hljs-selector-tag,
+.dark .hljs-deletion {
+  color: #ff7b72;
+}
+
+.dark .hljs-string,
+.dark .hljs-attr,
+.dark .hljs-addition {
+  color: #a5d6ff;
+}
+
+.dark .hljs-number,
+.dark .hljs-literal,
+.dark .hljs-variable,
+.dark .hljs-template-variable {
+  color: #79c0ff;
+}
+
+.dark .hljs-function .hljs-title,
+.dark .hljs-title.function_,
+.dark .hljs-section {
+  color: #d2a8ff;
+}
+
+.dark .hljs-built_in,
+.dark .hljs-builtin-name {
+  color: #79c0ff;
+}
+
+.dark .hljs-type,
+.dark .hljs-class .hljs-title {
+  color: #ffa657;
+}
+
+.dark .hljs-name,
+.dark .hljs-selector-id,
+.dark .hljs-selector-class {
+  color: #7ee787;
+}
+
+/* ============================================
+   KaTeX Dark Mode Adjustments
+   ============================================ */
+.dark .katex {
+  color: hsl(var(--foreground));
+}
+
+.katex-display {
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+.katex-display > .katex {
+  white-space: normal;
+}
+
+/* ============================================
+   Mermaid Diagram Enhancements
+   ============================================ */
+.mermaid {
+  text-align: center;
+}
+
+/* ============================================
+   Markdown Viewer Typography
+   ============================================ */
+.markdown-viewer {
+  line-height: 1.8;
+}
+
+.markdown-viewer p {
+  margin-bottom: 1.25em;
+}
+
+.markdown-viewer h1,
+.markdown-viewer h2,
+.markdown-viewer h3,
+.markdown-viewer h4 {
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-viewer ul,
+.markdown-viewer ol {
+  margin-bottom: 1.25em;
+}
+
+.markdown-viewer li {
+  margin-bottom: 0.5em;
+}
+
+.markdown-viewer blockquote {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+/* ============================================
+   Code Block Enhancements
+   ============================================ */
+.markdown-viewer pre {
+  position: relative;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.markdown-viewer pre code {
+  display: block;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Scrollbar styling for code blocks */
+.markdown-viewer pre code::-webkit-scrollbar {
+  height: 6px;
+}
+
+.markdown-viewer pre code::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+.markdown-viewer pre code::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+.markdown-viewer pre code::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* ============================================
+   TOC Sidebar Scrollbar
+   ============================================ */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
 }

@@ -9,7 +9,7 @@
 
 ```bash
 cd frontend
-npm install gray-matter remark-math rehype-katex katex mermaid
+npm install gray-matter remark-math rehype-katex katex mermaid rehype-slug
 npm install -D @types/katex
 ```
 
@@ -354,7 +354,133 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
 
 ---
 
-## 5. Barrel Export
+## 5. TableOfContents Component (TOC Sidebar)
+
+### 파일: `frontend/components/markdown/table-of-contents.tsx`
+
+```typescript
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { cn } from '@/lib/utils';
+import { List } from 'lucide-react';
+
+export interface TocItem {
+  id: string;
+  text: string;
+  level: number;
+}
+
+interface TableOfContentsProps {
+  content: string;
+  className?: string;
+}
+
+// Extract headings from markdown content
+function extractHeadings(content: string): TocItem[] {
+  const headings: TocItem[] = [];
+  const lines = content.split('\n');
+
+  for (const line of lines) {
+    const match = line.match(/^(#{1,6})\s+(.+)$/);
+    if (match) {
+      const level = match[1].length;
+      const text = match[2].trim();
+      const id = text
+        .toLowerCase()
+        .replace(/[^a-z0-9가-힣\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      if (id) {
+        headings.push({ id, text, level });
+      }
+    }
+  }
+  return headings;
+}
+
+export function TableOfContents({ content, className }: TableOfContentsProps) {
+  const [headings, setHeadings] = useState<TocItem[]>([]);
+  const [activeId, setActiveId] = useState<string>('');
+
+  useEffect(() => {
+    setHeadings(extractHeadings(content));
+  }, [content]);
+
+  // Scroll spy with Intersection Observer
+  useEffect(() => {
+    if (headings.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: '-80px 0px -80% 0px', threshold: 0 }
+    );
+
+    headings.forEach(({ id }) => {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [headings]);
+
+  const handleClick = useCallback((id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveId(id);
+    }
+  }, []);
+
+  if (headings.length === 0) return null;
+
+  const minLevel = Math.min(...headings.map((h) => h.level));
+
+  return (
+    <nav className={cn('space-y-1', className)}>
+      <div className="flex items-center gap-2 pb-2 text-sm font-medium text-muted-foreground">
+        <List className="h-4 w-4" />
+        <span>목차</span>
+      </div>
+      <ul className="space-y-1 text-sm">
+        {headings.map((heading) => {
+          const indent = (heading.level - minLevel) * 12;
+          const isActive = activeId === heading.id;
+
+          return (
+            <li key={heading.id}>
+              <button
+                onClick={() => handleClick(heading.id)}
+                className={cn(
+                  'block w-full truncate rounded-md px-2 py-1.5 text-left transition-colors',
+                  'hover:bg-muted hover:text-foreground',
+                  isActive ? 'bg-primary/10 font-medium text-primary' : 'text-muted-foreground'
+                )}
+                style={{ paddingLeft: `${indent + 8}px` }}
+                title={heading.text}
+              >
+                {heading.text}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+```
+
+---
+
+## 6. Barrel Export
 
 ### 파일: `frontend/components/markdown/index.ts`
 
@@ -362,11 +488,13 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
 export { FrontmatterCard } from './frontmatter-card';
 export { CodeBlock } from './code-block';
 export { MermaidDiagram } from './mermaid-diagram';
+export { TableOfContents } from './table-of-contents';
+export type { TocItem } from './table-of-contents';
 ```
 
 ---
 
-## 6. MarkdownViewer Refactoring
+## 7. MarkdownViewer Refactoring
 
 ### 파일: `frontend/components/markdown-viewer.tsx`
 
@@ -379,7 +507,9 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
+import rehypeSlug from 'rehype-slug';
 import matter from 'gray-matter';
+import { Link } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FrontmatterCard, CodeBlock, MermaidDiagram } from './markdown';
 
@@ -395,7 +525,13 @@ export function MarkdownViewer({
   showFrontmatter = true,
 }: MarkdownViewerProps) {
   // Parse frontmatter
-  const { data: frontmatter, content: markdownContent } = matter(content);
+  const { data: frontmatter, content: markdownContent } = React.useMemo(() => {
+    try {
+      return matter(content);
+    } catch {
+      return { data: {}, content };
+    }
+  }, [content]);
 
   return (
     <div className={cn('markdown-viewer', className)}>
@@ -409,18 +545,40 @@ export function MarkdownViewer({
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
           rehypePlugins={[
+            rehypeSlug,
             rehypeHighlight,
             [rehypeKatex, { strict: false }],
           ]}
           components={{
-            h1: ({ children }) => (
-              <h1 className="border-b pb-2 text-3xl font-bold">{children}</h1>
+            h1: ({ children, id }) => (
+              <h1 id={id} className="group border-b pb-2 text-3xl font-bold scroll-mt-4">
+                {id && (
+                  <a href={`#${id}`} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link className="inline h-5 w-5 text-muted-foreground" />
+                  </a>
+                )}
+                {children}
+              </h1>
             ),
-            h2: ({ children }) => (
-              <h2 className="border-b pb-1 text-2xl font-semibold">{children}</h2>
+            h2: ({ children, id }) => (
+              <h2 id={id} className="group border-b pb-1 text-2xl font-semibold scroll-mt-4">
+                {id && (
+                  <a href={`#${id}`} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link className="inline h-4 w-4 text-muted-foreground" />
+                  </a>
+                )}
+                {children}
+              </h2>
             ),
-            h3: ({ children }) => (
-              <h3 className="text-xl font-semibold">{children}</h3>
+            h3: ({ children, id }) => (
+              <h3 id={id} className="group text-xl font-semibold scroll-mt-4">
+                {id && (
+                  <a href={`#${id}`} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link className="inline h-4 w-4 text-muted-foreground" />
+                  </a>
+                )}
+                {children}
+              </h3>
             ),
             code: ({ className, children, ...props }) => {
               const isInline = !className;
@@ -507,7 +665,9 @@ export function MarkdownViewer({
    ============================================ */
 .hljs {
   color: #24292e;
-  background: transparent;
+  background: hsl(var(--muted));
+  border-radius: 0.5rem;
+  padding: 1rem;
 }
 
 .hljs-comment,
@@ -563,6 +723,7 @@ export function MarkdownViewer({
    ============================================ */
 .dark .hljs {
   color: #c9d1d9;
+  background: hsl(var(--muted));
 }
 
 .dark .hljs-comment,
@@ -635,10 +796,45 @@ export function MarkdownViewer({
 }
 
 /* ============================================
+   Markdown Viewer Typography
+   ============================================ */
+.markdown-viewer {
+  line-height: 1.8;
+}
+
+.markdown-viewer p {
+  margin-bottom: 1.25em;
+}
+
+.markdown-viewer h1,
+.markdown-viewer h2,
+.markdown-viewer h3,
+.markdown-viewer h4 {
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-viewer ul,
+.markdown-viewer ol {
+  margin-bottom: 1.25em;
+}
+
+.markdown-viewer li {
+  margin-bottom: 0.5em;
+}
+
+.markdown-viewer blockquote {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+/* ============================================
    Code Block Enhancements
    ============================================ */
 .markdown-viewer pre {
   position: relative;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
 }
 
 .markdown-viewer pre code {
@@ -674,33 +870,39 @@ export function MarkdownViewer({
 ## 8. 구현 체크리스트
 
 ### Phase 7-1: 의존성 및 기초
-- [ ] 의존성 설치 (`gray-matter`, `remark-math`, `rehype-katex`, `katex`, `mermaid`)
-- [ ] `@types/katex` 설치
-- [ ] `frontend/components/markdown/` 디렉토리 생성
+- [x] 의존성 설치 (`gray-matter`, `remark-math`, `rehype-katex`, `katex`, `mermaid`, `rehype-slug`)
+- [x] `@types/katex` 설치
+- [x] `frontend/components/markdown/` 디렉토리 생성
 
 ### Phase 7-2: 컴포넌트 구현
-- [ ] `frontmatter-card.tsx` 구현
-- [ ] `code-block.tsx` 구현
-- [ ] `mermaid-diagram.tsx` 구현
-- [ ] `index.ts` barrel export
+- [x] `frontmatter-card.tsx` 구현
+- [x] `code-block.tsx` 구현
+- [x] `mermaid-diagram.tsx` 구현
+- [x] `table-of-contents.tsx` 구현 (TOC Sidebar + Scroll Spy)
+- [x] `index.ts` barrel export
 
 ### Phase 7-3: MarkdownViewer 통합
-- [ ] `markdown-viewer.tsx` 리팩토링
-- [ ] 플러그인 통합 (remark-math, rehype-highlight, rehype-katex)
-- [ ] 컴포넌트 연동 (FrontmatterCard, CodeBlock, MermaidDiagram)
+- [x] `markdown-viewer.tsx` 리팩토링
+- [x] 플러그인 통합 (remark-math, rehype-slug, rehype-highlight, rehype-katex)
+- [x] 컴포넌트 연동 (FrontmatterCard, CodeBlock, MermaidDiagram)
+- [x] TOC 앵커 링크 (헤딩에 id 자동 생성, hover 시 링크 아이콘)
 
 ### Phase 7-4: 스타일링
-- [ ] `globals.css`에 highlight.js 테마 추가
-- [ ] KaTeX CSS import 및 다크 모드 조정
-- [ ] Mermaid 다이어그램 스타일링
+- [x] `globals.css`에 highlight.js 테마 추가 (배경색 포함)
+- [x] KaTeX CSS import 및 다크 모드 조정
+- [x] Mermaid 다이어그램 스타일링
+- [x] Typography 개선 (line-height, margin 조정)
 
 ### Phase 7-5: 검증
-- [ ] YAML Frontmatter 파싱 테스트
-- [ ] 코드 블록 하이라이팅 테스트 (Java, Python, JS, Dart)
-- [ ] Copy 버튼 동작 테스트
-- [ ] LaTeX 수식 렌더링 테스트
-- [ ] Mermaid 다이어그램 렌더링 테스트
-- [ ] 다크 모드 전환 테스트
+- [x] YAML Frontmatter 파싱 테스트
+- [x] 코드 블록 하이라이팅 테스트 (Java, Python, JS, Dart)
+- [x] Copy 버튼 동작 테스트
+- [x] LaTeX 수식 렌더링 테스트
+- [x] Mermaid 다이어그램 렌더링 테스트
+- [x] 다크 모드 전환 테스트
+- [x] TOC 앵커 링크 테스트
+- [x] TOC 사이드바 테스트 (Scroll Spy, 현재 섹션 하이라이팅)
+- [x] Typography/개행 간격 테스트
 
 ---
 
