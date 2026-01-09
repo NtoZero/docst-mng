@@ -6,7 +6,7 @@ import { ArrowLeft, GitCommit, User, Calendar, ArrowRight, Loader2 } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocument, useDocumentVersions, useDocumentDiff } from '@/hooks/use-api';
-import { useAuthStore } from '@/lib/store';
+import { useAuthHydrated } from '@/lib/store';
 import type { DocumentVersion } from '@/lib/types';
 
 function DiffViewer({ diff }: { diff: string }) {
@@ -45,7 +45,7 @@ function DiffViewer({ diff }: { diff: string }) {
 export default function DocumentVersionsPage({ params }: { params: Promise<{ docId: string }> }) {
   const { docId } = use(params);
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
+  const { isHydrated, user } = useAuthHydrated();
 
   const [selectedVersions, setSelectedVersions] = useState<[string | null, string | null]>([
     null,
@@ -61,10 +61,11 @@ export default function DocumentVersionsPage({ params }: { params: Promise<{ doc
   );
 
   useEffect(() => {
-    if (!user) {
+    // Wait for hydration before checking auth
+    if (isHydrated && !user) {
       router.push('/login');
     }
-  }, [user, router]);
+  }, [isHydrated, user, router]);
 
   useEffect(() => {
     if (versions && versions.length >= 2 && !selectedVersions[0]) {
@@ -86,6 +87,15 @@ export default function DocumentVersionsPage({ params }: { params: Promise<{ doc
 
   const isSelected = (commitSha: string) =>
     selectedVersions[0] === commitSha || selectedVersions[1] === commitSha;
+
+  // Show loading while hydrating
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!user) return null;
 

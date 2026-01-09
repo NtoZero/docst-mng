@@ -1,6 +1,7 @@
 'use client';
 
 import { FileText, MapPin, ExternalLink } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Citation } from '@/lib/types';
@@ -11,11 +12,12 @@ interface CitationCardProps {
 }
 
 export function CitationCard({ citation, index }: CitationCardProps) {
+  const locale = useLocale();
   const scorePercent = Math.round(citation.score * 100);
 
   const handleClick = () => {
-    // 새 탭에서 문서 페이지 열기
-    window.open(`/documents/${citation.documentId}`, '_blank');
+    // 새 탭에서 문서 페이지 열기 (locale prefix 포함)
+    window.open(`/${locale}/documents/${citation.documentId}`, '_blank');
   };
 
   return (

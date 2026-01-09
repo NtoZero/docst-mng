@@ -8,20 +8,30 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MarkdownViewer } from '@/components/markdown-viewer';
 import { useDocument } from '@/hooks/use-api';
-import { useAuthStore } from '@/lib/store';
+import { useAuthHydrated } from '@/lib/store';
 
 export default function DocumentDetailPage({ params }: { params: Promise<{ docId: string }> }) {
   const { docId } = use(params);
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
+  const { isHydrated, user } = useAuthHydrated();
 
   const { data: document, isLoading, error } = useDocument(docId);
 
   useEffect(() => {
-    if (!user) {
+    // Wait for hydration before checking auth
+    if (isHydrated && !user) {
       router.push('/login');
     }
-  }, [user, router]);
+  }, [isHydrated, user, router]);
+
+  // Show loading while hydrating or if no user yet
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!user) return null;
 

@@ -5,6 +5,16 @@ import { routing } from './i18n/routing';
 export const proxy = createMiddleware(routing);
 
 export const config = {
-  // Match only internationalized pathnames
-  matcher: ['/', '/(ko|en)/:path*'],
+  // Match all pathnames except for:
+  // - API routes (/api/...)
+  // - Static files (/_next/..., /favicon.ico, etc.)
+  // - Public files containing a dot (e.g., images)
+  matcher: [
+    // Match root
+    '/',
+    // Match locale prefixed paths
+    '/(ko|en)/:path*',
+    // Match paths without locale (will be redirected by middleware)
+    '/((?!api|_next|_vercel|.*\\..*).*)',
+  ],
 };
