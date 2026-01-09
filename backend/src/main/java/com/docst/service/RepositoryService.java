@@ -135,4 +135,37 @@ public class RepositoryService {
             repositoryRepository.save(repo);
         });
     }
+
+    /**
+     * 레포지토리를 다른 프로젝트로 이관한다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param targetProjectId 이관 대상 프로젝트 ID
+     * @return 이관된 레포지토리
+     * @throws IllegalArgumentException 레포지토리 또는 대상 프로젝트가 존재하지 않을 경우
+     * @throws IllegalStateException 대상 프로젝트에 동일한 레포지토리가 이미 존재할 경우
+     */
+    @Transactional
+    public Repository moveToProject(UUID repositoryId, UUID targetProjectId) {
+        Repository repo = repositoryRepository.findById(repositoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
+
+        Project targetProject = projectRepository.findById(targetProjectId)
+                .orElseThrow(() -> new IllegalArgumentException("Target project not found: " + targetProjectId));
+
+        // 같은 프로젝트로 이관하는 경우 무시
+        if (repo.getProject().getId().equals(targetProjectId)) {
+            return repo;
+        }
+
+        // 대상 프로젝트에 동일한 레포지토리가 존재하는지 확인
+        if (repositoryRepository.existsByProjectIdAndProviderAndOwnerAndName(
+                targetProjectId, repo.getProvider(), repo.getOwner(), repo.getName())) {
+            throw new IllegalStateException(
+                    "Repository already exists in target project: " + repo.getOwner() + "/" + repo.getName());
+        }
+
+        repo.setProject(targetProject);
+        return repositoryRepository.save(repo);
+    }
 }

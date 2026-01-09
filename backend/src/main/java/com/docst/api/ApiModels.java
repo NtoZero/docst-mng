@@ -118,6 +118,13 @@ public final class ApiModels {
      */
     public record UpdateRepositoryRequest(Boolean active, String defaultBranch) {}
 
+    /**
+     * 레포지토리 이관 요청.
+     *
+     * @param targetProjectId 이관 대상 프로젝트 ID
+     */
+    public record MoveRepositoryRequest(UUID targetProjectId) {}
+
     // ===== Document =====
 
     /**

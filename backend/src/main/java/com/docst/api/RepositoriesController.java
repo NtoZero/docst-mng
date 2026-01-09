@@ -1,6 +1,7 @@
 package com.docst.api;
 
 import com.docst.api.ApiModels.CreateRepositoryRequest;
+import com.docst.api.ApiModels.MoveRepositoryRequest;
 import com.docst.api.ApiModels.RepositoryResponse;
 import com.docst.api.ApiModels.SetCredentialRequest;
 import com.docst.api.ApiModels.UpdateRepositoryRequest;
@@ -146,6 +147,35 @@ public class RepositoriesController {
             @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId) {
         repositoryService.delete(repoId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 레포지토리를 다른 프로젝트로 이관한다.
+     *
+     * @param repoId 레포지토리 ID
+     * @param request 이관 요청
+     * @return 이관된 레포지토리
+     */
+    @Operation(summary = "레포지토리 이관", description = "레포지토리를 다른 프로젝트로 이관합니다. 문서와 동기화 기록도 함께 이동됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "이관 성공"),
+            @ApiResponse(responseCode = "404", description = "레포지토리 또는 대상 프로젝트를 찾을 수 없음"),
+            @ApiResponse(responseCode = "409", description = "대상 프로젝트에 동일한 레포지토리가 이미 존재함")
+    })
+    @PostMapping("/repositories/{repoId}/move")
+    @RequireRepositoryAccess(role = ProjectRole.ADMIN, repositoryIdParam = "repoId")
+    public ResponseEntity<RepositoryResponse> moveRepository(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId,
+            @RequestBody MoveRepositoryRequest request
+    ) {
+        try {
+            Repository moved = repositoryService.moveToProject(repoId, request.targetProjectId());
+            return ResponseEntity.ok(toResponse(moved));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).build();
+        }
     }
 
     /**

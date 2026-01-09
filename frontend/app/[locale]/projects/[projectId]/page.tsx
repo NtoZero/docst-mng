@@ -16,6 +16,7 @@ import {
   Key,
   Settings,
   History,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { SyncModeDialog } from '@/components/sync-mode-dialog';
 import { CommitHistoryDialog } from '@/components/commit-history-dialog';
+import { MoveRepositoryDialog } from '@/components/move-repository-dialog';
 import {
   useProject,
   useRepositories,
@@ -33,7 +35,7 @@ import {
 } from '@/hooks/use-api';
 import { useSync } from '@/hooks/use-sync';
 import { useAuthStore, useUIStore } from '@/lib/store';
-import type { Repository, SyncStatus, Credential, SyncMode } from '@/lib/types';
+import type { Repository, SyncStatus, Credential, SyncMode, Project } from '@/lib/types';
 
 function getSyncStatusBadge(status: SyncStatus | undefined) {
   if (!status) return <Badge variant="secondary">Unknown</Badge>;
@@ -55,10 +57,12 @@ function getSyncStatusBadge(status: SyncStatus | undefined) {
 function RepositoryCard({
   repo,
   projectId,
+  project,
   credentials,
 }: {
   repo: Repository;
   projectId: string;
+  project: Project;
   credentials: Credential[];
 }) {
   const queryClient = useQueryClient();
@@ -66,6 +70,7 @@ function RepositoryCard({
   const [showSettings, setShowSettings] = useState(false);
   const [showSyncModeDialog, setShowSyncModeDialog] = useState(false);
   const [showCommitHistory, setShowCommitHistory] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
   const setCredential = useSetRepositoryCredential();
 
   const handleSyncComplete = useCallback(() => {
@@ -189,6 +194,15 @@ function RepositoryCard({
                 {currentCredential.name}
               </Badge>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowMoveDialog(true)}
+              className="h-8 w-8"
+              title="Move to another project"
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -318,6 +332,14 @@ function RepositoryCard({
         open={showCommitHistory}
         onOpenChange={setShowCommitHistory}
       />
+
+      {/* Move Repository Dialog */}
+      <MoveRepositoryDialog
+        open={showMoveDialog}
+        onOpenChange={setShowMoveDialog}
+        repository={repo}
+        currentProject={project}
+      />
     </Card>
   );
 }
@@ -423,6 +445,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                 key={repo.id}
                 repo={repo}
                 projectId={projectId}
+                project={project}
                 credentials={credentials}
               />
             ))}

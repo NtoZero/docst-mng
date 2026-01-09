@@ -130,6 +130,10 @@ export interface UpdateRepositoryRequest {
   defaultBranch?: string;
 }
 
+export interface MoveRepositoryRequest {
+  targetProjectId: string;
+}
+
 // ===== Document =====
 export type DocType = 'MD' | 'ADOC' | 'OPENAPI' | 'ADR' | 'OTHER';
 

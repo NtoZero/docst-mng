@@ -407,6 +407,20 @@ export function useSetRepositoryCredential() {
   });
 }
 
+export function useMoveRepository() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, targetProjectId }: { id: string; targetProjectId: string }) =>
+      repositoriesApi.move(id, targetProjectId),
+    onSuccess: () => {
+      // Invalidate all repository queries since the repo moved between projects
+      queryClient.invalidateQueries({ queryKey: ['repositories'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+  });
+}
+
 // ===== Commits Hooks =====
 // 레포지토리의 커밋 목록을 조회 (페이지네이션 지원)
 export function useCommits(repositoryId: string, params?: CommitListParams, enabled = true) {

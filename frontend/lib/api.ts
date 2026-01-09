@@ -235,6 +235,12 @@ export const repositoriesApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  move: (id: string, targetProjectId: string): Promise<Repository> =>
+    request(`/api/repositories/${id}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ targetProjectId }),
+    }),
 };
 
 // ===== Documents API =====
