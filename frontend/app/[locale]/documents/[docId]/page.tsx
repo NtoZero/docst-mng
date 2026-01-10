@@ -200,6 +200,8 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ docId
           onCommit={handleCommit}
           documentPath={document.path}
           isLoading={updateMutation.isPending}
+          originalContent={document.content || ''}
+          editedContent={editedContent || ''}
         />
         <UnsavedChangesAlert
           open={unsavedAlertOpen}

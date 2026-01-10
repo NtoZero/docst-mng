@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, GitCommit } from 'lucide-react';
+import { Loader2, GitCommit, ChevronDown, ChevronUp } from 'lucide-react';
+import { DiffViewer } from './diff-viewer';
 
 interface CommitDialogProps {
   open: boolean;
@@ -21,6 +22,10 @@ interface CommitDialogProps {
   onCommit: (message: string) => Promise<void>;
   documentPath: string;
   isLoading?: boolean;
+  /** Original content before editing */
+  originalContent?: string;
+  /** Current edited content */
+  editedContent?: string;
 }
 
 export function CommitDialog({
@@ -29,9 +34,14 @@ export function CommitDialog({
   onCommit,
   documentPath,
   isLoading = false,
+  originalContent = '',
+  editedContent = '',
 }: CommitDialogProps) {
   const [commitMessage, setCommitMessage] = useState('');
   const [commitDescription, setCommitDescription] = useState('');
+  const [diffExpanded, setDiffExpanded] = useState(true);
+
+  const hasDiff = originalContent !== editedContent;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +59,7 @@ export function CommitDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitCommit className="h-5 w-5" />
@@ -60,8 +70,33 @@ export function CommitDialog({
             <code className="text-xs bg-muted px-1 py-0.5 rounded">{documentPath}</code>
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="grid gap-4 py-4 overflow-auto flex-1">
+            {/* Diff Preview Section */}
+            {hasDiff && (
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDiffExpanded(!diffExpanded)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <Label className="cursor-pointer">Changes Preview</Label>
+                  {diffExpanded ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+                {diffExpanded && (
+                  <DiffViewer
+                    original={originalContent}
+                    modified={editedContent}
+                    maxHeight="200px"
+                  />
+                )}
+              </div>
+            )}
+
             <div className="grid gap-2">
               <Label htmlFor="commit-message">Commit message</Label>
               <Input
@@ -83,7 +118,7 @@ export function CommitDialog({
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button
               type="button"
               variant="outline"

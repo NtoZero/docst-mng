@@ -1,6 +1,7 @@
 package com.docst.api;
 
 import com.docst.api.ApiModels.*;
+import com.docst.auth.SecurityUtils;
 import com.docst.auth.UserPrincipal;
 import com.docst.domain.Document;
 import com.docst.domain.DocumentVersion;
@@ -16,7 +17,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -101,7 +101,6 @@ public class DocumentsController {
      *
      * @param docId 문서 ID
      * @param request 수정 요청 (content, commitMessage, branch)
-     * @param principal 인증된 사용자
      * @return 수정 결과 (문서를 찾을 수 없으면 404, 권한이 없으면 403)
      */
     @Operation(summary = "문서 수정", description = "문서 내용을 수정하고 Git 커밋을 생성합니다. EDITOR 이상 권한이 필요합니다.")
@@ -113,9 +112,14 @@ public class DocumentsController {
     @PutMapping("/documents/{docId}")
     public ResponseEntity<UpdateDocumentResponse> updateDocument(
             @Parameter(description = "문서 ID") @PathVariable UUID docId,
-            @RequestBody UpdateDocumentRequest request,
-            @AuthenticationPrincipal UserPrincipal principal
+            @RequestBody UpdateDocumentRequest request
     ) {
+        // 인증된 사용자 확인
+        UserPrincipal principal = SecurityUtils.getCurrentUserPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+
         // 문서 존재 확인
         Optional<Document> docOpt = documentService.findById(docId);
         if (docOpt.isEmpty()) {

@@ -19,7 +19,8 @@
       "Bash(npm ls:*)",
       "Bash(npx tsc:*)",
       "Bash(.gradlew.bat compileJava)",
-      "Bash(./gradlew.bat:*)"
+      "Bash(./gradlew.bat:*)",
+      "Skill(subagent-creator)"
     ]
   }
 }

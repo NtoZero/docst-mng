@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import GithubSlugger from 'github-slugger';
+import matter from 'gray-matter';
 import { cn } from '@/lib/utils';
 import { List } from 'lucide-react';
 
@@ -15,35 +17,118 @@ interface TableOfContentsProps {
   className?: string;
 }
 
-// Extract headings from markdown content
-function extractHeadings(content: string): TocItem[] {
-  const headings: TocItem[] = [];
+// Strip markdown formatting from text to get plain text (like rehype-slug does)
+function stripMarkdownFormatting(text: string): string {
+  return text
+    // Remove inline code backticks but keep content
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove bold/italic markers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // Remove links but keep text [text](url) -> text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove images ![alt](url) -> alt
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    // Remove strikethrough
+    .replace(/~~([^~]+)~~/g, '$1');
+}
+
+// Remove code blocks from content (they might contain # that look like headings)
+function removeCodeBlocks(content: string): string {
   const lines = content.split('\n');
-  const idCounts = new Map<string, number>();
+  const result: string[] = [];
+  let inCodeBlock = false;
+  let codeFence = ''; // The actual fence string (e.g., '```', '````', '~~~')
+  let fenceChar = ''; // '`' or '~'
 
   for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Match fence: 3 or more backticks or tildes
+    const fenceMatch = trimmedLine.match(/^(`{3,}|~{3,})/);
+
+    if (!inCodeBlock && fenceMatch) {
+      // Starting a code block
+      inCodeBlock = true;
+      codeFence = fenceMatch[1]; // e.g., '```' or '````'
+      fenceChar = codeFence[0]; // '`' or '~'
+      continue; // Skip fence line
+    }
+
+    if (inCodeBlock) {
+      // Check if this line closes the code block
+      // Closing fence must be the same char and at least as long as opening
+      const closeFenceMatch = trimmedLine.match(new RegExp(`^${fenceChar}{${codeFence.length},}\\s*$`));
+      if (closeFenceMatch) {
+        // Ending the code block
+        inCodeBlock = false;
+        codeFence = '';
+        fenceChar = '';
+        continue; // Skip fence line
+      }
+    }
+
+    // Only include lines that are not inside a code block
+    if (!inCodeBlock) {
+      result.push(line);
+    }
+  }
+
+  return result.join('\n');
+}
+
+// Extract headings from markdown content using github-slugger (same as rehype-slug)
+function extractHeadings(rawContent: string): TocItem[] {
+  const headings: TocItem[] = [];
+  const slugger = new GithubSlugger();
+
+  // 1. Strip frontmatter (same as MarkdownViewer does)
+  let content: string;
+  try {
+    content = matter(rawContent).content;
+  } catch {
+    content = rawContent;
+  }
+
+  // 2. Remove code blocks (headings inside code blocks are not rendered)
+  const contentWithoutCodeBlocks = removeCodeBlocks(content);
+
+  // DEBUG: Log in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[TOC] Original lines:', content.split('\n').length);
+    console.log('[TOC] After code block removal:', contentWithoutCodeBlocks.split('\n').length);
+  }
+
+  const lines = contentWithoutCodeBlocks.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     // Match markdown headings (## Heading)
     const match = line.match(/^(#{1,6})\s+(.+)$/);
     if (match) {
       const level = match[1].length;
-      const text = match[2].trim();
-      // Generate slug similar to rehype-slug
-      let baseId = text
-        .toLowerCase()
-        .replace(/[^a-z0-9가-힣\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+      const rawText = match[2].trim();
+      // Strip markdown formatting to match what rehype-slug sees (plain text)
+      const plainText = stripMarkdownFormatting(rawText);
+      // Use github-slugger for consistent ID generation with rehype-slug
+      const id = slugger.slug(plainText);
 
-      if (baseId) {
-        // Handle duplicate IDs by appending a counter (like rehype-slug)
-        const count = idCounts.get(baseId) || 0;
-        const id = count === 0 ? baseId : `${baseId}-${count}`;
-        idCounts.set(baseId, count + 1);
+      // DEBUG: Log each heading found
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TOC] Found heading at line ${i}: "${rawText}" -> id="${id}"`);
+      }
 
-        headings.push({ id, text, level });
+      if (id) {
+        headings.push({ id, text: rawText, level });
       }
     }
+  }
+
+  // DEBUG: Log total headings
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[TOC] Total headings extracted:', headings.length);
   }
 
   return headings;

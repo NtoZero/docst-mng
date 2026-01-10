@@ -153,6 +153,10 @@ public class DocumentService {
                 })
                 .orElseGet(() -> new Document(repo, path, title, docType));
 
+        // Save document first to ensure it has an ID (for new documents)
+        // and to flush any pending changes (for existing documents)
+        document = documentRepository.saveAndFlush(document);
+
         DocumentVersion newVersion = null;
 
         // Check if this exact content already exists
@@ -165,13 +169,18 @@ public class DocumentService {
             version.setContentHash(contentHash);
             version.setContent(content);
 
-            document.addVersion(version);
-            newVersion = version;
+            // Explicitly save the version to avoid TransientObjectException
+            // when subsequent queries trigger auto-flush
+            newVersion = documentVersionRepository.saveAndFlush(version);
+
+            // Update document's latest commit SHA and add version to collection
+            document.setLatestCommitSha(commitSha);
+            document.getVersions().add(newVersion);
         } else {
             document.setLatestCommitSha(commitSha);
+            documentRepository.save(document);
         }
 
-        documentRepository.save(document);
         return newVersion;
     }
 

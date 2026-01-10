@@ -19,20 +19,22 @@ public class SyncProgressTracker {
     /**
      * 동기화 시작을 기록한다.
      *
-     * @param jobId 작업 ID
+     * @param jobId 작업 ID (null이면 무시)
      * @param repositoryId 레포지토리 ID
      */
     public void start(UUID jobId, UUID repositoryId) {
+        if (jobId == null) return;
         progressMap.put(jobId, new Progress(repositoryId, 0, 0, "Initializing..."));
     }
 
     /**
      * 전체 문서 수를 설정한다.
      *
-     * @param jobId 작업 ID
+     * @param jobId 작업 ID (null이면 무시)
      * @param total 전체 문서 수
      */
     public void setTotal(UUID jobId, int total) {
+        if (jobId == null) return;
         Progress progress = progressMap.get(jobId);
         if (progress != null) {
             progress.totalDocs = total;
@@ -43,11 +45,12 @@ public class SyncProgressTracker {
     /**
      * 진행 상황을 업데이트한다.
      *
-     * @param jobId 작업 ID
+     * @param jobId 작업 ID (null이면 무시)
      * @param processed 처리된 문서 수
      * @param currentFile 현재 처리 중인 파일 경로
      */
     public void update(UUID jobId, int processed, String currentFile) {
+        if (jobId == null) return;
         Progress progress = progressMap.get(jobId);
         if (progress != null) {
             progress.processedDocs = processed;
@@ -58,10 +61,11 @@ public class SyncProgressTracker {
     /**
      * 동기화 완료를 기록한다.
      *
-     * @param jobId 작업 ID
+     * @param jobId 작업 ID (null이면 무시)
      * @param message 완료 메시지
      */
     public void complete(UUID jobId, String message) {
+        if (jobId == null) return;
         Progress progress = progressMap.get(jobId);
         if (progress != null) {
             progress.message = message;
@@ -71,10 +75,11 @@ public class SyncProgressTracker {
     /**
      * 진행 상황을 조회한다.
      *
-     * @param jobId 작업 ID
+     * @param jobId 작업 ID (null이면 null 반환)
      * @return 진행 상황 (없으면 null)
      */
     public Progress getProgress(UUID jobId) {
+        if (jobId == null) return null;
         return progressMap.get(jobId);
     }
 
@@ -94,9 +99,10 @@ public class SyncProgressTracker {
     /**
      * 진행 상황을 제거한다.
      *
-     * @param jobId 작업 ID
+     * @param jobId 작업 ID (null이면 무시)
      */
     public void remove(UUID jobId) {
+        if (jobId == null) return;
         progressMap.remove(jobId);
     }
 
