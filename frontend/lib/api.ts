@@ -39,6 +39,8 @@ import type {
   RagDefaults,
   ReEmbeddingTriggerResponse,
   ReEmbeddingStatusResponse,
+  UpdateDocumentRequest,
+  UpdateDocumentResponse,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
@@ -259,6 +261,12 @@ export const documentsApi = {
     const query = new URLSearchParams({ from, to });
     return request(`/api/documents/${id}/diff?${query.toString()}`);
   },
+
+  update: (id: string, data: UpdateDocumentRequest): Promise<UpdateDocumentResponse> =>
+    request(`/api/documents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 
 // ===== Credentials API =====

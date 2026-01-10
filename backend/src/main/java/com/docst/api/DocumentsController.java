@@ -1,9 +1,13 @@
 package com.docst.api;
 
 import com.docst.api.ApiModels.*;
+import com.docst.auth.UserPrincipal;
 import com.docst.domain.Document;
 import com.docst.domain.DocumentVersion;
+import com.docst.mcp.McpModels.UpdateDocumentInput;
+import com.docst.mcp.McpModels.UpdateDocumentResult;
 import com.docst.service.DocumentService;
+import com.docst.service.DocumentWriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +34,7 @@ import java.util.UUID;
 public class DocumentsController {
 
     private final DocumentService documentService;
+    private final DocumentWriteService documentWriteService;
 
     /**
      * 레포지토리의 문서 목록을 조회한다.
@@ -88,6 +94,62 @@ public class DocumentsController {
                 version != null ? version.getCommittedAt() : null
         );
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 문서 내용을 수정하고 Git 커밋을 생성한다.
+     *
+     * @param docId 문서 ID
+     * @param request 수정 요청 (content, commitMessage, branch)
+     * @param principal 인증된 사용자
+     * @return 수정 결과 (문서를 찾을 수 없으면 404, 권한이 없으면 403)
+     */
+    @Operation(summary = "문서 수정", description = "문서 내용을 수정하고 Git 커밋을 생성합니다. EDITOR 이상 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "404", description = "문서를 찾을 수 없음"),
+            @ApiResponse(responseCode = "403", description = "수정 권한 없음")
+    })
+    @PutMapping("/documents/{docId}")
+    public ResponseEntity<UpdateDocumentResponse> updateDocument(
+            @Parameter(description = "문서 ID") @PathVariable UUID docId,
+            @RequestBody UpdateDocumentRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        // 문서 존재 확인
+        Optional<Document> docOpt = documentService.findById(docId);
+        if (docOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // MCP Input으로 변환 (항상 커밋 생성)
+        UpdateDocumentInput input = new UpdateDocumentInput(
+                docId,
+                request.content(),
+                request.commitMessage(),
+                request.branch(),
+                true  // createCommit = true
+        );
+
+        try {
+            // DocumentWriteService 호출
+            UpdateDocumentResult result = documentWriteService.updateDocument(
+                    input,
+                    principal.id(),
+                    principal.displayName()
+            );
+
+            return ResponseEntity.ok(new UpdateDocumentResponse(
+                    result.documentId(),
+                    result.path(),
+                    result.newCommitSha(),
+                    result.message()
+            ));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**

@@ -1,22 +1,59 @@
 'use client';
 
-import { use, useEffect } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
-import { ArrowLeft, History, FileText, User, Calendar, GitCommit, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  History,
+  FileText,
+  User,
+  Calendar,
+  GitCommit,
+  Loader2,
+  Pencil,
+  X,
+  Save,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MarkdownViewer } from '@/components/markdown-viewer';
 import { TableOfContents } from '@/components/markdown';
-import { useDocument } from '@/hooks/use-api';
-import { useAuthHydrated } from '@/lib/store';
+import {
+  DocumentEditor,
+  EditorViewModeToggle,
+  CommitDialog,
+  UnsavedChangesAlert,
+} from '@/components/editor';
+import { useDocument, useUpdateDocument } from '@/hooks/use-api';
+import { useAuthHydrated, useEditorStore } from '@/lib/store';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DocumentDetailPage({ params }: { params: Promise<{ docId: string }> }) {
   const { docId } = use(params);
   const router = useRouter();
+  const { toast } = useToast();
   const { isHydrated, user } = useAuthHydrated();
 
   const { data: document, isLoading, error } = useDocument(docId);
+  const updateMutation = useUpdateDocument();
+
+  // Editor state from store
+  const {
+    isEditMode,
+    viewMode,
+    hasUnsavedChanges,
+    editedContent,
+    setEditMode,
+    setViewMode,
+    setContent,
+    updateEditedContent,
+    resetEditor,
+  } = useEditorStore();
+
+  // Dialog states
+  const [commitDialogOpen, setCommitDialogOpen] = useState(false);
+  const [unsavedAlertOpen, setUnsavedAlertOpen] = useState(false);
 
   useEffect(() => {
     // Wait for hydration before checking auth
@@ -24,6 +61,60 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ docId
       router.push('/login');
     }
   }, [isHydrated, user, router]);
+
+  // Reset editor state when leaving the page
+  useEffect(() => {
+    return () => {
+      resetEditor();
+    };
+  }, [resetEditor]);
+
+  // Handle entering edit mode
+  const handleEnterEditMode = useCallback(() => {
+    if (document?.content) {
+      setContent(document.content);
+      setEditMode(true);
+    }
+  }, [document?.content, setContent, setEditMode]);
+
+  // Handle cancel with unsaved changes check
+  const handleCancelEdit = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setUnsavedAlertOpen(true);
+    } else {
+      resetEditor();
+    }
+  }, [hasUnsavedChanges, resetEditor]);
+
+  // Handle discard changes confirmation
+  const handleDiscardChanges = useCallback(() => {
+    setUnsavedAlertOpen(false);
+    resetEditor();
+  }, [resetEditor]);
+
+  // Handle commit
+  const handleCommit = useCallback(
+    async (message: string) => {
+      if (!editedContent) return;
+
+      try {
+        await updateMutation.mutateAsync({
+          id: docId,
+          data: {
+            content: editedContent,
+            commitMessage: message,
+          },
+        });
+
+        setCommitDialogOpen(false);
+        resetEditor();
+        toast.success('Document saved successfully');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to save document');
+      }
+    },
+    [docId, editedContent, updateMutation, resetEditor, toast]
+  );
 
   // Show loading while hydrating or if no user yet
   if (!isHydrated) {
@@ -60,6 +151,66 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ docId
     );
   }
 
+  // Edit Mode UI
+  if (isEditMode) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-8rem)]">
+        {/* Edit Header */}
+        <div className="flex items-center justify-between pb-4 border-b mb-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={handleCancelEdit}>
+              <X className="h-4 w-4" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                <h1 className="text-xl font-bold">{document.title || document.path}</h1>
+                {hasUnsavedChanges && (
+                  <Badge variant="secondary" className="ml-2">
+                    Unsaved
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">{document.path}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <EditorViewModeToggle mode={viewMode} onModeChange={setViewMode} />
+            <Button onClick={() => setCommitDialogOpen(true)} disabled={!hasUnsavedChanges}>
+              <Save className="mr-2 h-4 w-4" />
+              Save
+            </Button>
+          </div>
+        </div>
+
+        {/* Editor */}
+        <div className="flex-1 min-h-0">
+          <DocumentEditor
+            content={editedContent || ''}
+            onChange={updateEditedContent}
+            viewMode={viewMode}
+            className="h-full"
+          />
+        </div>
+
+        {/* Dialogs */}
+        <CommitDialog
+          open={commitDialogOpen}
+          onOpenChange={setCommitDialogOpen}
+          onCommit={handleCommit}
+          documentPath={document.path}
+          isLoading={updateMutation.isPending}
+        />
+        <UnsavedChangesAlert
+          open={unsavedAlertOpen}
+          onOpenChange={setUnsavedAlertOpen}
+          onConfirm={handleDiscardChanges}
+        />
+      </div>
+    );
+  }
+
+  // View Mode UI
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -75,12 +226,20 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ docId
             <p className="text-muted-foreground">{document.path}</p>
           </div>
         </div>
-        <Button variant="outline" asChild>
-          <Link href={`/documents/${docId}/versions`}>
-            <History className="mr-2 h-4 w-4" />
-            View History
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {document.docType === 'MD' && (
+            <Button variant="outline" onClick={handleEnterEditMode}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
+          <Button variant="outline" asChild>
+            <Link href={`/documents/${docId}/versions`}>
+              <History className="mr-2 h-4 w-4" />
+              View History
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-6">

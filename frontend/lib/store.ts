@@ -73,3 +73,55 @@ export const useUIStore = create<UIState>()((set) => ({
   selectedProjectId: null,
   setSelectedProjectId: (id) => set({ selectedProjectId: id }),
 }));
+
+// ===== Editor State (Phase 8) =====
+
+type EditorViewMode = 'source' | 'split';
+
+interface EditorState {
+  isEditMode: boolean;
+  viewMode: EditorViewMode;
+  hasUnsavedChanges: boolean;
+  originalContent: string | null;
+  editedContent: string | null;
+  setEditMode: (mode: boolean) => void;
+  setViewMode: (mode: EditorViewMode) => void;
+  setContent: (original: string, edited?: string) => void;
+  updateEditedContent: (content: string) => void;
+  resetEditor: () => void;
+}
+
+export const useEditorStore = create<EditorState>()((set, get) => ({
+  isEditMode: false,
+  viewMode: 'split',
+  hasUnsavedChanges: false,
+  originalContent: null,
+  editedContent: null,
+
+  setEditMode: (mode) => set({ isEditMode: mode }),
+
+  setViewMode: (mode) => set({ viewMode: mode }),
+
+  setContent: (original, edited) =>
+    set({
+      originalContent: original,
+      editedContent: edited ?? original,
+      hasUnsavedChanges: false,
+    }),
+
+  updateEditedContent: (content) => {
+    const { originalContent } = get();
+    set({
+      editedContent: content,
+      hasUnsavedChanges: content !== originalContent,
+    });
+  },
+
+  resetEditor: () =>
+    set({
+      isEditMode: false,
+      hasUnsavedChanges: false,
+      originalContent: null,
+      editedContent: null,
+    }),
+}));

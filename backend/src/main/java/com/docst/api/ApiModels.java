@@ -217,6 +217,34 @@ public final class ApiModels {
             String content
     ) {}
 
+    /**
+     * 문서 수정 요청.
+     *
+     * @param content 새 문서 내용
+     * @param commitMessage Git 커밋 메시지
+     * @param branch 대상 브랜치 (선택, null이면 기본 브랜치)
+     */
+    public record UpdateDocumentRequest(
+            String content,
+            String commitMessage,
+            String branch
+    ) {}
+
+    /**
+     * 문서 수정 응답.
+     *
+     * @param documentId 문서 ID
+     * @param path 문서 경로
+     * @param commitSha 새 커밋 SHA
+     * @param message 상태 메시지
+     */
+    public record UpdateDocumentResponse(
+            UUID documentId,
+            String path,
+            String commitSha,
+            String message
+    ) {}
+
     // ===== Search =====
 
     /**

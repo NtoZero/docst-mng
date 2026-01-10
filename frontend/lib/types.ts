@@ -603,3 +603,20 @@ export interface Citation {
 export type SSEEvent =
   | { type: 'content'; content: string }
   | { type: 'citations'; citations: Citation[] };
+
+// ===== Document Editor (Phase 8) =====
+
+export type EditorViewMode = 'source' | 'split';
+
+export interface UpdateDocumentRequest {
+  content: string;
+  commitMessage: string;
+  branch?: string;
+}
+
+export interface UpdateDocumentResponse {
+  documentId: string;
+  path: string;
+  commitSha: string;
+  message: string;
+}

@@ -19,6 +19,7 @@ import type {
   SetCredentialRequest,
   CommitListParams,
   CommitDiffParams,
+  UpdateDocumentRequest,
 } from '@/lib/types';
 import { useAuthStore } from '@/lib/store';
 
@@ -338,6 +339,20 @@ export function useDocumentDiff(documentId: string, from: string, to: string) {
     queryKey: queryKeys.documents.diff(documentId, from, to),
     queryFn: () => documentsApi.getDiff(documentId, from, to),
     enabled: !!documentId && !!from && !!to,
+  });
+}
+
+export function useUpdateDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateDocumentRequest }) =>
+      documentsApi.update(id, data),
+    onSuccess: (result) => {
+      // Invalidate document detail and versions
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(result.documentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.versions(result.documentId) });
+    },
   });
 }
 

@@ -19,6 +19,7 @@ interface TableOfContentsProps {
 function extractHeadings(content: string): TocItem[] {
   const headings: TocItem[] = [];
   const lines = content.split('\n');
+  const idCounts = new Map<string, number>();
 
   for (const line of lines) {
     // Match markdown headings (## Heading)
@@ -27,14 +28,19 @@ function extractHeadings(content: string): TocItem[] {
       const level = match[1].length;
       const text = match[2].trim();
       // Generate slug similar to rehype-slug
-      const id = text
+      let baseId = text
         .toLowerCase()
         .replace(/[^a-z0-9가-힣\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 
-      if (id) {
+      if (baseId) {
+        // Handle duplicate IDs by appending a counter (like rehype-slug)
+        const count = idCounts.get(baseId) || 0;
+        const id = count === 0 ? baseId : `${baseId}-${count}`;
+        idCounts.set(baseId, count + 1);
+
         headings.push({ id, text, level });
       }
     }
