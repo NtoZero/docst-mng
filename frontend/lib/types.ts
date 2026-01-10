@@ -219,6 +219,12 @@ export interface SyncRequest {
   enableEmbedding?: boolean;
 }
 
+export interface PushResult {
+  success: boolean;
+  message: string;
+  branch: string | null;
+}
+
 // ===== SSE Events =====
 export interface SyncEvent {
   jobId: string;

@@ -13,6 +13,7 @@ import {
   Pencil,
   X,
   Save,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -25,7 +26,7 @@ import {
   CommitDialog,
   UnsavedChangesAlert,
 } from '@/components/editor';
-import { useDocument, useUpdateDocument } from '@/hooks/use-api';
+import { useDocument, useUpdateDocument, usePushRepository } from '@/hooks/use-api';
 import { useAuthHydrated, useEditorStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
 
@@ -37,6 +38,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ docId
 
   const { data: document, isLoading, error } = useDocument(docId);
   const updateMutation = useUpdateDocument();
+  const pushMutation = usePushRepository();
 
   // Editor state from store
   const {
@@ -115,6 +117,22 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ docId
     },
     [docId, editedContent, updateMutation, resetEditor, toast]
   );
+
+  // Handle push to remote
+  const handlePush = useCallback(async () => {
+    if (!document?.repositoryId) return;
+
+    try {
+      const result = await pushMutation.mutateAsync({ id: document.repositoryId });
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to push to remote');
+    }
+  }, [document?.repositoryId, pushMutation, toast]);
 
   // Show loading while hydrating or if no user yet
   if (!isHydrated) {
@@ -235,6 +253,18 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ docId
               Edit
             </Button>
           )}
+          <Button
+            variant="outline"
+            onClick={handlePush}
+            disabled={pushMutation.isPending}
+          >
+            {pushMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            Push
+          </Button>
           <Button variant="outline" asChild>
             <Link href={`/documents/${docId}/versions`}>
               <History className="mr-2 h-4 w-4" />

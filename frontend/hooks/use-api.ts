@@ -301,6 +301,13 @@ export function useSyncStatus(repositoryId: string, enabled = true) {
   });
 }
 
+export function usePushRepository() {
+  return useMutation({
+    mutationFn: ({ id, branch }: { id: string; branch?: string }) =>
+      repositoriesApi.push(id, branch),
+  });
+}
+
 // ===== Documents Hooks =====
 export function useDocuments(repositoryId: string) {
   return useQuery({

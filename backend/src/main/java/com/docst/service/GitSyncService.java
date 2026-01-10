@@ -185,7 +185,7 @@ public class GitSyncService {
 
     /**
      * 특정 커밋 동기화.
-     * 지정된 커밋에서 문서를 추출한다.
+     * 지정된 커밋에서 변경된 문서만 추출하여 처리한다.
      */
     private String syncSpecificCommit(UUID jobId, Git git, Repository repo, String targetCommitSha, boolean enableEmbedding)
             throws GitAPIException, IOException {
@@ -202,21 +202,34 @@ public class GitSyncService {
             throw new IllegalArgumentException("Commit not found: " + targetCommitSha);
         }
 
-        // Scan document files at specific commit
-        List<String> documentPaths = gitFileScanner.scanDocumentFiles(git, targetCommitSha);
-        log.info("SPECIFIC_COMMIT: Found {} document files", documentPaths.size());
+        // Get only changed files in this specific commit (not all files)
+        List<GitCommitWalker.ChangedFile> changedFiles = gitCommitWalker.getChangedFiles(git, targetCommitSha);
+        List<GitCommitWalker.ChangedFile> docFiles = gitFileScanner.filterDocumentFiles(changedFiles);
+        log.info("SPECIFIC_COMMIT: Found {} changed document files", docFiles.size());
 
         // Update progress tracker
-        progressTracker.setTotal(jobId, documentPaths.size());
+        progressTracker.setTotal(jobId, docFiles.size());
 
-        // Process each document
-        for (int i = 0; i < documentPaths.size(); i++) {
-            String path = documentPaths.get(i);
-            processDocument(git, repo, path, targetCommitSha, commitInfo, enableEmbedding);
-            progressTracker.update(jobId, i + 1, path);
+        // Convert GitService.CommitInfo to GitCommitWalker.CommitInfo for processChangedDocument
+        String shortSha = commitInfo.sha().length() > 7 ? commitInfo.sha().substring(0, 7) : commitInfo.sha();
+        GitCommitWalker.CommitInfo walkerCommitInfo = new GitCommitWalker.CommitInfo(
+                commitInfo.sha(),
+                shortSha,
+                commitInfo.message(),
+                commitInfo.message(),
+                commitInfo.authorName(),
+                commitInfo.authorEmail(),
+                commitInfo.committedAt()
+        );
+
+        // Process only changed documents
+        for (int i = 0; i < docFiles.size(); i++) {
+            GitCommitWalker.ChangedFile changedFile = docFiles.get(i);
+            processChangedDocument(git, repo, changedFile, walkerCommitInfo, enableEmbedding);
+            progressTracker.update(jobId, i + 1, changedFile.path());
         }
 
-        progressTracker.complete(jobId, "Specific commit sync completed: " + documentPaths.size() + " documents");
+        progressTracker.complete(jobId, "Specific commit sync completed: " + docFiles.size() + " documents");
         return targetCommitSha;
     }
 

@@ -3,6 +3,7 @@ package com.docst.service;
 import com.docst.domain.Project;
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
+import com.docst.git.GitWriteService;
 import com.docst.repository.ProjectRepository;
 import com.docst.repository.RepositoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class RepositoryService {
 
     private final RepositoryRepository repositoryRepository;
     private final ProjectRepository projectRepository;
+    private final GitWriteService gitWriteService;
 
     /**
      * 프로젝트에 속한 모든 레포지토리를 조회한다.
@@ -168,4 +170,32 @@ public class RepositoryService {
         repo.setProject(targetProject);
         return repositoryRepository.save(repo);
     }
+
+    /**
+     * 로컬 커밋을 원격 레포지토리로 푸시한다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch 푸시할 브랜치 (null이면 기본 브랜치 사용)
+     * @return 푸시 결과 (성공 여부, 메시지, 브랜치)
+     * @throws IllegalArgumentException 레포지토리가 존재하지 않을 경우
+     */
+    @Transactional(readOnly = true)
+    public PushResult pushToRemote(UUID repositoryId, String branch) {
+        Repository repo = repositoryRepository.findById(repositoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
+
+        String targetBranch = (branch != null) ? branch : repo.getDefaultBranch();
+
+        try {
+            gitWriteService.pushToRemote(repo, targetBranch);
+            return new PushResult(true, "Successfully pushed to " + targetBranch, targetBranch);
+        } catch (Exception e) {
+            return new PushResult(false, "Push failed: " + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * 푸시 결과를 나타내는 레코드.
+     */
+    public record PushResult(boolean success, String message, String branch) {}
 }

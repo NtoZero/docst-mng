@@ -276,6 +276,41 @@ public class RepositoriesController {
         return ResponseEntity.ok(new CurrentBranchResponse(branchName));
     }
 
+    // ===== Push to Remote =====
+
+    /**
+     * 로컬 커밋을 원격 레포지토리로 푸시한다.
+     */
+    @Operation(summary = "원격으로 푸시", description = "로컬 커밋을 원격 레포지토리로 푸시합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "푸시 성공"),
+            @ApiResponse(responseCode = "404", description = "레포지토리를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "푸시 실패")
+    })
+    @PostMapping("/repositories/{id}/push")
+    @RequireRepositoryAccess(role = ProjectRole.EDITOR, repositoryIdParam = "id")
+    public ResponseEntity<PushResult> pushToRemote(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID id,
+            @RequestBody(required = false) PushRequest request
+    ) {
+        try {
+            String branch = (request != null) ? request.branch() : null;
+            RepositoryService.PushResult result = repositoryService.pushToRemote(id, branch);
+            if (result.success()) {
+                return ResponseEntity.ok(new PushResult(result.success(), result.message(), result.branch()));
+            } else {
+                return ResponseEntity.status(500)
+                        .body(new PushResult(result.success(), result.message(), result.branch()));
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Push DTOs
+    public record PushRequest(String branch) {}
+    public record PushResult(boolean success, String message, String branch) {}
+
     // Branch DTOs
     public record CreateBranchRequest(String branchName, String fromBranch) {}
     public record BranchResult(String branchName, String ref, boolean success) {}
