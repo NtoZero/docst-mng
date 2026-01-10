@@ -562,6 +562,51 @@ ollama pull llama3.2          # Chat용
 
 ---
 
+## Security Architecture
+
+### 인증 정보 조회: SecurityUtils 패턴
+
+**중요**: `@AuthenticationPrincipal` 대신 `SecurityUtils` 유틸리티를 사용합니다.
+
+```java
+// ✓ 권장: SecurityUtils 사용
+UUID userId = SecurityUtils.requireCurrentUserId();
+UserPrincipal principal = SecurityUtils.requireCurrentUserPrincipal();
+
+// ✗ 사용하지 않음: @AuthenticationPrincipal
+public ResponseEntity<?> get(@AuthenticationPrincipal User user) { ... }
+```
+
+#### 채택 사유
+
+| 사유 | 설명 |
+|------|------|
+| **LazyInitializationException 회피** | `User` 엔티티 대신 `UserPrincipal` record DTO 사용 |
+| **AOP 권한 체크 통합** | `@RequireProjectRole` + `ProjectPermissionAspect`에서 활용 |
+| **다중 인증 방식 지원** | JWT, API Key 등 여러 인증 필터의 Principal 통합 처리 |
+| **서비스 레이어 재사용** | Controller뿐 아니라 Service, AOP에서도 동일 방식 사용 |
+
+#### 주요 메서드
+
+| 메서드 | 설명 |
+|--------|------|
+| `getCurrentUserId()` | 현재 사용자 ID (nullable) |
+| `requireCurrentUserId()` | 인증 필수, 없으면 SecurityException |
+| `getCurrentUserPrincipal()` | UserPrincipal DTO (nullable) |
+| `requireCurrentUserPrincipal()` | 인증 필수, 없으면 SecurityException |
+| `isAuthenticated()` | 인증 여부 확인 |
+
+#### 관련 파일
+
+- `SecurityUtils.java`: 인증 정보 조회 유틸리티
+- `UserPrincipal.java`: Principal DTO (record)
+- `JwtAuthenticationFilter.java`: JWT 인증 필터
+- `ProjectPermissionAspect.java`: 프로젝트 권한 AOP
+
+> 상세 분석: `docs/plan/core/security/security-utils-architecture.md`
+
+---
+
 ## Document Patterns
 
 문서 파일 탐지 패턴:
