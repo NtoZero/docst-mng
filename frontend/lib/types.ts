@@ -374,6 +374,13 @@ export interface CommitDiffParams {
   to: string;
 }
 
+export interface UnpushedCommitsResponse {
+  branch: string;
+  commits: Commit[];
+  totalCount: number;
+  hasPushableCommits: boolean;
+}
+
 // ===== Stats =====
 export interface StatsResponse {
   totalProjects: number;

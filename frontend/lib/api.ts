@@ -42,6 +42,7 @@ import type {
   UpdateDocumentRequest,
   UpdateDocumentResponse,
   PushResult,
+  UnpushedCommitsResponse,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
@@ -250,6 +251,11 @@ export const repositoriesApi = {
       method: 'POST',
       body: JSON.stringify({ branch }),
     }),
+
+  getUnpushedCommits: (id: string, branch?: string): Promise<UnpushedCommitsResponse> => {
+    const params = branch ? `?branch=${encodeURIComponent(branch)}` : '';
+    return request(`/api/repositories/${id}/commits/unpushed${params}`);
+  },
 };
 
 // ===== Documents API =====

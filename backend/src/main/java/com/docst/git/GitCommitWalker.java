@@ -79,6 +79,60 @@ public class GitCommitWalker {
     }
 
     /**
+     * 원격에 푸시되지 않은 커밋 목록을 조회한다.
+     * git log origin/{branch}..HEAD 와 동일한 동작을 수행한다.
+     *
+     * @param git    Git 인스턴스
+     * @param branch 브랜치명
+     * @return 푸시되지 않은 커밋 정보 목록
+     * @throws IOException I/O 오류 발생 시
+     */
+    public List<CommitInfo> listUnpushedCommits(Git git, String branch) throws IOException {
+        List<CommitInfo> commits = new ArrayList<>();
+        Repository repo = git.getRepository();
+
+        try (RevWalk revWalk = new RevWalk(repo)) {
+            // 로컬 브랜치의 최신 커밋
+            Ref localRef = repo.findRef("refs/heads/" + branch);
+            if (localRef == null) {
+                log.warn("Local branch not found: {}", branch);
+                return commits;
+            }
+
+            // 원격 브랜치의 최신 커밋
+            Ref remoteRef = repo.findRef("refs/remotes/origin/" + branch);
+            if (remoteRef == null) {
+                // 원격 브랜치가 없으면 모든 로컬 커밋이 unpushed
+                log.info("Remote branch not found, all local commits are unpushed: {}", branch);
+                RevCommit start = revWalk.parseCommit(localRef.getObjectId());
+                revWalk.markStart(start);
+                for (RevCommit commit : revWalk) {
+                    commits.add(toCommitInfo(commit));
+                }
+                return commits;
+            }
+
+            // origin/branch..HEAD 범위의 커밋 조회
+            RevCommit localHead = revWalk.parseCommit(localRef.getObjectId());
+            RevCommit remoteHead = revWalk.parseCommit(remoteRef.getObjectId());
+
+            revWalk.markStart(localHead);
+            revWalk.markUninteresting(remoteHead);
+
+            for (RevCommit commit : revWalk) {
+                commits.add(toCommitInfo(commit));
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to list unpushed commits for branch {}: {}", branch, e.getMessage());
+            throw new IOException("Failed to list unpushed commits", e);
+        }
+
+        log.info("Found {} unpushed commits on branch {}", commits.size(), branch);
+        return commits;
+    }
+
+    /**
      * 특정 커밋의 변경된 파일 목록을 조회한다.
      *
      * @param git Git 인스턴스

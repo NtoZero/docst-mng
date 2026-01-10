@@ -457,6 +457,21 @@ public final class ApiModels {
             boolean isDocument
     ) {}
 
+    /**
+     * 푸시되지 않은 커밋 목록 응답.
+     *
+     * @param branch            브랜치명
+     * @param commits           커밋 목록
+     * @param totalCount        총 커밋 수
+     * @param hasPushableCommits 푸시 가능한 커밋이 있는지
+     */
+    public record UnpushedCommitsResponse(
+            String branch,
+            List<CommitResponse> commits,
+            int totalCount,
+            boolean hasPushableCommits
+    ) {}
+
     // ===== Stats =====
 
     /**

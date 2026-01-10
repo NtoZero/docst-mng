@@ -12,7 +12,9 @@ import com.docst.domain.ProjectRole;
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
 import com.docst.git.BranchService;
+import com.docst.git.GitCommitWalker;
 import com.docst.repository.CredentialRepository;
+import com.docst.service.CommitService;
 import com.docst.service.RepositoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -41,6 +43,7 @@ public class RepositoriesController {
     private final RepositoryService repositoryService;
     private final CredentialRepository credentialRepository;
     private final BranchService branchService;
+    private final CommitService commitService;
 
     /**
      * 프로젝트의 모든 레포지토리를 조회한다.
@@ -274,6 +277,55 @@ public class RepositoriesController {
     ) {
         String branchName = branchService.getCurrentBranch(id);
         return ResponseEntity.ok(new CurrentBranchResponse(branchName));
+    }
+
+    // ===== Unpushed Commits =====
+
+    /**
+     * 푸시되지 않은 커밋 목록을 조회한다.
+     */
+    @Operation(summary = "Unpushed 커밋 조회", description = "원격에 푸시되지 않은 로컬 커밋 목록을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "레포지토리를 찾을 수 없음")
+    })
+    @GetMapping("/repositories/{id}/commits/unpushed")
+    @RequireRepositoryAccess(role = ProjectRole.VIEWER, repositoryIdParam = "id")
+    public ResponseEntity<ApiModels.UnpushedCommitsResponse> getUnpushedCommits(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID id,
+            @Parameter(description = "브랜치명 (선택, 기본: 기본 브랜치)") @RequestParam(required = false) String branch
+    ) {
+        try {
+            Repository repo = repositoryService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Repository not found"));
+
+            String targetBranch = branch != null ? branch : repo.getDefaultBranch();
+            java.util.List<GitCommitWalker.CommitInfo> commits = commitService.listUnpushedCommits(id, targetBranch);
+
+            java.util.List<ApiModels.CommitResponse> commitResponses = commits.stream()
+                    .map(c -> new ApiModels.CommitResponse(
+                            c.sha(),
+                            c.shortSha(),
+                            c.shortMessage(),
+                            c.fullMessage(),
+                            c.authorName(),
+                            c.authorEmail(),
+                            c.committedAt(),
+                            0
+                    ))
+                    .toList();
+
+            ApiModels.UnpushedCommitsResponse response = new ApiModels.UnpushedCommitsResponse(
+                    targetBranch,
+                    commitResponses,
+                    commits.size(),
+                    !commits.isEmpty()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // ===== Push to Remote =====

@@ -40,6 +40,7 @@ export const queryKeys = {
     byProject: (projectId: string) => ['repositories', 'project', projectId] as const,
     detail: (id: string) => ['repositories', id] as const,
     syncStatus: (id: string) => ['repositories', id, 'sync'] as const,
+    unpushedCommits: (id: string, branch?: string) => ['repositories', id, 'unpushed', branch] as const,
   },
   documents: {
     byRepository: (repositoryId: string) => ['documents', 'repository', repositoryId] as const,
@@ -302,9 +303,26 @@ export function useSyncStatus(repositoryId: string, enabled = true) {
 }
 
 export function usePushRepository() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ id, branch }: { id: string; branch?: string }) =>
       repositoriesApi.push(id, branch),
+    onSuccess: (_, { id }) => {
+      // Push 성공 시 unpushed commits 캐시 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['repositories', id, 'unpushed'],
+      });
+    },
+  });
+}
+
+export function useUnpushedCommits(repositoryId: string, branch?: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.repositories.unpushedCommits(repositoryId, branch),
+    queryFn: () => repositoriesApi.getUnpushedCommits(repositoryId, branch),
+    enabled: enabled && !!repositoryId,
+    staleTime: 30 * 1000, // 30초 - 빈번한 재조회 방지
   });
 }
 

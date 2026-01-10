@@ -69,6 +69,43 @@ public class CommitService {
     }
 
     /**
+     * 푸시되지 않은 커밋 목록을 조회한다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch       브랜치명 (null이면 기본 브랜치 사용)
+     * @return 푸시되지 않은 커밋 정보 목록
+     * @throws IllegalArgumentException 레포지토리가 존재하지 않을 경우
+     * @throws RuntimeException         Git 작업 실패 시
+     */
+    public List<GitCommitWalker.CommitInfo> listUnpushedCommits(UUID repositoryId, String branch) {
+        Repository repo = repositoryRepository.findById(repositoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
+
+        String targetBranch = branch != null ? branch : repo.getDefaultBranch();
+
+        try (Git git = gitService.cloneOrOpen(repo)) {
+            // fetch로 원격 상태 최신화
+            gitService.fetch(git, repo, targetBranch);
+
+            List<GitCommitWalker.CommitInfo> commits = gitCommitWalker.listUnpushedCommits(
+                    git, targetBranch);
+
+            log.info("Found {} unpushed commits from repository {} (branch={})",
+                    commits.size(), repo.getFullName(), targetBranch);
+            return commits;
+
+        } catch (IOException e) {
+            log.error("Failed to list unpushed commits for repository {}: {}",
+                    repo.getFullName(), e.getMessage());
+            throw new RuntimeException("Failed to list unpushed commits: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Unexpected error listing unpushed commits for repository {}: {}",
+                    repo.getFullName(), e.getMessage());
+            throw new RuntimeException("Failed to list unpushed commits: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 특정 커밋의 변경된 파일 목록을 조회한다.
      *
      * @param repositoryId 레포지토리 ID
