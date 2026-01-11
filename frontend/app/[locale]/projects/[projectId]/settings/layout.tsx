@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const tabs = [
-  { label: 'Credentials', href: 'credentials' },
   { label: 'RAG Config', href: 'rag' },
 ];
 

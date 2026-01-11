@@ -343,6 +343,36 @@ export interface UpdateProjectCredentialRequest {
   description?: string;
 }
 
+// ===== Unified Credential (Phase 9) =====
+export interface UnifiedCredential {
+  id: string;
+  name: string;
+  type: CredentialType;
+  scope: CredentialScope;
+  projectId?: string;
+  projectName?: string;
+  username?: string | null;
+  description: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateUnifiedCredentialRequest {
+  name: string;
+  type: CredentialType;
+  secret: string;
+  username?: string;
+  description?: string;
+}
+
+export interface UpdateUnifiedCredentialRequest {
+  secret?: string;
+  username?: string;
+  description?: string;
+  active?: boolean;
+}
+
 // ===== Commit =====
 export type ChangeType = 'ADDED' | 'MODIFIED' | 'DELETED' | 'RENAMED';
 

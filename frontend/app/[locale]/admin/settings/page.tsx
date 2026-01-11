@@ -1,37 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { ExternalLink } from 'lucide-react';
 import { SystemConfigForm } from '@/components/admin/system-config-form';
-import { CredentialList } from '@/components/admin/credential-list';
-import { CredentialFormDialog } from '@/components/admin/credential-form-dialog';
 import { Neo4jConfig } from '@/components/admin/neo4j-config';
 import { PgVectorConfig } from '@/components/admin/pgvector-config';
 import { HealthStatus } from '@/components/admin/health-status';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslations } from 'next-intl';
-import { SystemCredential } from '@/lib/types';
 
 export default function AdminSettingsPage() {
   const t = useTranslations('admin');
-  const [credentialDialogOpen, setCredentialDialogOpen] = useState(false);
-  const [editingCredential, setEditingCredential] = useState<SystemCredential | null>(
-    null
-  );
-
-  const handleCreateCredential = () => {
-    setEditingCredential(null);
-    setCredentialDialogOpen(true);
-  };
-
-  const handleEditCredential = (credential: SystemCredential) => {
-    setEditingCredential(credential);
-    setCredentialDialogOpen(true);
-  };
-
-  const handleDialogClose = () => {
-    setCredentialDialogOpen(false);
-    setEditingCredential(null);
-  };
+  const params = useParams();
+  const locale = params.locale as string;
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -56,10 +40,22 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         <TabsContent value="credentials" className="space-y-4">
-          <CredentialList
-            onCreateClick={handleCreateCredential}
-            onEditClick={handleEditCredential}
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>System Credentials</CardTitle>
+              <CardDescription>
+                System credentials have been moved to the unified Credentials management page.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild>
+                <Link href={`/${locale}/settings/credentials?scope=system`}>
+                  Go to Credentials
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="pgvector" className="space-y-4">
@@ -74,12 +70,6 @@ export default function AdminSettingsPage() {
           <HealthStatus />
         </TabsContent>
       </Tabs>
-
-      <CredentialFormDialog
-        open={credentialDialogOpen}
-        onOpenChange={handleDialogClose}
-        credential={editingCredential}
-      />
     </div>
   );
 }

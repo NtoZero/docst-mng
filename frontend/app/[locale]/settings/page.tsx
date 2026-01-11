@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Key, Lock } from 'lucide-react';
+import { Key, KeyRound, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -10,6 +10,12 @@ export default function SettingsPage() {
   const locale = params.locale as string;
 
   const settingsItems = [
+    {
+      title: 'Credentials',
+      description: 'Manage authentication credentials for services and repositories',
+      icon: KeyRound,
+      href: `/${locale}/settings/credentials`,
+    },
     {
       title: 'API Keys',
       description: 'Manage API keys for MCP client authentication (Claude Desktop, Claude Code)',

@@ -121,10 +121,10 @@ export function Sidebar() {
 
         <div className="border-t p-4 space-y-1">
           <Link
-            href="/credentials"
+            href="/settings/credentials"
             className={cn(
               'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent',
-              pathname === '/credentials' && 'bg-accent'
+              pathname.startsWith('/settings/credentials') && 'bg-accent'
             )}
           >
             <Key className="h-4 w-4" />

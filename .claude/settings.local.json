@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Dev\\\\project\\\\docst-mng\\\\frontend\\\\components\" /b)",
+      "Bash(dir:*)"
+    ]
+  }
+}

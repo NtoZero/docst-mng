@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import {
-  useCreateSystemCredential,
-  useUpdateSystemCredential,
-} from '@/hooks/use-admin-config';
+  useCreateUnifiedCredential,
+  useUpdateUnifiedCredential,
+} from '@/hooks/use-unified-credentials';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,97 +25,112 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { SystemCredential, CredentialType } from '@/lib/types';
+import { ExternalLink, Eye, EyeOff, Loader2 } from 'lucide-react';
+import type { CredentialScope, CredentialType, UnifiedCredential } from '@/lib/types';
+import {
+  getTypesForScope,
+  isJsonAuthType,
+  getCredentialTypeLabel,
+  getSecretLabel,
+  getSecretPlaceholder,
+  getHelpUrl,
+  CREDENTIAL_TYPE_CONFIG,
+} from './credential-type-config';
 
 interface CredentialFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  credential?: SystemCredential | null;
+  scope: CredentialScope;
+  projectId?: string;
+  credential?: UnifiedCredential | null;
 }
-
-const CREDENTIAL_TYPES: CredentialType[] = [
-  'OPENAI_API_KEY',
-  'NEO4J_AUTH',
-  'PGVECTOR_AUTH',
-  'ANTHROPIC_API_KEY',
-  'CUSTOM_API_KEY',
-];
 
 export function CredentialFormDialog({
   open,
   onOpenChange,
+  scope,
+  projectId,
   credential,
 }: CredentialFormDialogProps) {
-  const t = useTranslations('admin');
-  const createCredential = useCreateSystemCredential();
-  const updateCredential = useUpdateSystemCredential();
+  const createCredential = useCreateUnifiedCredential();
+  const updateCredential = useUpdateUnifiedCredential();
 
+  // Get available types for this scope
+  const availableTypes = getTypesForScope(scope);
+  const defaultType = availableTypes[0] || 'GITHUB_PAT';
+
+  // Form state
   const [name, setName] = useState('');
-  const [type, setType] = useState<CredentialType>('OPENAI_API_KEY');
+  const [type, setType] = useState<CredentialType>(defaultType);
   const [secret, setSecret] = useState('');
+  const [username, setUsername] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showSecret, setShowSecret] = useState(false);
 
-  // DB Auth 전용 필드 (NEO4J_AUTH, PGVECTOR_AUTH)
+  // DB Auth fields (NEO4J_AUTH, PGVECTOR_AUTH)
   const [dbUsername, setDbUsername] = useState('');
   const [dbPassword, setDbPassword] = useState('');
 
   const isEditMode = !!credential;
+  const isDbAuth = isJsonAuthType(type);
+  const showUsernameField = type === 'BASIC_AUTH' && scope === 'USER';
+  const helpUrl = getHelpUrl(type);
 
+  // Reset form when dialog opens/closes or credential changes
   useEffect(() => {
     if (credential) {
       setName(credential.name);
       setType(credential.type);
       setSecret('');
+      setUsername(credential.username || '');
       setDescription(credential.description || '');
       setDbUsername('');
       setDbPassword('');
     } else {
       setName('');
-      setType('OPENAI_API_KEY');
+      setType(defaultType);
       setSecret('');
+      setUsername('');
       setDescription('');
       setDbUsername('');
       setDbPassword('');
     }
     setError(null);
-  }, [credential, open]);
+    setShowSecret(false);
+  }, [credential, open, defaultType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    // Validation
     if (!name.trim()) {
       setError('Name is required');
       return;
     }
 
-    // DB Auth 검증 (NEO4J_AUTH, PGVECTOR_AUTH)
-    const isDbAuth = type === 'NEO4J_AUTH' || type === 'PGVECTOR_AUTH';
+    // DB Auth validation
     if (isDbAuth) {
       if (!isEditMode && (!dbUsername.trim() || !dbPassword.trim())) {
         setError('Username and password are required for database authentication');
         return;
       }
       if (isEditMode && (dbUsername.trim() || dbPassword.trim())) {
-        // 둘 다 입력되어야 함
         if (!dbUsername.trim() || !dbPassword.trim()) {
           setError('Both username and password must be provided to update');
           return;
         }
       }
     } else {
-      // 다른 타입은 secret 필수
       if (!isEditMode && !secret.trim()) {
-        setError('Secret is required');
+        setError(`${getSecretLabel(type)} is required`);
         return;
       }
     }
 
     try {
-      // DB Auth일 때 JSON 생성
+      // Build secret value
       let finalSecret = secret.trim();
       if (isDbAuth && dbUsername.trim() && dbPassword.trim()) {
         finalSecret = JSON.stringify({
@@ -124,20 +139,28 @@ export function CredentialFormDialog({
         });
       }
 
-      if (isEditMode) {
+      if (isEditMode && credential) {
         await updateCredential.mutateAsync({
+          scope,
           id: credential.id,
+          projectId,
           request: {
             secret: finalSecret || undefined,
+            username: showUsernameField ? username.trim() || undefined : undefined,
             description: description.trim() || undefined,
           },
         });
       } else {
         await createCredential.mutateAsync({
-          name: name.trim(),
-          type,
-          secret: finalSecret,
-          description: description.trim() || undefined,
+          scope,
+          projectId,
+          request: {
+            name: name.trim(),
+            type,
+            secret: finalSecret,
+            username: showUsernameField ? username.trim() || undefined : undefined,
+            description: description.trim() || undefined,
+          },
         });
       }
       onOpenChange(false);
@@ -170,13 +193,14 @@ export function CredentialFormDialog({
               </Alert>
             )}
 
+            {/* Name field */}
             <div className="grid gap-2">
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., OpenAI Production Key"
+                placeholder="e.g., my-github-token"
                 disabled={isEditMode}
                 required
               />
@@ -187,6 +211,7 @@ export function CredentialFormDialog({
               )}
             </div>
 
+            {/* Type field */}
             <div className="grid gap-2">
               <Label htmlFor="type">Type *</Label>
               <Select
@@ -198,9 +223,9 @@ export function CredentialFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CREDENTIAL_TYPES.map((t) => (
+                  {availableTypes.map((t) => (
                     <SelectItem key={t} value={t}>
-                      {t}
+                      {getCredentialTypeLabel(t)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -210,9 +235,34 @@ export function CredentialFormDialog({
                   Type cannot be changed after creation
                 </p>
               )}
+              {helpUrl && !isEditMode && (
+                <a
+                  href={helpUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  Get {getCredentialTypeLabel(type)}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
             </div>
 
-            {type === 'NEO4J_AUTH' || type === 'PGVECTOR_AUTH' ? (
+            {/* Username field for BASIC_AUTH in USER scope */}
+            {showUsernameField && (
+              <div className="grid gap-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="username"
+                />
+              </div>
+            )}
+
+            {/* Secret fields - different for DB auth vs regular */}
+            {isDbAuth ? (
               <>
                 <div className="grid gap-2">
                   <Label htmlFor="db-username">
@@ -232,14 +282,30 @@ export function CredentialFormDialog({
                     Password {!isEditMode && '*'}
                     {isEditMode && ' (leave empty to keep current)'}
                   </Label>
-                  <Input
-                    id="db-password"
-                    type="password"
-                    value={dbPassword}
-                    onChange={(e) => setDbPassword(e.target.value)}
-                    placeholder="your-password"
-                    required={!isEditMode}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="db-password"
+                      type={showSecret ? 'text' : 'password'}
+                      value={dbPassword}
+                      onChange={(e) => setDbPassword(e.target.value)}
+                      placeholder="your-password"
+                      required={!isEditMode}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-10 w-10"
+                      onClick={() => setShowSecret(!showSecret)}
+                    >
+                      {showSecret ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                   {isEditMode && (
                     <p className="text-xs text-muted-foreground">
                       Both username and password must be provided to update
@@ -250,20 +316,37 @@ export function CredentialFormDialog({
             ) : (
               <div className="grid gap-2">
                 <Label htmlFor="secret">
-                  Secret {!isEditMode && '*'}
+                  {getSecretLabel(type)} {!isEditMode && '*'}
                   {isEditMode && ' (leave empty to keep current)'}
                 </Label>
-                <Input
-                  id="secret"
-                  type="password"
-                  value={secret}
-                  onChange={(e) => setSecret(e.target.value)}
-                  placeholder="sk-..."
-                  required={!isEditMode}
-                />
+                <div className="relative">
+                  <Input
+                    id="secret"
+                    type={showSecret ? 'text' : 'password'}
+                    value={secret}
+                    onChange={(e) => setSecret(e.target.value)}
+                    placeholder={getSecretPlaceholder(type) || (isEditMode ? '••••••••' : 'Enter secret')}
+                    required={!isEditMode}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-10 w-10"
+                    onClick={() => setShowSecret(!showSecret)}
+                  >
+                    {showSecret ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
 
+            {/* Description field */}
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -271,7 +354,7 @@ export function CredentialFormDialog({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional description"
-                rows={3}
+                rows={2}
               />
             </div>
           </div>
