@@ -93,9 +93,10 @@ public class GitSyncService {
     private String syncFullScan(UUID jobId, Git git, Repository repo, String branch, boolean enableEmbedding)
             throws GitAPIException, IOException {
 
-        // Fetch and checkout
+        // Fetch, checkout, and reset to remote
         gitService.fetch(git, repo, branch);
         gitService.checkout(git, branch);
+        gitService.resetToRemote(git, branch);
 
         // Get latest commit
         String latestCommit = gitService.getLatestCommitSha(git, branch);
@@ -129,9 +130,10 @@ public class GitSyncService {
     private String syncIncremental(UUID jobId, Git git, Repository repo, String branch, String lastSyncedCommit, boolean enableEmbedding)
             throws GitAPIException, IOException {
 
-        // Fetch and checkout
+        // Fetch, checkout, and reset to remote
         gitService.fetch(git, repo, branch);
         gitService.checkout(git, branch);
+        gitService.resetToRemote(git, branch);
 
         // Get latest commit
         String latestCommit = gitService.getLatestCommitSha(git, branch);

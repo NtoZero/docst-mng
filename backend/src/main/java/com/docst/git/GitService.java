@@ -144,6 +144,87 @@ public class GitService {
     }
 
     /**
+     * 로컬 브랜치를 원격 브랜치로 리셋한다.
+     * fetch 후 호출하여 로컬 브랜치가 원격의 최신 상태를 반영하도록 한다.
+     *
+     * 주의: push되지 않은 로컬 커밋이 있으면 예외를 발생시킨다.
+     *
+     * @param git Git 인스턴스
+     * @param branch 브랜치명
+     * @throws GitAPIException Git 작업 실패 시
+     * @throws IOException I/O 오류 발생 시
+     * @throws IllegalStateException push되지 않은 로컬 커밋이 있을 경우
+     */
+    public void resetToRemote(Git git, String branch) throws GitAPIException, IOException {
+        Ref localRef = git.getRepository().findRef("refs/heads/" + branch);
+        Ref remoteRef = git.getRepository().findRef("refs/remotes/origin/" + branch);
+
+        if (remoteRef == null) {
+            log.warn("Remote branch not found: origin/{}", branch);
+            return;
+        }
+
+        // 로컬 브랜치가 존재하고, 원격과 다른 경우 unpushed 커밋 확인
+        if (localRef != null) {
+            ObjectId localId = localRef.getObjectId();
+            ObjectId remoteId = remoteRef.getObjectId();
+
+            if (!localId.equals(remoteId)) {
+                // 로컬이 원격보다 앞서있는지 확인 (unpushed 커밋 존재)
+                boolean hasUnpushedCommits = hasUnpushedCommits(git, branch);
+                if (hasUnpushedCommits) {
+                    log.warn("Unpushed commits detected on branch {}. Local: {}, Remote: {}",
+                            branch, localId.getName().substring(0, 7), remoteId.getName().substring(0, 7));
+                    throw new IllegalStateException(
+                            "Cannot sync: unpushed commits exist on branch '" + branch + "'. " +
+                            "Please push your changes first or discard them manually.");
+                }
+            }
+        }
+
+        log.info("Resetting local branch {} to origin/{} ({})",
+                branch, branch, remoteRef.getObjectId().getName().substring(0, 7));
+
+        git.reset()
+                .setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD)
+                .setRef("origin/" + branch)
+                .call();
+    }
+
+    /**
+     * 로컬 브랜치에 push되지 않은 커밋이 있는지 확인한다.
+     *
+     * @param git Git 인스턴스
+     * @param branch 브랜치명
+     * @return unpushed 커밋이 있으면 true
+     * @throws IOException I/O 오류 발생 시
+     */
+    public boolean hasUnpushedCommits(Git git, String branch) throws IOException {
+        Ref localRef = git.getRepository().findRef("refs/heads/" + branch);
+        Ref remoteRef = git.getRepository().findRef("refs/remotes/origin/" + branch);
+
+        if (localRef == null || remoteRef == null) {
+            return false;
+        }
+
+        ObjectId localId = localRef.getObjectId();
+        ObjectId remoteId = remoteRef.getObjectId();
+
+        if (localId.equals(remoteId)) {
+            return false;
+        }
+
+        // 로컬 커밋이 원격의 자손인지 확인 (원격 커밋을 포함하고 있는지)
+        try (RevWalk revWalk = new RevWalk(git.getRepository())) {
+            RevCommit localCommit = revWalk.parseCommit(localId);
+            RevCommit remoteCommit = revWalk.parseCommit(remoteId);
+
+            // 원격이 로컬의 조상인지 확인 = 로컬이 원격보다 앞서있음
+            return revWalk.isMergedInto(remoteCommit, localCommit);
+        }
+    }
+
+    /**
      * 브랜치의 최신 커밋 SHA를 반환한다.
      *
      * @param git Git 인스턴스

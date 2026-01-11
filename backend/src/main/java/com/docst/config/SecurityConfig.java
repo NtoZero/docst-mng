@@ -2,6 +2,7 @@ package com.docst.config;
 
 import com.docst.auth.ApiKeyAuthenticationFilter;
 import com.docst.auth.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,6 +41,9 @@ public class SecurityConfig {
 
                 // 권한 설정
                 .authorizeHttpRequests(auth -> auth
+                        // ASYNC 디스패치 허용 (SSE 스트리밍 등)
+                        // 원본 요청에서 이미 인증되었으므로 ASYNC 디스패치는 permitAll
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         // Public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
