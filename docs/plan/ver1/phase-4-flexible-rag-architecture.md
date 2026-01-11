@@ -1148,11 +1148,11 @@ frontend/
 ## 14. 참고 자료
 
 ### 내부 문서
-- [01-rag-fundamentals.md](../research/graph-rag/01-rag-fundamentals.md)
-- [02-rag-vs-graph-rag.md](../research/graph-rag/02-rag-vs-graph-rag.md)
-- [04-hybrid-rag.md](../research/graph-rag/04-hybrid-rag.md)
-- [06-neo4j-hybrid-rag.md](../research/graph-rag/06-neo4j-hybrid-rag.md)
-- [07-graph-rag-faq.md](../research/graph-rag/07-graph-rag-faq.md)
+- [01-rag-fundamentals.md](../../research/graph-rag/01-rag-fundamentals.md)
+- [02-rag-vs-graph-rag.md](../../research/graph-rag/02-rag-vs-graph-rag.md)
+- [04-hybrid-rag.md](../../research/graph-rag/04-hybrid-rag.md)
+- [06-neo4j-hybrid-rag.md](../../research/graph-rag/06-neo4j-hybrid-rag.md)
+- [07-graph-rag-faq.md](../../research/graph-rag/07-graph-rag-faq.md)
 
 ### 외부 자료
 - [Spring AI Neo4j 공식 문서](https://docs.spring.io/spring-ai/reference/api/vectordbs/neo4j.html)

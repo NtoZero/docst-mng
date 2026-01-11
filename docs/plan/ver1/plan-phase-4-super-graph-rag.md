@@ -1435,8 +1435,8 @@ public class Project {
 
 ## 참고 문서
 
-- [phase-4-flexible-rag-architecture.md](./phase-4-flexible-rag-architecture.md): 원본 계획서
-- [rag_pipeline_research.md](../research/rag_pipeline_research.md): RAG 파이프라인 연구
+- [phase-4-flexible-rag-architecture.md](phase-4-flexible-rag-architecture.md): 원본 계획서
+- [rag_pipeline_research.md](../../research/rag_pipeline_research.md): RAG 파이프라인 연구
 - [Spring AI Neo4j 공식 문서](https://docs.spring.io/spring-ai/reference/api/vectordbs/neo4j.html)
 - [Neo4j GraphRAG Python](https://neo4j.com/docs/neo4j-graphrag-python/current/)
 
