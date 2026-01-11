@@ -5,12 +5,23 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Skill|Task",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/lint-format.js\"",
-            "timeout": 120
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-log.js",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-log.js",
+            "timeout": 30
           }
         ]
       }

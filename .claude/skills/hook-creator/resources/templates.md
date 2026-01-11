@@ -1,5 +1,7 @@
 # Hook 템플릿 모음
 
+> **주의**: `$CLAUDE_PROJECT_DIR`는 반드시 따옴표로 감싸야 합니다 (`"$CLAUDE_PROJECT_DIR"`)
+
 ## PostToolUse - 로깅
 ```json
 {
@@ -7,7 +9,11 @@
     "PostToolUse": [
       {
         "matcher": "Skill",
-        "hooks": [{ "type": "command", "command": "node .claude/hooks/log.js" }]
+        "hooks": [{
+          "type": "command",
+          "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/log.js",
+          "timeout": 30
+        }]
       }
     ]
   }
@@ -21,7 +27,11 @@
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "node .claude/hooks/block-dangerous.js" }]
+        "hooks": [{
+          "type": "command",
+          "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-dangerous.js",
+          "timeout": 30
+        }]
       }
     ]
   }
