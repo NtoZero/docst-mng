@@ -11,6 +11,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
 import org.springframework.stereotype.Component;
 
@@ -156,8 +157,9 @@ public class GitCommitWalker {
 
             if (parents.length == 0) {
                 // 최초 커밋 - 모든 파일이 ADDED
-                log.debug("Initial commit, all files are added");
-                return changedFiles; // TODO: 초기 커밋 처리
+                log.debug("Initial commit, extracting all files as ADDED");
+                changedFiles = getAllFilesInCommit(repo, commit);
+                return changedFiles;
             }
 
             // 첫 번째 부모와 비교
@@ -252,6 +254,31 @@ public class GitCommitWalker {
         log.info("Walked {} commits between {} and {}",
                 commits.size(), fromSha.substring(0, 7), toSha.substring(0, 7));
         return commits;
+    }
+
+    /**
+     * 초기 커밋의 모든 파일을 ADDED로 반환한다.
+     *
+     * @param repo Git 저장소
+     * @param commit 초기 커밋
+     * @return 모든 파일을 ADDED로 표시한 목록
+     * @throws IOException I/O 오류 발생 시
+     */
+    private List<ChangedFile> getAllFilesInCommit(Repository repo, RevCommit commit) throws IOException {
+        List<ChangedFile> files = new ArrayList<>();
+
+        try (TreeWalk treeWalk = new TreeWalk(repo)) {
+            treeWalk.addTree(commit.getTree());
+            treeWalk.setRecursive(true);
+
+            while (treeWalk.next()) {
+                String path = treeWalk.getPathString();
+                files.add(new ChangedFile(path, ChangeType.ADDED, null));
+            }
+        }
+
+        log.debug("Initial commit contains {} files", files.size());
+        return files;
     }
 
     /**

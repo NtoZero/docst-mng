@@ -53,6 +53,18 @@ public class SyncService {
     }
 
     /**
+     * 레포지토리의 가장 최근 성공한 동기화 작업을 조회한다.
+     * INCREMENTAL 모드에서 lastSyncedCommit을 조회할 때 사용한다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @return 최근 성공한 동기화 작업 (존재하지 않으면 empty)
+     */
+    public Optional<SyncJob> findLatestSucceededByRepositoryId(UUID repositoryId) {
+        return syncJobRepository.findFirstByRepositoryIdAndStatusOrderByCreatedAtDesc(
+                repositoryId, SyncStatus.SUCCEEDED);
+    }
+
+    /**
      * 레포지토리 동기화를 시작한다.
      * 비동기로 동기화를 실행하며, 동시에 하나의 작업만 실행될 수 있다.
      *
@@ -154,10 +166,14 @@ public class SyncService {
             log.info("Starting sync for repository: {} branch: {} mode: {} embedding: {}",
                     repo.getFullName(), job.getTargetBranch(), job.getSyncMode(), enableEmbedding);
 
-            // 마지막 동기화 커밋 조회 (INCREMENTAL 모드에서 사용)
-            String lastSyncedCommit = findLatestByRepositoryId(repo.getId())
+            // 마지막 성공한 동기화 작업에서 커밋 조회 (INCREMENTAL 모드에서 사용)
+            String lastSyncedCommit = findLatestSucceededByRepositoryId(repo.getId())
                     .map(SyncJob::getLastSyncedCommit)
                     .orElse(null);
+
+            if (lastSyncedCommit == null && job.getSyncMode() == SyncMode.INCREMENTAL) {
+                log.info("INCREMENTAL requested but no previous successful sync found, will fallback to FULL_SCAN");
+            }
 
             // Execute git sync (jobId를 전달하여 진행 상황 추적)
             String lastCommit = gitSyncService.syncRepository(

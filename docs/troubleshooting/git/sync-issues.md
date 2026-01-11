@@ -328,6 +328,153 @@ if (hasUnpushedCommits(git, branch)) {
 
 ---
 
+## 4. INCREMENTAL Sync가 전체 Sync처럼 동작
+
+### 증상
+
+- INCREMENTAL 모드로 Sync를 요청해도 모든 문서를 다시 처리함
+- 로그에 `FULL_SCAN: Found N document files` 메시지가 출력됨
+- `INCREMENTAL: No lastSyncedCommit, falling back to FULL_SCAN` 경고 출력
+
+### 원인 (수정 전)
+
+`SyncService.executeSync()`에서 `lastSyncedCommit`을 조회할 때 **상태와 관계없이** 가장 최근 SyncJob을 사용함.
+
+```mermaid
+sequenceDiagram
+    participant Client as Frontend
+    participant SyncSvc as SyncService
+    participant Repo as SyncJobRepository
+
+    Client->>SyncSvc: startSync(mode=INCREMENTAL)
+    SyncSvc->>Repo: findLatestByRepositoryId()
+    Note over Repo: 상태 무관, 최신 SyncJob 반환
+    Repo-->>SyncSvc: SyncJob (RUNNING 또는 FAILED)
+    Note over SyncSvc: lastSyncedCommit = null
+    Note over SyncSvc: FULL_SCAN으로 fallback!
+```
+
+**문제**: PENDING/RUNNING/FAILED 상태의 SyncJob은 `lastSyncedCommit`이 null. SUCCEEDED 상태에서만 `complete()` 호출 시 설정됨.
+
+### 해결
+
+`SyncService.java`에서 **성공한(SUCCEEDED) 마지막 SyncJob**에서만 `lastSyncedCommit`을 조회하도록 수정:
+
+```java
+// Before (문제)
+String lastSyncedCommit = findLatestByRepositoryId(repo.getId())
+        .map(SyncJob::getLastSyncedCommit)
+        .orElse(null);
+
+// After (수정)
+String lastSyncedCommit = findLatestSucceededByRepositoryId(repo.getId())
+        .map(SyncJob::getLastSyncedCommit)
+        .orElse(null);
+```
+
+새로 추가된 메서드:
+```java
+public Optional<SyncJob> findLatestSucceededByRepositoryId(UUID repositoryId) {
+    return syncJobRepository.findFirstByRepositoryIdAndStatusOrderByCreatedAtDesc(
+            repositoryId, SyncStatus.SUCCEEDED);
+}
+```
+
+### 정상 동작 확인
+
+INCREMENTAL이 정상 동작하면 로그에 다음이 출력됨:
+
+```
+INFO  Starting sync for repository: owner/repo branch: main mode: INCREMENTAL
+INFO  INCREMENTAL: Syncing from abc123 to def456 (embedding: true)
+INFO  INCREMENTAL: Found 2 commits to process
+```
+
+FULL_SCAN fallback 시 (첫 번째 Sync 등):
+
+```
+INFO  Starting sync for repository: owner/repo branch: main mode: INCREMENTAL
+INFO  INCREMENTAL requested but no previous successful sync found, will fallback to FULL_SCAN
+WARN  INCREMENTAL: No lastSyncedCommit, falling back to FULL_SCAN
+INFO  FULL_SCAN: Found 50 document files
+```
+
+### 관련 파일
+
+- `backend/src/main/java/com/docst/service/SyncService.java` - `findLatestSucceededByRepositoryId()`, `executeSync()`
+
+---
+
+## 5. SPECIFIC_COMMIT 모드에서 첫 번째 커밋 동기화 실패
+
+### 증상
+
+- `SPECIFIC_COMMIT` 모드로 레포지토리의 **첫 번째 커밋(Initial Commit)**을 동기화
+- 로그에 `SPECIFIC_COMMIT: Found 0 changed document files` 출력
+- 아무 문서도 처리되지 않음
+
+### 원인 (수정 전)
+
+**GitCommitWalker.java**에서 초기 커밋(부모가 없는 커밋) 처리 미구현:
+
+```java
+if (parents.length == 0) {
+    // 최초 커밋 - 모든 파일이 ADDED
+    log.debug("Initial commit, all files are added");
+    return changedFiles; // TODO: 빈 목록 반환 (버그!)
+}
+```
+
+초기 커밋은 부모가 없어 diff를 계산할 수 없었고, 빈 목록을 반환했음.
+
+### 해결
+
+`getAllFilesInCommit()` 메서드 추가하여 초기 커밋의 모든 파일을 ADDED로 처리:
+
+```java
+private List<ChangedFile> getAllFilesInCommit(Repository repo, RevCommit commit) throws IOException {
+    List<ChangedFile> files = new ArrayList<>();
+
+    try (TreeWalk treeWalk = new TreeWalk(repo)) {
+        treeWalk.addTree(commit.getTree());
+        treeWalk.setRecursive(true);
+
+        while (treeWalk.next()) {
+            String path = treeWalk.getPathString();
+            files.add(new ChangedFile(path, ChangeType.ADDED, null));
+        }
+    }
+
+    return files;
+}
+```
+
+**getChangedFiles() 수정**:
+```java
+if (parents.length == 0) {
+    log.debug("Initial commit, extracting all files as ADDED");
+    changedFiles = getAllFilesInCommit(repo, commit);
+    return changedFiles;
+}
+```
+
+### 정상 동작 확인
+
+첫 번째 커밋 동기화 시 로그:
+
+```
+INFO  SPECIFIC_COMMIT: Syncing repository owner/repo at commit abc1234 (embedding: true)
+DEBUG Initial commit, extracting all files as ADDED
+DEBUG Initial commit contains 15 files
+INFO  SPECIFIC_COMMIT: Found 10 changed document files
+```
+
+### 관련 파일
+
+- `backend/src/main/java/com/docst/git/GitCommitWalker.java` - `getAllFilesInCommit()`, `getChangedFiles()`
+
+---
+
 ## 관련 이슈 체크리스트
 
 Sync 문제 발생 시 확인할 사항:
@@ -337,3 +484,4 @@ Sync 문제 발생 시 확인할 사항:
 - [ ] 네트워크 연결이 정상인가?
 - [ ] 로그에서 `Fetching branch: ...` 메시지가 출력되는가?
 - [ ] 로그에서 `Resetting local branch ... to origin/...` 메시지가 출력되는가?
+- [ ] 첫 번째 커밋 동기화 시 `Initial commit contains N files` 로그가 출력되는가?
