@@ -44,6 +44,9 @@ dependencies {
   // Spring AI - Ollama Embedding Model (Optional)
   implementation("org.springframework.ai:spring-ai-starter-model-ollama")
 
+  // Spring AI - MCP Server (WebMVC SSE Transport)
+  implementation("org.springframework.ai:spring-ai-starter-mcp-server-webmvc")
+
   // Database
   runtimeOnly("org.postgresql:postgresql")
   implementation("org.flywaydb:flyway-core")

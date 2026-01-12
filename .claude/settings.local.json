@@ -3,7 +3,15 @@
     "allow": [
       "Bash(dir \"C:\\\\Dev\\\\project\\\\docst-mng\\\\frontend\\\\components\" /b)",
       "Bash(dir:*)",
-      "Skill(hook-creator)"
+      "Skill(hook-creator)",
+      "mcp__context7__query-docs",
+      "Bash(./gradlew test:*)",
+      "mcp__context7__resolve-library-id",
+      "Bash(./gradlew compileJava:*)",
+      "Bash(./gradlew build:*)",
+      "Bash(./gradlew dependencies:*)",
+      "Bash(curl:*)",
+      "WebSearch"
     ]
   }
 }

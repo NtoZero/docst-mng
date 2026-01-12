@@ -109,9 +109,13 @@ docst-mng/
 │   │   │   ├── GitService.java
 │   │   │   ├── GitFileScanner.java
 │   │   │   └── DocumentParser.java
-│   │   └── mcp/                    # MCP Tools
-│   │       ├── McpController.java
-│   │       └── McpModels.java
+│   │   └── mcp/                    # MCP Server (Spring AI 1.1.0+)
+│   │       ├── McpModels.java      # DTO Records
+│   │       └── tools/              # @Tool annotation 기반 도구
+│   │           ├── McpDocumentTools.java
+│   │           ├── McpGitTools.java
+│   │           ├── McpProjectTools.java
+│   │           └── McpServerConfig.java
 │   └── src/main/resources/
 │       ├── application.yml
 │       └── db/migration/           # Flyway
@@ -218,15 +222,51 @@ docst-mng/
 | POST | `/api/llm/chat/stream` | LLM 채팅 (스트리밍) |
 | GET | `/api/llm/templates` | 프롬프트 템플릿 목록 |
 
-### MCP Tools
+### MCP Tools (Spring AI MCP Server)
+
+**Transport**: SSE (Server-Sent Events) - `/sse` endpoint
+
 | Tool | Description |
 |------|-------------|
-| `list_documents` | 문서 목록 조회 |
-| `get_document` | 문서 내용 조회 |
-| `list_document_versions` | 버전 목록 |
-| `diff_document` | 두 버전 비교 |
-| `search_documents` | 키워드/의미 검색 |
-| `sync_repository` | 동기화 실행 |
+| `list_projects` | 사용자 프로젝트 목록 조회 |
+| `list_documents` | 문서 목록 조회 (repositoryId/projectId/path 필터) |
+| `get_document` | 문서 내용 조회 (특정 버전 지원) |
+| `list_document_versions` | 문서 버전 히스토리 |
+| `diff_document` | 두 버전 비교 (unified diff) |
+| `search_documents` | 키워드/semantic/hybrid 검색 |
+| `sync_repository` | 레포지토리 동기화 실행 |
+| `create_document` | 새 문서 생성 (commit 옵션) |
+| `update_document` | 문서 내용 업데이트 (commit 옵션) |
+| `push_to_remote` | 로컬 변경사항 원격 푸시 |
+
+**MCP Server 설정** (`application.yml`):
+```yaml
+spring:
+  ai:
+    mcp:
+      server:
+        enabled: true
+        name: Docst MCP Server
+        version: 1.0.0
+        type: SYNC
+        capabilities:
+          tool: true
+        sse-message-endpoint: /mcp/messages
+```
+
+**MCP 클라이언트 연결 (mcp-remote)**:
+```json
+{
+  "docst": {
+    "command": "mcp-remote",
+    "args": [
+      "http://localhost:8342/sse",
+      "--header",
+      "X-API-Key: YOUR_API_KEY"
+    ]
+  }
+}
+```
 
 ---
 

@@ -6,54 +6,19 @@ import java.util.UUID;
 
 /**
  * MCP (Model Context Protocol) 도구용 모델 클래스.
- * AI 에이전트와 통신에 사용되는 요청/응답 DTO를 정의한다.
+ * Spring AI 1.1.0+ @Tool annotation 기반 MCP 도구의 결과 DTO를 정의한다.
+ *
+ * Note: Input record들은 @ToolParam annotation으로 대체되었으므로 제거됨.
+ * CreateDocumentInput, UpdateDocumentInput은 DocumentWriteService에서 사용하므로 유지.
+ *
+ * @see com.docst.mcp.tools.McpDocumentTools
+ * @see com.docst.mcp.tools.McpGitTools
+ * @see com.docst.mcp.tools.McpProjectTools
  */
 public final class McpModels {
     private McpModels() {}
 
-    /**
-     * 공통 MCP 응답 래퍼.
-     *
-     * @param <T> 결과 타입
-     * @param result 성공 시 결과
-     * @param error 실패 시 오류
-     */
-    public record McpResponse<T>(T result, McpError error) {
-        /**
-         * 성공 응답을 생성한다.
-         *
-         * @param result 결과
-         * @return 성공 응답
-         */
-        public static <T> McpResponse<T> success(T result) {
-            return new McpResponse<>(result, null);
-        }
-
-        /**
-         * 오류 응답을 생성한다.
-         *
-         * @param message 오류 메시지
-         * @return 오류 응답
-         */
-        public static <T> McpResponse<T> error(String message) {
-            return new McpResponse<>(null, new McpError(message));
-        }
-    }
-
-    /**
-     * MCP 오류 정보.
-     *
-     * @param message 오류 메시지
-     */
-    public record McpError(String message) {}
-
     // ===== list_projects =====
-
-    /**
-     * list_projects 도구 입력.
-     * 파라미터 없음 - 인증된 사용자의 프로젝트 목록을 반환한다.
-     */
-    public record ListProjectsInput() {}
 
     /**
      * list_projects 도구 결과.
@@ -78,16 +43,6 @@ public final class McpModels {
     ) {}
 
     // ===== list_documents =====
-
-    /**
-     * list_documents 도구 입력.
-     *
-     * @param repositoryId 레포지토리 ID (선택)
-     * @param projectId 프로젝트 ID (선택)
-     * @param pathPrefix 경로 접두사 필터 (선택)
-     * @param type 문서 타입 필터 (선택)
-     */
-    public record ListDocumentsInput(UUID repositoryId, UUID projectId, String pathPrefix, String type) {}
 
     /**
      * list_documents 도구 결과.
@@ -118,14 +73,6 @@ public final class McpModels {
     // ===== get_document =====
 
     /**
-     * get_document 도구 입력.
-     *
-     * @param documentId 문서 ID
-     * @param commitSha 특정 커밋 SHA (선택, 없으면 최신)
-     */
-    public record GetDocumentInput(UUID documentId, String commitSha) {}
-
-    /**
      * get_document 도구 결과.
      *
      * @param id 문서 ID
@@ -151,13 +98,6 @@ public final class McpModels {
     ) {}
 
     // ===== list_document_versions =====
-
-    /**
-     * list_document_versions 도구 입력.
-     *
-     * @param documentId 문서 ID
-     */
-    public record ListDocumentVersionsInput(UUID documentId) {}
 
     /**
      * list_document_versions 도구 결과.
@@ -186,16 +126,6 @@ public final class McpModels {
     // ===== diff_document =====
 
     /**
-     * diff_document 도구 입력.
-     *
-     * @param documentId 문서 ID
-     * @param fromCommitSha 비교 시작 커밋 SHA
-     * @param toCommitSha 비교 종료 커밋 SHA
-     * @param format diff 형식 (unified 등)
-     */
-    public record DiffDocumentInput(UUID documentId, String fromCommitSha, String toCommitSha, String format) {}
-
-    /**
      * diff_document 도구 결과.
      *
      * @param diff diff 문자열
@@ -203,16 +133,6 @@ public final class McpModels {
     public record DiffDocumentResult(String diff) {}
 
     // ===== search_documents =====
-
-    /**
-     * search_documents 도구 입력.
-     *
-     * @param projectId 프로젝트 ID
-     * @param query 검색어
-     * @param mode 검색 모드 (keyword, semantic, hybrid)
-     * @param topK 결과 개수 제한
-     */
-    public record SearchDocumentsInput(UUID projectId, String query, String mode, Integer topK) {}
 
     /**
      * search_documents 도구 결과.
@@ -228,7 +148,7 @@ public final class McpModels {
      * @param documentId 문서 ID
      * @param path 파일 경로
      * @param title 문서 제목
-     * @param headingPath 헤딩 경로 (Phase 2)
+     * @param headingPath 헤딩 경로
      * @param score 관련도 점수
      * @param snippet 스니펫
      * @param content 전체 내용 (선택)
@@ -255,14 +175,6 @@ public final class McpModels {
     // ===== sync_repository =====
 
     /**
-     * sync_repository 도구 입력.
-     *
-     * @param repositoryId 레포지토리 ID
-     * @param branch 대상 브랜치 (선택)
-     */
-    public record SyncRepositoryInput(UUID repositoryId, String branch) {}
-
-    /**
      * sync_repository 도구 결과.
      *
      * @param jobId 동기화 작업 ID
@@ -274,6 +186,7 @@ public final class McpModels {
 
     /**
      * create_document 도구 입력.
+     * DocumentWriteService에서 사용하므로 유지.
      *
      * @param repositoryId 레포지토리 ID
      * @param path 파일 경로
@@ -312,6 +225,7 @@ public final class McpModels {
 
     /**
      * update_document 도구 입력.
+     * DocumentWriteService에서 사용하므로 유지.
      *
      * @param documentId 문서 ID
      * @param content 수정된 내용
@@ -345,17 +259,6 @@ public final class McpModels {
     ) {}
 
     // ===== push_to_remote =====
-
-    /**
-     * push_to_remote 도구 입력.
-     *
-     * @param repositoryId 레포지토리 ID
-     * @param branch 푸시할 브랜치 (선택, 기본: main)
-     */
-    public record PushToRemoteInput(
-            UUID repositoryId,
-            String branch
-    ) {}
 
     /**
      * push_to_remote 도구 결과.

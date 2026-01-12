@@ -49,16 +49,19 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/setup/**",  // Setup endpoint for initial admin creation
                                 "/api/webhook/**",
-                                "/actuator/health",
+                                "/actuator/**",
                                 "/error",
                                 // Swagger UI and OpenAPI
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                // MCP endpoints (JSON-RPC 2.0 transport)
-                                "/mcp",
-                                "/mcp/**",
+                                // MCP endpoints (Spring AI MCP Server - SSE Transport)
+                                // SSE connection: /sse (default)
+                                // Message endpoint: /mcp/messages
+                                "/sse",
+                                "/sse/**",
+                                "/mcp/messages",
                                 // LLM endpoints (requires authentication in production)
                                 "/api/llm/**"
                         ).permitAll()

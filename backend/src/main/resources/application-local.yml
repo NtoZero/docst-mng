@@ -56,6 +56,17 @@ logging:
   level:
     com.docst: DEBUG
     org.springframework.security: DEBUG
+    # MCP Server auto-configuration debug
+    org.springframework.ai.mcp: DEBUG
+    org.springaicommunity.mcp: DEBUG
+    io.modelcontextprotocol: DEBUG
+
+# Actuator - expose conditions for debugging auto-configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,conditions,beans,mappings
 
 # P6Spy - SQL logging with actual values
 decorator:

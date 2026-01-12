@@ -54,6 +54,30 @@ spring:
   # NOTE: All AI configs (Chat, Embedding, Vector Store) are managed dynamically per-project
   # using dm_system_config and dm_credential tables (Phase 4-E, Phase 6).
   ai:
+    # MCP Server Configuration (Phase 11)
+    # Spring AI MCP Server WebMVC - SSE Transport
+    mcp:
+      server:
+        enabled: true
+        name: Docst MCP Server
+        version: 1.0.0
+        type: SYNC
+        transport: WEBMVC
+        instructions: "Docst documentation hub MCP server providing document management, search, and Git operations"
+        # Annotation scanner for @McpTool, @McpResource
+        annotation-scanner:
+          enabled: true
+        # Capabilities
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+        # SSE Transport endpoints
+        # Default SSE endpoint: /sse (auto-configured by Spring AI)
+        # Message endpoint for client responses
+        sse-message-endpoint: /mcp/messages
+        keep-alive-interval: 30s
     # OpenAI - All configurations moved to Credential management (dynamic)
     # Chat API Key: stored in dm_credential (CredentialType.OPENAI_API_KEY)
     # Embedding API Key: stored in dm_credential (CredentialType.OPENAI_API_KEY)
