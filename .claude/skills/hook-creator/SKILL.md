@@ -1,6 +1,9 @@
 ---
 name: hook-creator
-description: Claude Code Hook을 생성합니다. Use when user wants to create hooks, automation scripts, or event handlers for Claude Code.
+description: |
+  Claude Code 훅(Hook)을 생성합니다.
+  Use when user mentions: 훅 생성, 훅 만들어, hook 생성, 로깅 훅, 프롬프트 로깅, 도구 사용 차단, 이벤트 감시, settings.json 훅 등록, PreToolUse/PostToolUse/UserPromptSubmit/Stop 이벤트 처리.
+  Examples: "프롬프트 로그 남기는 훅", "Bash 명령 차단 훅", "도구 사용 기록 훅", "파일 변경 알림 훅"
 allowed-tools: Read, Write, Edit, Glob, Grep
 user-invocable: true
 ---

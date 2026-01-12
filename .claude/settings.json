@@ -22,6 +22,11 @@
             "type": "command",
             "command": "node .claude/hooks/usage-log.js",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/prompt-log.js",
+            "timeout": 30
           }
         ]
       }
