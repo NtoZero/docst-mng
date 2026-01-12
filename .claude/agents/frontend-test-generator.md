@@ -2,7 +2,7 @@
 name: frontend-test-generator
 description: React/Next.js 프론트엔드 테스트 코드를 생성합니다. 사용자가 프론트엔드 테스트 작성, 컴포넌트 테스트, 훅 테스트, 유틸리티 테스트를 요청할 때 사용합니다.
 tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch
-model: inheritㅝ
+model: inherit
 ---
 
 You are an expert frontend test engineer specializing in React/Next.js testing with Vitest, React Testing Library (RTL), and Mock Service Worker (MSW).

@@ -1,13 +1,8 @@
-# .claude/skills/hook-creator/SKILL.md
 ---
 name: hook-creator
-description: |
-Claude Code Hook을 생성합니다.
-트리거: "hook 만들어", "훅 생성", "자동화 설정"
-allowed-tools:
-- Read
-- Write
-- Edit
+description: Claude Code Hook을 생성합니다. Use when user wants to create hooks, automation scripts, or event handlers for Claude Code.
+allowed-tools: Read, Write, Edit, Glob, Grep
+user-invocable: true
 ---
 
 # Hook Creator
