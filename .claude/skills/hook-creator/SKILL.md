@@ -25,27 +25,34 @@ allowed-tools:
 
 ## 주의사항 (중요)
 
-### 경로 설정 시 따옴표 필수
-`$CLAUDE_PROJECT_DIR` 환경 변수를 사용할 때 **반드시 따옴표로 감싸야** 합니다:
+### 상대 경로 사용 권장 (크로스 플랫폼)
+
+Claude Code는 hook 실행 시 **작업 디렉토리를 프로젝트 루트로 설정**합니다.
+따라서 상대 경로가 가장 안정적입니다:
 
 ```json
-// ✅ 올바른 방법
-"command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/script.js"
-
-// ❌ 잘못된 방법 (경로에 공백이 있으면 실패)
-"command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/script.js"
-```
-
-### 상대 경로 사용 금지
-Claude Code의 작업 디렉토리(cwd)는 세션 중 변경될 수 있으므로 **상대 경로를 사용하면 안 됩니다**:
-
-```json
-// ✅ 올바른 방법
-"command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/script.js"
-
-// ❌ 잘못된 방법 (cwd가 프로젝트 루트가 아닐 수 있음)
+// ✅ 권장 (크로스 플랫폼에서 안정적)
 "command": "node .claude/hooks/script.js"
 ```
+
+### `$CLAUDE_PROJECT_DIR` 사용 시 주의
+
+`$CLAUDE_PROJECT_DIR` 환경 변수는 **Windows에서 불안정**합니다:
+
+| 플랫폼 | `$CLAUDE_PROJECT_DIR` | 상대 경로 |
+|--------|----------------------|-----------|
+| macOS/Linux | ✅ 동작 | ✅ 동작 |
+| Windows | ❌ 불안정 (셸에 따라 다름) | ✅ 동작 |
+
+```json
+// ❌ Windows에서 불안정
+"command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/script.js"
+
+// ✅ 모든 플랫폼에서 안정적
+"command": "node .claude/hooks/script.js"
+```
+
+> 참고: [GitHub Issue #5049](https://github.com/anthropics/claude-code/issues/5049) - Windows 셸 호환성 문제
 
 ## 출력 위치
 - 글로벌: ~/.claude/settings.json

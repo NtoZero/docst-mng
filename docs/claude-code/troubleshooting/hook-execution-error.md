@@ -213,15 +213,29 @@ Hook에서 실제로 어떤 환경에서 실행되는지 확인:
 
 ---
 
-## 해결 방법 (2026-01-11)
+## 해결 방법 (2026-01-12 업데이트)
 
-### 원인
+### 근본 원인: Windows 셸 호환성 문제
 
-`$CLAUDE_PROJECT_DIR` 환경 변수를 **따옴표 없이** 사용하면 Windows에서 경로에 공백이 있을 경우 파싱 오류가 발생합니다.
+`$CLAUDE_PROJECT_DIR` 환경 변수가 Windows에서 **안정적으로 동작하지 않습니다**.
 
-### 해결책
+| 원인 | 설명 |
+|------|------|
+| **셸 불일치** | Claude Code가 hook 실행 시 CMD/PowerShell을 사용할 수 있음 |
+| **환경 변수 문법** | `$VARIABLE`은 Unix/Bash 문법. Windows CMD는 `%VARIABLE%` 사용 |
+| **알려진 버그** | GitHub Issue #5049 "CC native on Windows: not really shell aware" |
 
-**환경 변수를 따옴표로 감싸기**:
+**에러 메시지 예시**:
+```
+'$CLAUDE_PROJECT_DIR' is not recognized as an internal or external command,
+operable program or batch file.
+```
+
+### 해결책: 상대 경로 사용
+
+**Windows에서는 `$CLAUDE_PROJECT_DIR` 대신 상대 경로를 사용합니다.**
+
+Claude Code가 hook 실행 시 **작업 디렉토리(cwd)를 프로젝트 루트로 설정**하므로, 상대 경로가 안정적으로 동작합니다.
 
 ```json
 {
@@ -232,7 +246,18 @@ Hook에서 실제로 어떤 환경에서 실행되는지 확인:
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-log.js",
+            "command": "node .claude/hooks/usage-log.js",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/usage-log.js",
             "timeout": 30
           }
         ]
@@ -242,9 +267,12 @@ Hook에서 실제로 어떤 환경에서 실행되는지 확인:
 }
 ```
 
-**핵심 차이점**:
-- ❌ `node $CLAUDE_PROJECT_DIR/.claude/hooks/...` (따옴표 없음)
-- ✅ `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/...` (따옴표 있음)
+### 비교
+
+| 방식 | Windows 동작 | 권장 |
+|------|-------------|------|
+| `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/...` | ❌ 불안정 (셸에 따라 다름) | |
+| `node .claude/hooks/usage-log.js` | ✅ 안정적 | ✓ 권장 |
 
 ### 검증
 
@@ -253,11 +281,21 @@ Hook 실행 후 로그 파일 확인:
 cat .claude/logs/$(date +%Y-%m-%d)-usage.jsonl | tail -5
 ```
 
-### 참고
+또는 PowerShell:
+```powershell
+Get-Content .claude/logs/2026-01-12-usage.jsonl | Select-Object -Last 5
+```
 
-- Claude Code는 Windows에서 Git Bash를 사용하여 명령어 실행
-- Git Bash가 `$CLAUDE_PROJECT_DIR` 환경 변수를 확장함
-- 따옴표는 공백이 포함된 경로를 올바르게 처리하기 위해 필요
+---
+
+## 관련 GitHub Issues
+
+| Issue | 제목 | 상태 |
+|-------|------|------|
+| [#6023](https://github.com/anthropics/claude-code/issues/6023) | CLAUDE_PROJECT_DIR isn't found (Windows) | Closed (duplicate) |
+| [#5648](https://github.com/anthropics/claude-code/issues/5648) | Hook fails with exit code 127 when path contains spaces | Closed |
+| [#5814](https://github.com/anthropics/claude-code/issues/5814) | Path normalization fails on Windows | Closed (duplicate) |
+| [#5049](https://github.com/anthropics/claude-code/issues/5049) | CC native on Windows: not really shell aware | Open |
 
 ---
 

@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-log.js",
+            "command": "node .claude/hooks/usage-log.js",
             "timeout": 30
           }
         ]
@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-log.js",
+            "command": "node .claude/hooks/usage-log.js",
             "timeout": 30
           }
         ]
