@@ -11,7 +11,8 @@
       "Bash(./gradlew build:*)",
       "Bash(./gradlew dependencies:*)",
       "Bash(curl:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(find:*)"
     ]
   }
 }
