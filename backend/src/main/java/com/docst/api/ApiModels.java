@@ -826,4 +826,68 @@ public final class ApiModels {
             String message,
             Map<String, Object> details
     ) {}
+
+    // ===== Repository Sync Config (Phase 12) =====
+
+    /**
+     * 레포지토리 동기화 설정 응답.
+     */
+    public record RepositorySyncConfigResponse(
+            List<String> fileExtensions,
+            List<String> includePaths,
+            List<String> excludePaths,
+            boolean scanOpenApi,
+            boolean scanSwagger,
+            List<String> customPatterns
+    ) {
+        public static RepositorySyncConfigResponse from(com.docst.domain.RepositorySyncConfig config) {
+            return new RepositorySyncConfigResponse(
+                    config.getFileExtensions(),
+                    config.getIncludePaths(),
+                    config.getExcludePaths(),
+                    config.scanOpenApi(),
+                    config.scanSwagger(),
+                    config.getCustomPatterns()
+            );
+        }
+    }
+
+    /**
+     * 레포지토리 동기화 설정 업데이트 요청.
+     */
+    public record UpdateRepositorySyncConfigRequest(
+            List<String> fileExtensions,
+            List<String> includePaths,
+            List<String> excludePaths,
+            Boolean scanOpenApi,
+            Boolean scanSwagger,
+            List<String> customPatterns
+    ) {}
+
+    /**
+     * 폴더 트리 응답.
+     */
+    public record FolderTreeResponse(
+            List<FolderTreeItem> folders,
+            List<String> extensions
+    ) {}
+
+    /**
+     * 폴더 트리 항목.
+     */
+    public record FolderTreeItem(
+            String path,
+            String name,
+            boolean isDirectory,
+            List<FolderTreeItem> children
+    ) {
+        public static FolderTreeItem from(com.docst.service.FolderTreeService.FolderTreeItem item) {
+            return new FolderTreeItem(
+                    item.path(),
+                    item.name(),
+                    item.isDirectory(),
+                    item.children().stream().map(FolderTreeItem::from).toList()
+            );
+        }
+    }
 }

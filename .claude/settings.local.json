@@ -12,7 +12,10 @@
       "Bash(./gradlew dependencies:*)",
       "Bash(curl:*)",
       "WebSearch",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

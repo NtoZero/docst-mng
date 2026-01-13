@@ -43,6 +43,9 @@ import type {
   UpdateDocumentResponse,
   PushResult,
   UnpushedCommitsResponse,
+  RepositorySyncConfig,
+  UpdateRepositorySyncConfigRequest,
+  FolderTreeResponse,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
@@ -256,6 +259,19 @@ export const repositoriesApi = {
     const params = branch ? `?branch=${encodeURIComponent(branch)}` : '';
     return request(`/api/repositories/${id}/commits/unpushed${params}`);
   },
+
+  // Phase 12: Sync Config APIs
+  getSyncConfig: (id: string): Promise<RepositorySyncConfig> =>
+    request(`/api/repositories/${id}/sync-config`),
+
+  updateSyncConfig: (id: string, data: UpdateRepositorySyncConfigRequest): Promise<RepositorySyncConfig> =>
+    request(`/api/repositories/${id}/sync-config`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  getFolderTree: (id: string, depth: number = 4): Promise<FolderTreeResponse> =>
+    request(`/api/repositories/${id}/folder-tree?depth=${depth}`),
 };
 
 // ===== Documents API =====

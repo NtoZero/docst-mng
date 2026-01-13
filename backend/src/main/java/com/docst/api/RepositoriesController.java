@@ -1,20 +1,26 @@
 package com.docst.api;
 
 import com.docst.api.ApiModels.CreateRepositoryRequest;
+import com.docst.api.ApiModels.FolderTreeItem;
+import com.docst.api.ApiModels.FolderTreeResponse;
 import com.docst.api.ApiModels.MoveRepositoryRequest;
 import com.docst.api.ApiModels.RepositoryResponse;
+import com.docst.api.ApiModels.RepositorySyncConfigResponse;
 import com.docst.api.ApiModels.SetCredentialRequest;
 import com.docst.api.ApiModels.UpdateRepositoryRequest;
+import com.docst.api.ApiModels.UpdateRepositorySyncConfigRequest;
 import com.docst.auth.RequireProjectRole;
 import com.docst.auth.RequireRepositoryAccess;
 import com.docst.domain.Credential;
 import com.docst.domain.ProjectRole;
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
+import com.docst.domain.RepositorySyncConfig;
 import com.docst.git.BranchService;
 import com.docst.git.GitCommitWalker;
 import com.docst.repository.CredentialRepository;
 import com.docst.service.CommitService;
+import com.docst.service.FolderTreeService;
 import com.docst.service.RepositoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,6 +50,7 @@ public class RepositoriesController {
     private final CredentialRepository credentialRepository;
     private final BranchService branchService;
     private final CommitService commitService;
+    private final FolderTreeService folderTreeService;
 
     /**
      * 프로젝트의 모든 레포지토리를 조회한다.
@@ -367,6 +374,84 @@ public class RepositoriesController {
     public record CreateBranchRequest(String branchName, String fromBranch) {}
     public record BranchResult(String branchName, String ref, boolean success) {}
     public record CurrentBranchResponse(String branchName) {}
+
+    // ===== Sync Config APIs (Phase 12) =====
+
+    /**
+     * 레포지토리의 동기화 설정을 조회한다.
+     */
+    @Operation(summary = "동기화 설정 조회", description = "레포지토리의 동기화 설정을 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/repositories/{repoId}/sync-config")
+    @RequireRepositoryAccess(role = ProjectRole.VIEWER, repositoryIdParam = "repoId")
+    public ResponseEntity<RepositorySyncConfigResponse> getSyncConfig(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId
+    ) {
+        return repositoryService.findById(repoId)
+                .map(repo -> RepositorySyncConfigResponse.from(repo.getSyncConfig()))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * 레포지토리의 동기화 설정을 업데이트한다.
+     */
+    @Operation(summary = "동기화 설정 수정", description = "레포지토리의 동기화 설정을 수정합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "404", description = "레포지토리를 찾을 수 없음")
+    })
+    @PutMapping("/repositories/{repoId}/sync-config")
+    @RequireRepositoryAccess(role = ProjectRole.ADMIN, repositoryIdParam = "repoId")
+    public ResponseEntity<RepositorySyncConfigResponse> updateSyncConfig(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId,
+            @RequestBody UpdateRepositorySyncConfigRequest request
+    ) {
+        // 기존 설정 가져오기 (null이면 기본값 사용)
+        RepositorySyncConfig currentConfig = repositoryService.findById(repoId)
+                .map(Repository::getSyncConfig)
+                .orElse(RepositorySyncConfig.defaultConfig());
+
+        // 요청에서 null이 아닌 필드만 업데이트
+        RepositorySyncConfig newConfig = new RepositorySyncConfig(
+                request.fileExtensions() != null ? request.fileExtensions() : currentConfig.fileExtensions(),
+                request.includePaths() != null ? request.includePaths() : currentConfig.includePaths(),
+                request.excludePaths() != null ? request.excludePaths() : currentConfig.excludePaths(),
+                request.scanOpenApi() != null ? request.scanOpenApi() : currentConfig.scanOpenApi(),
+                request.scanSwagger() != null ? request.scanSwagger() : currentConfig.scanSwagger(),
+                request.customPatterns() != null ? request.customPatterns() : currentConfig.customPatterns()
+        );
+
+        return repositoryService.updateSyncConfig(repoId, newConfig)
+                .map(repo -> RepositorySyncConfigResponse.from(repo.getSyncConfig()))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * 레포지토리의 폴더 트리와 확장자 목록을 조회한다.
+     */
+    @Operation(summary = "폴더 트리 조회", description = "레포지토리의 폴더 구조와 확장자 목록을 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/repositories/{repoId}/folder-tree")
+    @RequireRepositoryAccess(role = ProjectRole.VIEWER, repositoryIdParam = "repoId")
+    public ResponseEntity<FolderTreeResponse> getFolderTree(
+            @Parameter(description = "레포지토리 ID") @PathVariable UUID repoId,
+            @Parameter(description = "최대 깊이 (기본: 4, 최대: 6)") @RequestParam(defaultValue = "4") int depth
+    ) {
+        try {
+            List<FolderTreeService.FolderTreeItem> folders = folderTreeService.getFolderTree(repoId, depth);
+            List<String> extensions = folderTreeService.getFileExtensions(repoId);
+
+            List<FolderTreeItem> folderItems = folders.stream()
+                    .map(FolderTreeItem::from)
+                    .toList();
+
+            return ResponseEntity.ok(new FolderTreeResponse(folderItems, extensions));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 
     /**
      * Repository 엔티티를 응답 DTO로 변환한다.

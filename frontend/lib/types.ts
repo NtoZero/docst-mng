@@ -663,3 +663,35 @@ export interface UpdateDocumentResponse {
   commitSha: string;
   message: string;
 }
+
+// ===== Repository Sync Config (Phase 12) =====
+
+export interface RepositorySyncConfig {
+  fileExtensions: string[];
+  includePaths: string[];
+  excludePaths: string[];
+  scanOpenApi: boolean;
+  scanSwagger: boolean;
+  customPatterns: string[];
+}
+
+export interface UpdateRepositorySyncConfigRequest {
+  fileExtensions?: string[];
+  includePaths?: string[];
+  excludePaths?: string[];
+  scanOpenApi?: boolean;
+  scanSwagger?: boolean;
+  customPatterns?: string[];
+}
+
+export interface FolderTreeItem {
+  path: string;
+  name: string;
+  isDirectory: boolean;
+  children: FolderTreeItem[];
+}
+
+export interface FolderTreeResponse {
+  folders: FolderTreeItem[];
+  extensions: string[];
+}

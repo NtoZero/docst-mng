@@ -3,6 +3,7 @@ package com.docst.service;
 import com.docst.domain.Project;
 import com.docst.domain.Repository;
 import com.docst.domain.Repository.RepoProvider;
+import com.docst.domain.RepositorySyncConfig;
 import com.docst.git.GitWriteService;
 import com.docst.repository.ProjectRepository;
 import com.docst.repository.RepositoryRepository;
@@ -192,6 +193,24 @@ public class RepositoryService {
         } catch (Exception e) {
             return new PushResult(false, "Push failed: " + e.getMessage(), null);
         }
+    }
+
+    // ===== Phase 12: 동기화 설정 관리 =====
+
+    /**
+     * 레포지토리의 동기화 설정을 업데이트한다.
+     *
+     * @param id 레포지토리 ID
+     * @param config 새 동기화 설정
+     * @return 업데이트된 레포지토리 (존재하지 않으면 empty)
+     */
+    @Transactional
+    public Optional<Repository> updateSyncConfig(UUID id, RepositorySyncConfig config) {
+        return repositoryRepository.findById(id)
+                .map(repo -> {
+                    repo.setSyncConfig(config);
+                    return repositoryRepository.save(repo);
+                });
     }
 
     /**

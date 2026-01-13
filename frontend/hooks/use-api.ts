@@ -20,6 +20,7 @@ import type {
   CommitListParams,
   CommitDiffParams,
   UpdateDocumentRequest,
+  UpdateRepositorySyncConfigRequest,
 } from '@/lib/types';
 import { useAuthStore } from '@/lib/store';
 
@@ -41,6 +42,8 @@ export const queryKeys = {
     detail: (id: string) => ['repositories', id] as const,
     syncStatus: (id: string) => ['repositories', id, 'sync'] as const,
     unpushedCommits: (id: string, branch?: string) => ['repositories', id, 'unpushed', branch] as const,
+    syncConfig: (id: string) => ['repositories', id, 'sync-config'] as const,
+    folderTree: (id: string, depth: number) => ['repositories', id, 'folder-tree', depth] as const,
   },
   documents: {
     byRepository: (repositoryId: string) => ['documents', 'repository', repositoryId] as const,
@@ -536,5 +539,36 @@ export function useUpdateApiKeyDefaultProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.all });
     },
+  });
+}
+
+// ===== Repository Sync Config Hooks (Phase 12) =====
+
+export function useRepositorySyncConfig(repoId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.repositories.syncConfig(repoId!),
+    queryFn: () => repositoriesApi.getSyncConfig(repoId!),
+    enabled: !!repoId,
+  });
+}
+
+export function useUpdateRepositorySyncConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateRepositorySyncConfigRequest }) =>
+      repositoriesApi.updateSyncConfig(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.repositories.syncConfig(id) });
+    },
+  });
+}
+
+export function useFolderTree(repoId: string | undefined, depth: number = 4) {
+  return useQuery({
+    queryKey: queryKeys.repositories.folderTree(repoId!, depth),
+    queryFn: () => repositoriesApi.getFolderTree(repoId!, depth),
+    enabled: !!repoId,
+    staleTime: 5 * 60 * 1000, // 5분
   });
 }

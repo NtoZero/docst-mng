@@ -105,8 +105,8 @@ public class GitSyncService {
         log.info("FULL_SCAN: Syncing repository {} at commit {} (embedding: {})",
                 repo.getFullName(), latestCommit.substring(0, 7), enableEmbedding);
 
-        // Scan document files
-        List<String> documentPaths = gitFileScanner.scanDocumentFiles(git, latestCommit);
+        // Scan document files (Phase 12: 동적 설정 적용)
+        List<String> documentPaths = gitFileScanner.scanDocumentFiles(git, latestCommit, repo.getSyncConfig());
         log.info("FULL_SCAN: Found {} document files", documentPaths.size());
 
         // Update progress tracker
@@ -159,20 +159,20 @@ public class GitSyncService {
         List<GitCommitWalker.CommitInfo> commits = gitCommitWalker.walkCommits(git, lastSyncedCommit, latestCommit);
         log.info("INCREMENTAL: Found {} commits to process", commits.size());
 
-        // 먼저 총 변경 파일 수 계산
+        // 먼저 총 변경 파일 수 계산 (Phase 12: 동적 설정 적용)
         int totalDocFiles = 0;
         for (GitCommitWalker.CommitInfo commitInfo : commits) {
             List<GitCommitWalker.ChangedFile> changedFiles = gitCommitWalker.getChangedFiles(git, commitInfo.sha());
-            totalDocFiles += gitFileScanner.filterDocumentFiles(changedFiles).size();
+            totalDocFiles += gitFileScanner.filterDocumentFiles(changedFiles, repo.getSyncConfig()).size();
         }
         progressTracker.setTotal(jobId, totalDocFiles);
 
         List<String> processedPaths = new ArrayList<>();
 
-        // 각 커밋의 변경 파일 처리
+        // 각 커밋의 변경 파일 처리 (Phase 12: 동적 설정 적용)
         for (GitCommitWalker.CommitInfo commitInfo : commits) {
             List<GitCommitWalker.ChangedFile> changedFiles = gitCommitWalker.getChangedFiles(git, commitInfo.sha());
-            List<GitCommitWalker.ChangedFile> docFiles = gitFileScanner.filterDocumentFiles(changedFiles);
+            List<GitCommitWalker.ChangedFile> docFiles = gitFileScanner.filterDocumentFiles(changedFiles, repo.getSyncConfig());
 
             for (GitCommitWalker.ChangedFile changedFile : docFiles) {
                 processChangedDocument(git, repo, changedFile, commitInfo, enableEmbedding);
@@ -204,9 +204,9 @@ public class GitSyncService {
             throw new IllegalArgumentException("Commit not found: " + targetCommitSha);
         }
 
-        // Get only changed files in this specific commit (not all files)
+        // Get only changed files in this specific commit (Phase 12: 동적 설정 적용)
         List<GitCommitWalker.ChangedFile> changedFiles = gitCommitWalker.getChangedFiles(git, targetCommitSha);
-        List<GitCommitWalker.ChangedFile> docFiles = gitFileScanner.filterDocumentFiles(changedFiles);
+        List<GitCommitWalker.ChangedFile> docFiles = gitFileScanner.filterDocumentFiles(changedFiles, repo.getSyncConfig());
         log.info("SPECIFIC_COMMIT: Found {} changed document files", docFiles.size());
 
         // Update progress tracker

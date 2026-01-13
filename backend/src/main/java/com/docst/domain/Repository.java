@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -88,6 +90,20 @@ public class Repository {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "credential_id")
     private Credential credential;
+
+    /** 동기화 설정 (JSONB) */
+    @Setter
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "sync_config", columnDefinition = "jsonb")
+    private RepositorySyncConfig syncConfig;
+
+    /**
+     * 동기화 설정을 반환한다.
+     * null이면 기본 설정을 반환한다.
+     */
+    public RepositorySyncConfig getSyncConfig() {
+        return syncConfig != null ? syncConfig : RepositorySyncConfig.defaultConfig();
+    }
 
     /**
      * 레포지토리 생성자.

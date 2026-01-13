@@ -25,6 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { SyncModeDialog } from '@/components/sync-mode-dialog';
 import { CommitHistoryDialog } from '@/components/commit-history-dialog';
 import { MoveRepositoryDialog } from '@/components/move-repository-dialog';
+import { SyncConfigDialog } from '@/components/sync-config';
 import {
   useProject,
   useRepositories,
@@ -71,6 +72,7 @@ function RepositoryCard({
   const [showSyncModeDialog, setShowSyncModeDialog] = useState(false);
   const [showCommitHistory, setShowCommitHistory] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showSyncConfigDialog, setShowSyncConfigDialog] = useState(false);
   const setCredential = useSetRepositoryCredential();
 
   const handleSyncComplete = useCallback(() => {
@@ -262,6 +264,18 @@ function RepositoryCard({
                 </p>
               )}
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Sync Configuration</label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSyncConfigDialog(true)}
+                className="w-full justify-start"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Configure file extensions and paths
+              </Button>
+            </div>
           </div>
         )}
 
@@ -339,6 +353,14 @@ function RepositoryCard({
         onOpenChange={setShowMoveDialog}
         repository={repo}
         currentProject={project}
+      />
+
+      {/* Sync Config Dialog */}
+      <SyncConfigDialog
+        repositoryId={repo.id}
+        repositoryName={`${repo.owner}/${repo.name}`}
+        open={showSyncConfigDialog}
+        onOpenChange={setShowSyncConfigDialog}
       />
     </Card>
   );
