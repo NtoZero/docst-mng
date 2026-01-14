@@ -1,8 +1,8 @@
 package com.docst.chunking;
 
-import com.docst.domain.DocChunk;
-import com.docst.domain.DocumentVersion;
-import com.docst.repository.DocChunkRepository;
+import com.docst.document.DocChunk;
+import com.docst.document.repository.DocChunkRepository;
+import com.docst.document.DocumentVersion;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

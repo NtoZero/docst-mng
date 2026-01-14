@@ -1,12 +1,12 @@
 package com.docst.auth;
 
-import com.docst.domain.Document;
-import com.docst.domain.ProjectMember;
-import com.docst.domain.ProjectRole;
-import com.docst.domain.Repository;
-import com.docst.repository.DocumentRepository;
-import com.docst.repository.ProjectMemberRepository;
-import com.docst.repository.RepositoryRepository;
+import com.docst.document.Document;
+import com.docst.document.repository.DocumentRepository;
+import com.docst.project.ProjectMember;
+import com.docst.project.repository.ProjectMemberRepository;
+import com.docst.project.ProjectRole;
+import com.docst.gitrepo.Repository;
+import com.docst.gitrepo.repository.RepositoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

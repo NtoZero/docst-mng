@@ -1,10 +1,10 @@
 package com.docst.llm;
 
-import com.docst.domain.Document;
-import com.docst.domain.DocumentVersion;
-import com.docst.service.DocumentService;
-import com.docst.service.SearchService;
-import com.docst.service.SearchService.SearchResult;
+import com.docst.document.Document;
+import com.docst.document.DocumentVersion;
+import com.docst.document.service.DocumentService;
+import com.docst.search.service.SearchService;
+import com.docst.search.service.SearchService.SearchResult;
 import com.fasterxml.jackson.annotation.JsonClassDescription;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;

@@ -1,15 +1,15 @@
 package com.docst.llm.tools;
 
-import com.docst.domain.Document;
-import com.docst.domain.DocumentVersion;
+import com.docst.document.Document;
+import com.docst.document.DocumentVersion;
+import com.docst.document.service.DocumentService;
 import com.docst.llm.CitationCollector;
 import com.docst.llm.model.Citation;
 import com.docst.rag.config.RagConfigService;
 import com.docst.rag.config.ResolvedRagConfig;
-import com.docst.service.DocumentService;
-import com.docst.service.SearchService;
-import com.docst.service.SemanticSearchService;
-import com.docst.service.SearchService.SearchResult;
+import com.docst.search.service.SearchService;
+import com.docst.search.service.SemanticSearchService;
+import com.docst.search.service.SearchService.SearchResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;

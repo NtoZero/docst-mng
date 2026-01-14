@@ -1,7 +1,7 @@
 package com.docst.auth;
 
-import com.docst.domain.User;
-import com.docst.repository.UserRepository;
+import com.docst.user.User;
+import com.docst.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

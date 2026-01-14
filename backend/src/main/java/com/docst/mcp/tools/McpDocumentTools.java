@@ -1,9 +1,13 @@
 package com.docst.mcp.tools;
 
 import com.docst.auth.SecurityUtils;
-import com.docst.domain.Document;
+import com.docst.document.Document;
+import com.docst.document.service.DocumentService;
 import com.docst.mcp.McpModels.*;
-import com.docst.service.*;
+import com.docst.project.service.ProjectService;
+import com.docst.search.service.HybridSearchService;
+import com.docst.search.service.SearchService;
+import com.docst.search.service.SemanticSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;

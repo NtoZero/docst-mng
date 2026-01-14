@@ -15,7 +15,9 @@
       "Bash(find:*)",
       "Bash(npm run type-check:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git mv:*)",
+      "Bash(./gradlew clean:*)"
     ]
   }
 }

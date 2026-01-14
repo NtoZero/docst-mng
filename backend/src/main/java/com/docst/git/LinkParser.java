@@ -1,6 +1,6 @@
 package com.docst.git;
 
-import com.docst.domain.DocumentLink.LinkType;
+import com.docst.document.DocumentLink.LinkType;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

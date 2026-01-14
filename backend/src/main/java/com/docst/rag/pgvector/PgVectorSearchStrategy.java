@@ -1,11 +1,11 @@
 package com.docst.rag.pgvector;
 
-import com.docst.domain.DocumentVersion;
+import com.docst.document.DocumentVersion;
 import com.docst.embedding.DocstEmbeddingService;
 import com.docst.rag.RagMode;
 import com.docst.rag.RagSearchStrategy;
-import com.docst.service.SearchService.SearchResult;
-import com.docst.service.SemanticSearchService;
+import com.docst.search.service.SearchService.SearchResult;
+import com.docst.search.service.SemanticSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

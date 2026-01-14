@@ -1,9 +1,9 @@
 package com.docst.embedding;
 
-import com.docst.domain.Credential.CredentialType;
+import com.docst.credential.Credential.CredentialType;
+import com.docst.credential.service.DynamicCredentialResolver;
 import com.docst.rag.config.ResolvedRagConfig;
-import com.docst.service.DynamicCredentialResolver;
-import com.docst.service.SystemConfigService;
+import com.docst.admin.service.SystemConfigService;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

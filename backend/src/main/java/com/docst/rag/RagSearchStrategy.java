@@ -1,7 +1,7 @@
 package com.docst.rag;
 
-import com.docst.domain.DocumentVersion;
-import com.docst.service.SearchService.SearchResult;
+import com.docst.document.DocumentVersion;
+import com.docst.search.service.SearchService.SearchResult;
 
 import java.util.List;
 import java.util.UUID;

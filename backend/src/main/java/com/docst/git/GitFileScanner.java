@@ -1,6 +1,6 @@
 package com.docst.git;
 
-import com.docst.domain.RepositorySyncConfig;
+import com.docst.gitrepo.RepositorySyncConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;

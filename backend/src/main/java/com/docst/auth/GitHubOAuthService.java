@@ -1,7 +1,7 @@
 package com.docst.auth;
 
-import com.docst.domain.User;
-import com.docst.service.UserService;
+import com.docst.user.User;
+import com.docst.user.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

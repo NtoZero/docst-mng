@@ -3,7 +3,7 @@ package com.docst.mcp.tools;
 import com.docst.auth.SecurityUtils;
 import com.docst.auth.UserPrincipal;
 import com.docst.mcp.McpModels.*;
-import com.docst.service.ProjectService;
+import com.docst.project.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;

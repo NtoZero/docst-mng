@@ -1,6 +1,6 @@
 package com.docst.rag.config;
 
-import com.docst.service.SystemConfigService;
+import com.docst.admin.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

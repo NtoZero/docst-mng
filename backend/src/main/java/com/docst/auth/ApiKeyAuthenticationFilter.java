@@ -1,8 +1,8 @@
 package com.docst.auth;
 
-import com.docst.domain.ApiKey;
-import com.docst.domain.User;
-import com.docst.service.ApiKeyService;
+import com.docst.apikey.ApiKey;
+import com.docst.apikey.service.ApiKeyService;
+import com.docst.user.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

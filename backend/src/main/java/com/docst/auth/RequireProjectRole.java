@@ -1,6 +1,6 @@
 package com.docst.auth;
 
-import com.docst.domain.ProjectRole;
+import com.docst.project.ProjectRole;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

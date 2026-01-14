@@ -1,6 +1,6 @@
 package com.docst.git;
 
-import com.docst.domain.Repository;
+import com.docst.gitrepo.Repository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;

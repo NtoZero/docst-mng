@@ -2,7 +2,7 @@ package com.docst.llm.tools;
 
 import com.docst.api.ApiModels.SyncMode;
 import com.docst.git.BranchService;
-import com.docst.service.GitSyncService;
+import com.docst.sync.service.GitSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;

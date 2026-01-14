@@ -1,9 +1,9 @@
 package com.docst.auth;
 
 import com.docst.config.AdminProperties;
-import com.docst.domain.User;
-import com.docst.domain.User.AuthProvider;
-import com.docst.repository.UserRepository;
+import com.docst.user.User;
+import com.docst.user.User.AuthProvider;
+import com.docst.user.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

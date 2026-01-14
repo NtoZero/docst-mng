@@ -1,12 +1,12 @@
 package com.docst.embedding;
 
-import com.docst.domain.DocChunk;
-import com.docst.domain.DocumentVersion;
+import com.docst.document.DocChunk;
+import com.docst.document.repository.DocChunkRepository;
+import com.docst.document.DocumentVersion;
+import com.docst.document.repository.DocumentVersionRepository;
 import com.docst.rag.config.RagConfigService;
 import com.docst.rag.config.ResolvedRagConfig;
-import com.docst.repository.DocChunkRepository;
-import com.docst.repository.DocumentVersionRepository;
-import com.docst.service.PgVectorDataSourceManager;
+import com.docst.admin.service.PgVectorDataSourceManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;

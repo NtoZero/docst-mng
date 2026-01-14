@@ -840,7 +840,7 @@ public final class ApiModels {
             boolean scanSwagger,
             List<String> customPatterns
     ) {
-        public static RepositorySyncConfigResponse from(com.docst.domain.RepositorySyncConfig config) {
+        public static RepositorySyncConfigResponse from(com.docst.gitrepo.RepositorySyncConfig config) {
             return new RepositorySyncConfigResponse(
                     config.getFileExtensions(),
                     config.getIncludePaths(),
@@ -881,7 +881,7 @@ public final class ApiModels {
             boolean isDirectory,
             List<FolderTreeItem> children
     ) {
-        public static FolderTreeItem from(com.docst.service.FolderTreeService.FolderTreeItem item) {
+        public static FolderTreeItem from(com.docst.gitrepo.service.FolderTreeService.FolderTreeItem item) {
             return new FolderTreeItem(
                     item.path(),
                     item.name(),

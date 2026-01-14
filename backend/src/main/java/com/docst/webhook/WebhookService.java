@@ -1,8 +1,8 @@
 package com.docst.webhook;
 
-import com.docst.domain.Repository;
-import com.docst.repository.RepositoryRepository;
-import com.docst.service.SyncService;
+import com.docst.gitrepo.Repository;
+import com.docst.gitrepo.repository.RepositoryRepository;
+import com.docst.sync.service.SyncService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

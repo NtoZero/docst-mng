@@ -1,6 +1,6 @@
 package com.docst.auth;
 
-import com.docst.domain.User;
+import com.docst.user.User;
 
 import java.security.Principal;
 import java.util.UUID;

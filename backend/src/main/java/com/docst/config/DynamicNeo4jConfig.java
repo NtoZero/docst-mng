@@ -1,6 +1,6 @@
 package com.docst.config;
 
-import com.docst.service.Neo4jDriverManager;
+import com.docst.admin.service.Neo4jDriverManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.neo4j.driver.Driver;

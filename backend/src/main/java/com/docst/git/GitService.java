@@ -1,10 +1,10 @@
 package com.docst.git;
 
-import com.docst.domain.Credential;
-import com.docst.domain.Repository;
-import com.docst.domain.Repository.RepoProvider;
-import com.docst.repository.RepositoryRepository;
-import com.docst.service.CredentialService;
+import com.docst.credential.Credential;
+import com.docst.credential.service.CredentialService;
+import com.docst.gitrepo.Repository;
+import com.docst.gitrepo.Repository.RepoProvider;
+import com.docst.gitrepo.repository.RepositoryRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.FetchCommand;

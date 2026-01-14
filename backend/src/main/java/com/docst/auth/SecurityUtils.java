@@ -1,6 +1,6 @@
 package com.docst.auth;
 
-import com.docst.domain.User;
+import com.docst.user.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 

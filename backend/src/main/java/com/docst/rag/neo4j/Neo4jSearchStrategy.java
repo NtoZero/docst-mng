@@ -1,16 +1,16 @@
 package com.docst.rag.neo4j;
 
-import com.docst.domain.DocChunk;
-import com.docst.domain.DocumentVersion;
-import com.docst.domain.Project;
+import com.docst.document.DocChunk;
+import com.docst.document.DocumentVersion;
+import com.docst.document.repository.DocChunkRepository;
+import com.docst.project.Project;
+import com.docst.project.repository.ProjectRepository;
 import com.docst.embedding.DocstEmbeddingService;
 import com.docst.rag.RagMode;
 import com.docst.rag.RagSearchStrategy;
 import com.docst.rag.config.RagConfigService;
 import com.docst.rag.config.ResolvedRagConfig;
-import com.docst.repository.DocChunkRepository;
-import com.docst.repository.ProjectRepository;
-import com.docst.service.SearchService.SearchResult;
+import com.docst.search.service.SearchService.SearchResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.neo4j.driver.Driver;

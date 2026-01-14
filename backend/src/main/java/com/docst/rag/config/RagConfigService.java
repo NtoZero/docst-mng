@@ -1,7 +1,7 @@
 package com.docst.rag.config;
 
-import com.docst.domain.Project;
-import com.docst.repository.ProjectRepository;
+import com.docst.project.Project;
+import com.docst.project.repository.ProjectRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

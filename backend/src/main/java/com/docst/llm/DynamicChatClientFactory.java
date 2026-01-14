@@ -1,8 +1,8 @@
 package com.docst.llm;
 
-import com.docst.domain.Credential.CredentialType;
-import com.docst.service.DynamicCredentialResolver;
-import com.docst.service.SystemConfigService;
+import com.docst.credential.Credential.CredentialType;
+import com.docst.credential.service.DynamicCredentialResolver;
+import com.docst.admin.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;

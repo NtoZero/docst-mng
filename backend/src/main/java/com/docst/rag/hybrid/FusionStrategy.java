@@ -1,6 +1,6 @@
 package com.docst.rag.hybrid;
 
-import com.docst.service.SearchService.SearchResult;
+import com.docst.search.service.SearchService.SearchResult;
 
 import java.util.List;
 
