@@ -17,7 +17,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(git mv:*)",
-      "Bash(./gradlew clean:*)"
+      "Bash(./gradlew clean:*)",
+      "Bash(npm run lint)"
     ]
   }
 }

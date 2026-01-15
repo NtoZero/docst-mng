@@ -1,18 +1,7 @@
 import type { ChatRequest, ChatResponse, PromptTemplate, SSEEvent } from './types';
+import { getAuthTokenAsync } from './auth-utils';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
-
-async function getAuthToken(): Promise<string | null> {
-  if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem('docst-auth');
-  if (!stored) return null;
-  try {
-    const parsed = JSON.parse(stored);
-    return parsed.state?.token || null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * LLM Chat API (동기)
@@ -20,7 +9,7 @@ async function getAuthToken(): Promise<string | null> {
  * 전체 응답을 한 번에 반환합니다.
  */
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
-  const token = await getAuthToken();
+  const token = await getAuthTokenAsync();
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -70,7 +59,7 @@ export async function* streamChatMessage(
   request: ChatRequest,
   signal?: AbortSignal
 ): AsyncGenerator<SSEEvent> {
-  const token = await getAuthToken();
+  const token = await getAuthTokenAsync();
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -161,7 +150,7 @@ export async function* streamChatMessage(
  * 시스템 기본 템플릿을 가져옵니다.
  */
 export async function getPromptTemplates(): Promise<PromptTemplate[]> {
-  const token = await getAuthToken();
+  const token = await getAuthTokenAsync();
 
   const headers: HeadersInit = {};
 

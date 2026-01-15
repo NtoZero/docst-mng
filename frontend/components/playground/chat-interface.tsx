@@ -11,13 +11,14 @@ import { TemplateSelector } from './template-selector';
 import { CitationsSection } from './citations-section';
 import { MarkdownViewer } from '@/components/markdown-viewer';
 import { cn } from '@/lib/utils';
-import type { ChatMessage } from '@/lib/types';
+import type { ChatMessage, SearchParams } from '@/lib/types';
 
 interface ChatInterfaceProps {
   projectId: string;
+  searchParams?: SearchParams;  // Phase 14: Optional search params for future RAG optimization
 }
 
-export function ChatInterface({ projectId }: ChatInterfaceProps) {
+export function ChatInterface({ projectId, searchParams }: ChatInterfaceProps) {
   const { messages, sendMessage, isStreaming, cancelStream, clearMessages } =
     useLlmChat(projectId);
 

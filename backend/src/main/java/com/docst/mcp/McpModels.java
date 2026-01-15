@@ -165,12 +165,32 @@ public final class McpModels {
 
     /**
      * 검색 메타데이터.
+     * Phase 14-B: 시맨틱 서치 파라미터 고도화
      *
-     * @param mode 검색 모드
+     * @param mode 검색 모드 (keyword, semantic, graph, hybrid)
      * @param totalResults 총 결과 수
      * @param queryTime 검색 소요 시간
+     * @param similarityThreshold 적용된 유사도 임계값 (semantic/hybrid)
+     * @param fusionStrategy 적용된 융합 전략 (hybrid)
+     * @param rrfK 적용된 RRF K 상수 (hybrid + rrf)
+     * @param vectorWeight 적용된 벡터 가중치 (hybrid + weighted_sum)
      */
-    public record SearchMetadata(String mode, int totalResults, String queryTime) {}
+    public record SearchMetadata(
+            String mode,
+            int totalResults,
+            String queryTime,
+            Double similarityThreshold,
+            String fusionStrategy,
+            Integer rrfK,
+            Double vectorWeight
+    ) {
+        /**
+         * 기본 생성자 (하위 호환성).
+         */
+        public SearchMetadata(String mode, int totalResults, String queryTime) {
+            this(mode, totalResults, queryTime, null, null, null, null);
+        }
+    }
 
     // ===== sync_repository =====
 

@@ -1,23 +1,12 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAuthTokenAsync } from '@/lib/auth-utils';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
 
-async function getAuthToken(): Promise<string | null> {
-  if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem('docst-auth');
-  if (!stored) return null;
-  try {
-    const parsed = JSON.parse(stored);
-    return parsed.state?.token || null;
-  } catch {
-    return null;
-  }
-}
-
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = await getAuthToken();
+  const token = await getAuthTokenAsync();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(options?.headers || {}),

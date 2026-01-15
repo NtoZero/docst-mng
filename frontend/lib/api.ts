@@ -47,6 +47,7 @@ import type {
   UpdateRepositorySyncConfigRequest,
   FolderTreeResponse,
 } from './types';
+import { getAuthTokenAsync } from './auth-utils';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8342';
 
@@ -60,20 +61,8 @@ class ApiError extends Error {
   }
 }
 
-async function getAuthToken(): Promise<string | null> {
-  if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem('docst-auth');
-  if (!stored) return null;
-  try {
-    const parsed = JSON.parse(stored);
-    return parsed.state?.token || null;
-  } catch {
-    return null;
-  }
-}
-
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = await getAuthToken();
+  const token = await getAuthTokenAsync();
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',

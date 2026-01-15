@@ -190,10 +190,45 @@ export interface SearchResult {
 
 export interface SearchRequest {
   q: string;
-  mode?: 'keyword' | 'semantic' | 'hybrid';
+  mode?: 'keyword' | 'semantic' | 'graph' | 'hybrid';
   topK?: number;
   repositoryId?: string;  // 저장소 필터
   docType?: DocType;      // 문서 타입 필터
+  // Phase 14: 시맨틱 서치 고도화 파라미터
+  similarityThreshold?: number;
+  fusionStrategy?: 'rrf' | 'weighted_sum';
+  rrfK?: number;
+  vectorWeight?: number;
+  keywordWeight?: number;
+}
+
+// Phase 14: 검색 응답 (결과 + 메타데이터)
+export interface SearchResponse {
+  results: SearchResult[];
+  metadata: SearchMetadata;
+}
+
+// Phase 14: 검색 메타데이터
+export interface SearchMetadata {
+  mode: string;
+  totalResults: number;
+  similarityThreshold: number | null;
+  fusionStrategy: string | null;
+  queryTimeMs: number;
+}
+
+// Phase 14: Playground 검색 파라미터
+export type SearchMode = 'keyword' | 'semantic' | 'graph' | 'hybrid';
+export type FusionStrategy = 'rrf' | 'weighted_sum';
+export type SearchPreset = 'balanced' | 'precision' | 'recall' | 'custom';
+
+export interface SearchParams {
+  mode: SearchMode;
+  similarityThreshold: number;
+  topK: number;
+  fusionStrategy: FusionStrategy;
+  rrfK: number;
+  vectorWeight: number;
 }
 
 // ===== Sync =====

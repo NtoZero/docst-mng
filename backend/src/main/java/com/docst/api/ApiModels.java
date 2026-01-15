@@ -272,6 +272,36 @@ public final class ApiModels {
             String highlightedSnippet
     ) {}
 
+    /**
+     * 검색 응답 (결과 + 메타데이터).
+     * Phase 14-A: 검색 파라미터 고도화
+     *
+     * @param results 검색 결과 목록
+     * @param metadata 검색 메타데이터
+     */
+    public record SearchResponse(
+            List<SearchResultResponse> results,
+            SearchMetadata metadata
+    ) {}
+
+    /**
+     * 검색 메타데이터.
+     * Phase 14-A: 검색 파라미터 고도화
+     *
+     * @param mode 검색 모드 (keyword, semantic, graph, hybrid)
+     * @param totalResults 결과 개수
+     * @param similarityThreshold 적용된 유사도 임계값
+     * @param fusionStrategy 적용된 융합 전략 (hybrid 모드)
+     * @param queryTimeMs 검색 소요 시간 (ms)
+     */
+    public record SearchMetadata(
+            String mode,
+            int totalResults,
+            Double similarityThreshold,
+            String fusionStrategy,
+            long queryTimeMs
+    ) {}
+
     // ===== Sync =====
 
     /**
