@@ -1,4 +1,5 @@
 import type { CredentialType, CredentialScope } from '@/lib/types';
+import type { GuideKey } from '@/lib/types/guide';
 
 export interface CredentialTypeConfig {
   label: string;
@@ -6,6 +7,7 @@ export interface CredentialTypeConfig {
   secretLabel: string;
   placeholder: string;
   helpUrl?: string;
+  guideKey?: GuideKey;
   isJsonAuth?: boolean;
   fields?: string[];
 }
@@ -17,6 +19,7 @@ export const CREDENTIAL_TYPE_CONFIG: Record<CredentialType, CredentialTypeConfig
     secretLabel: 'Personal Access Token',
     placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxx',
     helpUrl: 'https://github.com/settings/tokens',
+    guideKey: 'github_pat',
   },
   BASIC_AUTH: {
     label: 'Basic Auth',
@@ -36,6 +39,7 @@ export const CREDENTIAL_TYPE_CONFIG: Record<CredentialType, CredentialTypeConfig
     secretLabel: 'API Key',
     placeholder: 'sk-proj-...',
     helpUrl: 'https://platform.openai.com/api-keys',
+    guideKey: 'openai_api_key',
   },
   ANTHROPIC_API_KEY: {
     label: 'Anthropic API Key',
@@ -43,6 +47,7 @@ export const CREDENTIAL_TYPE_CONFIG: Record<CredentialType, CredentialTypeConfig
     secretLabel: 'API Key',
     placeholder: 'sk-ant-...',
     helpUrl: 'https://console.anthropic.com/settings/keys',
+    guideKey: 'anthropic_api_key',
   },
   NEO4J_AUTH: {
     label: 'Neo4j Auth',
@@ -51,6 +56,7 @@ export const CREDENTIAL_TYPE_CONFIG: Record<CredentialType, CredentialTypeConfig
     placeholder: '',
     isJsonAuth: true,
     fields: ['username', 'password'],
+    guideKey: 'neo4j_auth',
   },
   PGVECTOR_AUTH: {
     label: 'PgVector Auth',
@@ -59,6 +65,7 @@ export const CREDENTIAL_TYPE_CONFIG: Record<CredentialType, CredentialTypeConfig
     placeholder: '',
     isJsonAuth: true,
     fields: ['username', 'password'],
+    guideKey: 'pgvector_auth',
   },
   CUSTOM_API_KEY: {
     label: 'Custom API Key',
@@ -112,4 +119,11 @@ export function getSecretPlaceholder(type: CredentialType): string {
  */
 export function getHelpUrl(type: CredentialType): string | undefined {
   return CREDENTIAL_TYPE_CONFIG[type]?.helpUrl;
+}
+
+/**
+ * Get guide key for credential type (if available)
+ */
+export function getGuideKey(type: CredentialType): GuideKey | undefined {
+  return CREDENTIAL_TYPE_CONFIG[type]?.guideKey;
 }

@@ -5,6 +5,7 @@ import { QueryProvider } from '@/providers/query-provider';
 import { Header } from '@/components/header';
 import { Sidebar } from '@/components/sidebar';
 import { Toaster } from '@/components/ui/sonner';
+import { OnboardingWrapper } from '@/components/guide';
 import '../globals.css';
 
 export function generateStaticParams() {
@@ -55,6 +56,7 @@ export default async function LocaleLayout({
               </div>
             </div>
             <Toaster />
+            <OnboardingWrapper />
           </QueryProvider>
         </NextIntlClientProvider>
       </body>

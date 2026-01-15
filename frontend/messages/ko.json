@@ -202,6 +202,102 @@
       "completedStats": "{total}개 문서 처리됨, {failed}개 실패"
     }
   },
+  "guide": {
+    "popover": {
+      "github_pat": {
+        "title": "GitHub Personal Access Token",
+        "summary": "프라이빗 레포지토리에 접근하기 위해 필요합니다.",
+        "quickSteps": [
+          "GitHub Settings로 이동",
+          "Developer settings > Personal access tokens",
+          "Generate new token (classic) 클릭"
+        ],
+        "detailButtonText": "상세 발급 가이드"
+      },
+      "openai_api_key": {
+        "title": "OpenAI API Key",
+        "summary": "의미 검색(Semantic Search)을 위한 임베딩 생성에 사용됩니다.",
+        "quickSteps": [
+          "OpenAI Platform에 로그인",
+          "API Keys 메뉴로 이동",
+          "Create new secret key 클릭"
+        ],
+        "detailButtonText": "상세 발급 가이드"
+      },
+      "anthropic_api_key": {
+        "title": "Anthropic API Key",
+        "summary": "Claude AI를 사용한 LLM Chat 기능에 필요합니다.",
+        "quickSteps": [
+          "Anthropic Console에 로그인",
+          "Settings > API Keys 이동",
+          "Create Key 클릭"
+        ],
+        "detailButtonText": "상세 발급 가이드"
+      },
+      "neo4j_auth": {
+        "title": "Neo4j 인증 정보",
+        "summary": "Graph RAG 기능을 위한 Neo4j 데이터베이스 연결에 필요합니다.",
+        "quickSteps": [
+          "Neo4j 인스턴스 생성 (AuraDB 또는 로컬)",
+          "연결 정보 확인",
+          "사용자명과 비밀번호 입력"
+        ],
+        "detailButtonText": "상세 설정 가이드"
+      },
+      "pgvector_auth": {
+        "title": "PgVector 인증 정보",
+        "summary": "벡터 검색을 위한 PostgreSQL(pgvector) 연결에 필요합니다.",
+        "quickSteps": [
+          "PostgreSQL 서버 준비",
+          "pgvector 확장 설치",
+          "연결 정보 입력"
+        ],
+        "detailButtonText": "상세 설정 가이드"
+      }
+    },
+    "onboarding": {
+      "welcome": {
+        "title": "Docst에 오신 것을 환영합니다!",
+        "description": "분산된 문서를 한 곳에서 관리하고 AI 기반 검색을 경험하세요."
+      },
+      "step1": {
+        "title": "1. 인증 정보 설정",
+        "description": "프라이빗 레포지토리에 접근하려면 GitHub PAT를 등록하세요.",
+        "statusComplete": "{count}개 인증정보 등록됨",
+        "statusIncomplete": "인증정보 미등록",
+        "actionComplete": "인증정보 관리",
+        "actionIncomplete": "인증정보 등록하기"
+      },
+      "step2": {
+        "title": "2. 프로젝트 생성",
+        "description": "문서를 관리할 프로젝트를 만들고 Git 레포지토리를 연결하세요.",
+        "statusComplete": "{count}개 프로젝트 생성됨",
+        "statusIncomplete": "프로젝트 미생성",
+        "actionComplete": "프로젝트 보기",
+        "actionIncomplete": "프로젝트 생성하기"
+      },
+      "step3": {
+        "title": "3. 문서 동기화",
+        "description": "레포지토리를 동기화하면 문서가 자동으로 인덱싱됩니다.",
+        "statusComplete": "{count}개 문서 동기화됨",
+        "statusIncomplete": "문서 미동기화",
+        "actionComplete": "문서 보기",
+        "actionIncomplete": "동기화하러 가기"
+      },
+      "skipButton": "나중에 하기",
+      "nextButton": "다음",
+      "prevButton": "이전",
+      "startButton": "시작하기",
+      "dontShowAgain": "다시 보지 않기",
+      "checkingStatus": "상태 확인 중...",
+      "progressLabel": "진행 상태",
+      "progressComplete": "{completed}/{total} 완료"
+    },
+    "sheet": {
+      "externalResources": "외부 리소스",
+      "requiredPermissions": "필요한 권한"
+    }
+  },
   "admin": {
     "title": "시스템 설정",
     "subtitle": "시스템 전역 설정 및 크리덴셜 관리",

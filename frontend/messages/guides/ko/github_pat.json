@@ -1,0 +1,55 @@
+{
+  "id": "github_pat",
+  "title": "GitHub Personal Access Token 발급 가이드",
+  "description": "GitHub 프라이빗 레포지토리에 접근하기 위한 PAT를 발급받는 방법을 안내합니다.",
+  "steps": [
+    {
+      "id": "step1",
+      "title": "GitHub에 로그인",
+      "description": "GitHub(github.com)에 로그인한 후, 우측 상단의 프로필 아이콘을 클릭합니다."
+    },
+    {
+      "id": "step2",
+      "title": "Settings 이동",
+      "description": "드롭다운 메뉴에서 'Settings'를 클릭합니다."
+    },
+    {
+      "id": "step3",
+      "title": "Developer settings",
+      "description": "좌측 사이드바 맨 아래의 'Developer settings'를 클릭합니다."
+    },
+    {
+      "id": "step4",
+      "title": "Personal Access Tokens",
+      "description": "'Personal access tokens' > 'Tokens (classic)'을 선택합니다.",
+      "tip": "Fine-grained tokens보다 classic tokens이 호환성이 좋습니다."
+    },
+    {
+      "id": "step5",
+      "title": "토큰 생성",
+      "description": "'Generate new token' 버튼을 클릭하고, 'Generate new token (classic)'을 선택합니다."
+    },
+    {
+      "id": "step6",
+      "title": "권한 설정",
+      "description": "아래 권한들을 선택하세요:",
+      "permissions": [
+        { "scope": "repo", "description": "프라이빗 레포지토리 전체 접근 권한" },
+        { "scope": "read:user", "description": "사용자 프로필 읽기 권한" }
+      ],
+      "tip": "만료일은 90일 이상으로 설정하는 것을 권장합니다."
+    },
+    {
+      "id": "step7",
+      "title": "토큰 복사",
+      "description": "생성된 토큰을 복사하여 안전한 곳에 보관하세요.",
+      "warning": "이 페이지를 벗어나면 토큰을 다시 볼 수 없습니다. 반드시 복사해 두세요!"
+    }
+  ],
+  "externalLinks": [
+    {
+      "text": "GitHub 공식 문서",
+      "url": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token"
+    }
+  ]
+}

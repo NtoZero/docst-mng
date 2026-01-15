@@ -1,0 +1,44 @@
+{
+  "id": "openai_api_key",
+  "title": "OpenAI API Key 발급 가이드",
+  "description": "의미 검색(Semantic Search)을 위한 임베딩 생성에 필요한 OpenAI API Key를 발급받는 방법입니다.",
+  "steps": [
+    {
+      "id": "step1",
+      "title": "OpenAI Platform 로그인",
+      "description": "platform.openai.com에 접속하여 로그인합니다. 계정이 없다면 회원가입을 진행하세요."
+    },
+    {
+      "id": "step2",
+      "title": "API Keys 메뉴",
+      "description": "좌측 사이드바에서 'API keys' 메뉴를 클릭합니다."
+    },
+    {
+      "id": "step3",
+      "title": "새 키 생성",
+      "description": "'Create new secret key' 버튼을 클릭합니다."
+    },
+    {
+      "id": "step4",
+      "title": "키 이름 설정",
+      "description": "키의 용도를 구분할 수 있도록 이름을 입력합니다 (예: 'Docst-Embedding')."
+    },
+    {
+      "id": "step5",
+      "title": "키 복사",
+      "description": "생성된 API Key를 복사합니다.",
+      "warning": "이 키는 다시 볼 수 없습니다. 반드시 안전한 곳에 복사해 두세요!",
+      "tip": "API Key는 'sk-proj-'로 시작합니다."
+    }
+  ],
+  "externalLinks": [
+    {
+      "text": "OpenAI API Keys",
+      "url": "https://platform.openai.com/api-keys"
+    },
+    {
+      "text": "사용량 확인",
+      "url": "https://platform.openai.com/usage"
+    }
+  ]
+}

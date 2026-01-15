@@ -1,0 +1,55 @@
+{
+  "id": "github_pat",
+  "title": "GitHub Personal Access Token Guide",
+  "description": "Learn how to generate a Personal Access Token (PAT) for accessing private GitHub repositories.",
+  "steps": [
+    {
+      "id": "step1",
+      "title": "Log in to GitHub",
+      "description": "Go to github.com and log in. Click on your profile icon in the top-right corner."
+    },
+    {
+      "id": "step2",
+      "title": "Go to Settings",
+      "description": "Click 'Settings' from the dropdown menu."
+    },
+    {
+      "id": "step3",
+      "title": "Developer settings",
+      "description": "Scroll down and click 'Developer settings' at the bottom of the left sidebar."
+    },
+    {
+      "id": "step4",
+      "title": "Personal Access Tokens",
+      "description": "Click 'Personal access tokens' > 'Tokens (classic)'.",
+      "tip": "Classic tokens have better compatibility than fine-grained tokens."
+    },
+    {
+      "id": "step5",
+      "title": "Generate Token",
+      "description": "Click 'Generate new token' button, then select 'Generate new token (classic)'."
+    },
+    {
+      "id": "step6",
+      "title": "Set Permissions",
+      "description": "Select the following permissions:",
+      "permissions": [
+        { "scope": "repo", "description": "Full access to private repositories" },
+        { "scope": "read:user", "description": "Read user profile information" }
+      ],
+      "tip": "We recommend setting the expiration to 90 days or more."
+    },
+    {
+      "id": "step7",
+      "title": "Copy Token",
+      "description": "Copy the generated token and store it securely.",
+      "warning": "You won't be able to see this token again once you leave this page. Make sure to copy it!"
+    }
+  ],
+  "externalLinks": [
+    {
+      "text": "GitHub Official Documentation",
+      "url": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token"
+    }
+  ]
+}

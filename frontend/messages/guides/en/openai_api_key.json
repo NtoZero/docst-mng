@@ -1,0 +1,44 @@
+{
+  "id": "openai_api_key",
+  "title": "OpenAI API Key Guide",
+  "description": "Learn how to generate an OpenAI API Key for embeddings used in semantic search.",
+  "steps": [
+    {
+      "id": "step1",
+      "title": "Log in to OpenAI Platform",
+      "description": "Go to platform.openai.com and log in. If you don't have an account, sign up first."
+    },
+    {
+      "id": "step2",
+      "title": "Navigate to API Keys",
+      "description": "Click on 'API keys' in the left sidebar."
+    },
+    {
+      "id": "step3",
+      "title": "Create New Key",
+      "description": "Click the 'Create new secret key' button."
+    },
+    {
+      "id": "step4",
+      "title": "Name Your Key",
+      "description": "Enter a descriptive name for the key (e.g., 'Docst-Embedding')."
+    },
+    {
+      "id": "step5",
+      "title": "Copy the Key",
+      "description": "Copy the generated API Key.",
+      "warning": "You won't be able to see this key again. Make sure to copy it to a secure location!",
+      "tip": "API Keys start with 'sk-proj-'."
+    }
+  ],
+  "externalLinks": [
+    {
+      "text": "OpenAI API Keys",
+      "url": "https://platform.openai.com/api-keys"
+    },
+    {
+      "text": "View Usage",
+      "url": "https://platform.openai.com/usage"
+    }
+  ]
+}

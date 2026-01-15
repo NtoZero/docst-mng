@@ -202,6 +202,102 @@
       "completedStats": "{total} documents processed, {failed} failed"
     }
   },
+  "guide": {
+    "popover": {
+      "github_pat": {
+        "title": "GitHub Personal Access Token",
+        "summary": "Required for accessing private repositories.",
+        "quickSteps": [
+          "Go to GitHub Settings",
+          "Developer settings > Personal access tokens",
+          "Click Generate new token (classic)"
+        ],
+        "detailButtonText": "View detailed guide"
+      },
+      "openai_api_key": {
+        "title": "OpenAI API Key",
+        "summary": "Used for generating embeddings in semantic search.",
+        "quickSteps": [
+          "Log in to OpenAI Platform",
+          "Navigate to API Keys menu",
+          "Click Create new secret key"
+        ],
+        "detailButtonText": "View detailed guide"
+      },
+      "anthropic_api_key": {
+        "title": "Anthropic API Key",
+        "summary": "Required for LLM Chat functionality using Claude AI.",
+        "quickSteps": [
+          "Log in to Anthropic Console",
+          "Go to Settings > API Keys",
+          "Click Create Key"
+        ],
+        "detailButtonText": "View detailed guide"
+      },
+      "neo4j_auth": {
+        "title": "Neo4j Authentication",
+        "summary": "Required for Neo4j database connection for Graph RAG.",
+        "quickSteps": [
+          "Create Neo4j instance (AuraDB or local)",
+          "Get connection details",
+          "Enter username and password"
+        ],
+        "detailButtonText": "View setup guide"
+      },
+      "pgvector_auth": {
+        "title": "PgVector Authentication",
+        "summary": "Required for PostgreSQL (pgvector) connection for vector search.",
+        "quickSteps": [
+          "Prepare PostgreSQL server",
+          "Install pgvector extension",
+          "Enter connection details"
+        ],
+        "detailButtonText": "View setup guide"
+      }
+    },
+    "onboarding": {
+      "welcome": {
+        "title": "Welcome to Docst!",
+        "description": "Manage distributed documentation in one place and experience AI-powered search."
+      },
+      "step1": {
+        "title": "1. Set up credentials",
+        "description": "Register your GitHub PAT to access private repositories.",
+        "statusComplete": "{count} credential(s) registered",
+        "statusIncomplete": "No credentials",
+        "actionComplete": "Manage credentials",
+        "actionIncomplete": "Add credentials"
+      },
+      "step2": {
+        "title": "2. Create a project",
+        "description": "Create a project and connect your Git repositories.",
+        "statusComplete": "{count} project(s) created",
+        "statusIncomplete": "No projects",
+        "actionComplete": "View projects",
+        "actionIncomplete": "Create project"
+      },
+      "step3": {
+        "title": "3. Sync documents",
+        "description": "Sync repositories to automatically index your documents.",
+        "statusComplete": "{count} document(s) synced",
+        "statusIncomplete": "No documents synced",
+        "actionComplete": "View documents",
+        "actionIncomplete": "Go to sync"
+      },
+      "skipButton": "Skip for now",
+      "nextButton": "Next",
+      "prevButton": "Back",
+      "startButton": "Get Started",
+      "dontShowAgain": "Don't show again",
+      "checkingStatus": "Checking status...",
+      "progressLabel": "Progress",
+      "progressComplete": "{completed}/{total} completed"
+    },
+    "sheet": {
+      "externalResources": "External Resources",
+      "requiredPermissions": "Required Permissions"
+    }
+  },
   "admin": {
     "title": "System Settings",
     "subtitle": "Manage system-wide configuration and credentials",

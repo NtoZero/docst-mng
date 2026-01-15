@@ -125,3 +125,32 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
       editedContent: null,
     }),
 }));
+
+// ===== Onboarding State (Phase 15) =====
+
+interface OnboardingState {
+  hasSeenOnboarding: boolean;
+  completedGuides: string[];
+  setOnboardingComplete: (complete: boolean) => void;
+  markGuideComplete: (guideKey: string) => void;
+  resetOnboarding: () => void;
+}
+
+export const useOnboardingStore = create<OnboardingState>()(
+  persist(
+    (set) => ({
+      hasSeenOnboarding: false,
+      completedGuides: [],
+      setOnboardingComplete: (complete) => set({ hasSeenOnboarding: complete }),
+      markGuideComplete: (guideKey) =>
+        set((state) => ({
+          completedGuides: [...new Set([...state.completedGuides, guideKey])],
+        })),
+      resetOnboarding: () =>
+        set({ hasSeenOnboarding: false, completedGuides: [] }),
+    }),
+    {
+      name: 'docst-onboarding',
+    }
+  )
+);

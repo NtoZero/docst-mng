@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ExternalLink, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import type { CredentialScope, CredentialType, UnifiedCredential } from '@/lib/types';
 import {
   getTypesForScope,
@@ -34,8 +34,10 @@ import {
   getSecretLabel,
   getSecretPlaceholder,
   getHelpUrl,
+  getGuideKey,
   CREDENTIAL_TYPE_CONFIG,
 } from './credential-type-config';
+import { HelpPopover, GuideSheet } from '@/components/guide';
 
 interface CredentialFormDialogProps {
   open: boolean;
@@ -72,10 +74,14 @@ export function CredentialFormDialog({
   const [dbUsername, setDbUsername] = useState('');
   const [dbPassword, setDbPassword] = useState('');
 
+  // Guide sheet state
+  const [guideSheetOpen, setGuideSheetOpen] = useState(false);
+
   const isEditMode = !!credential;
   const isDbAuth = isJsonAuthType(type);
   const showUsernameField = type === 'BASIC_AUTH' && scope === 'USER';
   const helpUrl = getHelpUrl(type);
+  const guideKey = getGuideKey(type);
 
   // Reset form when dialog opens/closes or credential changes
   useEffect(() => {
@@ -213,7 +219,17 @@ export function CredentialFormDialog({
 
             {/* Type field */}
             <div className="grid gap-2">
-              <Label htmlFor="type">Type *</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="type">Type *</Label>
+                {guideKey && !isEditMode && (
+                  <HelpPopover
+                    guideKey={guideKey}
+                    showDetailButton={true}
+                    onDetailClick={() => setGuideSheetOpen(true)}
+                    externalUrl={helpUrl}
+                  />
+                )}
+              </div>
               <Select
                 value={type}
                 onValueChange={(value) => setType(value as CredentialType)}
@@ -234,17 +250,6 @@ export function CredentialFormDialog({
                 <p className="text-xs text-muted-foreground">
                   Type cannot be changed after creation
                 </p>
-              )}
-              {helpUrl && !isEditMode && (
-                <a
-                  href={helpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  Get {getCredentialTypeLabel(type)}
-                  <ExternalLink className="h-3 w-3" />
-                </a>
               )}
             </div>
 
@@ -383,6 +388,15 @@ export function CredentialFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Guide Sheet for detailed instructions */}
+      {guideKey && (
+        <GuideSheet
+          open={guideSheetOpen}
+          onOpenChange={setGuideSheetOpen}
+          guideKey={guideKey}
+        />
+      )}
     </Dialog>
   );
 }
