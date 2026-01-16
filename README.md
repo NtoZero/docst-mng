@@ -99,28 +99,22 @@ cd backend
 
 ## 주요 기능
 
-- ✅ **Git 연동**: GitHub/Local 레포지토리 문서 동기화
-- ✅ **버전 관리**: Git 커밋 기반 문서 버전 추적
-- ✅ **청킹**: 마크다운 헤딩 기반 스마트 청킹
-- ✅ **임베딩**: OpenAI/Ollama 기반 벡터 임베딩
-- ✅ **검색**:
-  - 키워드 검색 (PostgreSQL ILIKE)
-  - 시맨틱 검색 (pgvector 코사인 유사도)
-  - 하이브리드 검색 (RRF 융합)
-- ✅ **MCP Server**: Spring AI 1.1.0+ 기반 AI 에이전트 연동
-  - SSE Transport (Claude Desktop/Claude Code)
+- **Git 연동**: GitHub/Local 레포지토리 문서 동기화
+- **버전 관리**: Git 커밋 기반 문서 버전 추적
+- **AI 검색**: 키워드/시맨틱/하이브리드 검색 지원
+- **MCP Server**: AI 에이전트(Claude Desktop/Code) 연동
+  - SSE Transport
   - 10개 Tool 제공 (문서 조회/검색/수정/Git 연동)
-  - @Tool annotation 선언적 정의
 
 ## 기술 스택
 
 ### Backend
 - Java 21, Spring Boot 3.5
 - PostgreSQL 16 + pgvector
-- Spring AI 1.0.0-M5
+- Spring AI 1.1.0+
 - JGit, Flexmark
 
-### Frontend (추후)
+### Frontend
 - Next.js 16, TypeScript
 - TanStack Query, Zustand
 - Tailwind CSS, shadcn/ui
@@ -131,18 +125,15 @@ cd backend
 
 ## 문서
 
-- [CLAUDE.md](CLAUDE.md) - 전체 프로젝트 가이드
-- [MCP Server 연결 가이드](docs/core/mcp-connect.md) - Claude Desktop/Code 연동
-- [Phase 2 구현 계획](docs/plan/phase-2-3-implementation-plan.md)
+- [CLAUDE.md](CLAUDE.md) - 프로젝트 가이드
+- [MCP Server 연결 가이드](docs/core/mcp-connect.md) - AI 에이전트 연동
 - [통합 테스트 가이드](docs/impl/integration-test-guide.md)
 
 ## 환경 변수
 
-**중요**: API 키는 환경 변수가 아닌 **웹 UI**에서 관리합니다.
+**중요**: API 키는 환경 변수가 아닌 **웹 UI (Settings → Credentials)**에서 관리합니다.
 
-### 인프라 변수 (.env 파일)
-
-필수 환경 변수 (부트스트랩 전용):
+### 필수 환경 변수 (.env 파일)
 
 ```bash
 # Database
@@ -152,101 +143,40 @@ DB_NAME=docst
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 
-# Security (REQUIRED - 프로덕션에서 반드시 변경)
+# Security (프로덕션에서 반드시 변경)
 JWT_SECRET=your-secret-key-change-in-production
 DOCST_ENCRYPTION_KEY=your-encryption-key-change-in-production
 ```
 
-선택적 변수:
-
-```bash
-# Application
-DOCST_BASE_URL=http://localhost:8342
-DOCST_GIT_ROOT=/data/git
-DOCST_AUTH_MODE=local
-
-# GitHub OAuth
-GITHUB_CLIENT_ID=your-client-id
-GITHUB_CLIENT_SECRET=your-client-secret
-
-# Admin Auto-initialization
-DOCST_ADMIN_AUTO_INIT=false
-DOCST_ADMIN_EMAIL=admin@docst.local
-```
-
 전체 목록은 [.env.example](.env.example)을 참고하세요.
-
-### API 키 설정 (웹 UI)
-
-**환경 변수 대신 웹 UI에서 관리**:
-
-1. 서버 시작: `docker-compose up -d`
-2. 웹 UI 접속: http://localhost:3000
-3. **Settings → Credentials** 이동
-4. **Add Credential** 클릭하여 API 키 추가:
-   - `OPENAI_API_KEY`: OpenAI API 키
-   - `ANTHROPIC_API_KEY`: Claude API 키 (선택)
-   - `NEO4J_AUTH`: Neo4j 인증 정보 (Graph RAG 사용 시)
-
-자세한 내용: [docs/impl/phase6/dynamic-llm.md](docs/impl/phase6/dynamic-llm.md)
 
 ## API 엔드포인트
 
-### 인증
-- `POST /api/auth/local/login` - 로컬 로그인
+### REST API
 
-### 프로젝트
-- `GET /api/projects` - 프로젝트 목록
-- `POST /api/projects` - 프로젝트 생성
+| 카테고리 | 엔드포인트 | 설명 |
+|---------|-----------|------|
+| 인증 | `POST /api/auth/local/login` | 로컬 로그인 |
+| 프로젝트 | `GET /api/projects` | 프로젝트 목록 |
+| 프로젝트 | `POST /api/projects` | 프로젝트 생성 |
+| 레포지토리 | `POST /api/projects/{id}/repositories` | 레포지토리 연결 |
+| 레포지토리 | `POST /api/repositories/{id}/sync` | 동기화 실행 |
+| 문서 | `GET /api/repositories/{id}/documents` | 문서 목록 |
+| 문서 | `GET /api/documents/{id}` | 문서 상세 |
+| 문서 | `GET /api/documents/{id}/versions` | 버전 목록 |
+| 검색 | `GET /api/projects/{id}/search` | 문서 검색 (keyword/semantic/hybrid) |
 
-### 레포지토리
-- `POST /api/projects/{id}/repositories` - 레포지토리 연결
-- `POST /api/repositories/{id}/sync` - 동기화 실행
+### MCP Server
 
-### 문서
-- `GET /api/repositories/{id}/documents` - 문서 목록
-- `GET /api/documents/{id}` - 문서 상세
-- `GET /api/documents/{id}/versions` - 버전 목록
-
-### 검색
-- `GET /api/projects/{id}/search?q=query&mode=keyword` - 키워드 검색
-- `GET /api/projects/{id}/search?q=query&mode=semantic` - 시맨틱 검색
-- `GET /api/projects/{id}/search?q=query&mode=hybrid` - 하이브리드 검색
-
-### MCP Server (Spring AI 1.1.0+)
-
-Docst는 **Spring AI MCP Server**를 통해 AI 에이전트(Claude Desktop/Claude Code)가 문서를 조회하고 관리할 수 있는 인터페이스를 제공합니다.
-
-#### SSE Endpoint
-- `GET /sse` - SSE 연결 (세션 생성)
-- `POST /mcp/messages` - 클라이언트 메시지 수신
-
-#### Available Tools
-
-| Tool | Description |
-|------|-------------|
-| `list_projects` | 사용자가 접근 가능한 프로젝트 목록 조회 |
-| `list_documents` | 프로젝트/레포지토리의 문서 목록 조회 |
-| `get_document` | 문서 내용 조회 (버전 지정 가능) |
-| `list_document_versions` | 문서 버전 히스토리 |
-| `diff_document` | 두 버전 비교 (unified diff) |
-| `search_documents` | 키워드/semantic/hybrid 검색 |
-| `sync_repository` | 원격 Git에서 최신 변경사항 동기화 |
-| `create_document` | 새 문서 생성 (commit 옵션) |
-| `update_document` | 문서 내용 업데이트 (commit 옵션) |
-| `push_to_remote` | 로컬 변경사항 원격 푸시 |
+AI 에이전트(Claude Desktop/Code)가 문서를 조회하고 관리할 수 있는 10개의 Tool을 제공합니다.
 
 #### Claude Code 연동 (권장)
 
-Claude Code CLI는 SSE transport를 직접 지원합니다:
+SSE transport를 직접 지원:
 
 ```bash
-# Docst MCP 서버 추가 (한 줄 명령어)
 claude mcp add --transport sse docst http://localhost:8342/sse \
   --header "X-API-Key: YOUR_API_KEY"
-
-# 등록된 서버 확인
-claude mcp list
 ```
 
 #### Claude Desktop 연동
@@ -254,11 +184,13 @@ claude mcp list
 Supergateway를 통한 STDIO ↔ SSE 변환:
 
 ```bash
-# Supergateway 설치
+# 1. Supergateway 설치
 npm install -g supergateway
+
+# 2. 설정 파일 편집 (Windows: %APPDATA%\Claude\claude_desktop_config.json)
 ```
 
-**설정 파일** (`%APPDATA%\Claude\claude_desktop_config.json`):
+**claude_desktop_config.json**:
 ```json
 {
   "mcpServers": {
@@ -273,32 +205,9 @@ npm install -g supergateway
 }
 ```
 
-자세한 내용: [docs/core/mcp-connect.md](docs/core/mcp-connect.md)
+**주요 Tools**: `list_projects`, `search_documents`, `get_document`, `update_document`, `sync_repository` 등
 
-## 개발 현황
-
-### Phase 1: MVP ✅
-- [x] 기본 인증 및 사용자 관리
-- [x] 프로젝트/레포지토리 관리
-- [x] Git 동기화 (JGit)
-- [x] 문서/버전 관리
-- [x] 키워드 검색
-
-### Phase 2: Semantic Search ✅
-- [x] 문서 청킹 (마크다운 헤딩 기반)
-- [x] OpenAI 임베딩 통합
-- [x] pgvector VectorStore
-- [x] 시맨틱 검색
-- [x] 하이브리드 검색 (RRF)
-- [x] 단위 테스트 (55개)
-- [x] 통합 테스트
-
-### Phase 3: Advanced Features (예정)
-- [ ] GitHub OAuth
-- [ ] Webhook 자동 동기화
-- [ ] 문서 관계 그래프
-- [ ] 영향 분석
-- [ ] 프론트엔드 UI
+자세한 내용: [MCP 연결 가이드](docs/core/mcp-connect.md)
 
 ## 라이선스
 
