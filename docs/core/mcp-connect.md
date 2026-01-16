@@ -86,7 +86,59 @@ npm install -g supergateway
 
 ### 3. Claude Code 설정
 
+#### 방법 A: CLI 한 줄 명령어 (권장)
+
+Claude Code CLI는 SSE transport를 직접 지원하므로, Supergateway 없이 한 줄 명령어로 MCP 서버를 추가할 수 있습니다.
+
+```bash
+# Docst MCP 서버 추가 (SSE 직접 연결)
+claude mcp add --transport sse docst http://localhost:8342/sse \
+  --header "X-API-Key: YOUR_API_KEY"
+```
+
+**명령어 옵션 설명**:
+| 옵션 | 설명 |
+|------|------|
+| `--transport sse` | SSE(Server-Sent Events) transport 사용 |
+| `docst` | MCP 서버 식별자 (원하는 이름으로 변경 가능) |
+| `http://localhost:8342/sse` | Docst MCP Server SSE endpoint URL |
+| `--header "X-API-Key: ..."` | 인증 헤더 추가 |
+
+**추가 명령어**:
+```bash
+# 등록된 MCP 서버 목록 확인
+claude mcp list
+
+# MCP 서버 제거
+claude mcp remove docst
+
+# MCP 서버 재설정 (제거 후 다시 추가)
+claude mcp remove docst && claude mcp add --transport sse docst http://localhost:8342/sse --header "X-API-Key: YOUR_API_KEY"
+```
+
+#### 방법 B: 설정 파일 직접 수정
+
 **설정 파일**: `~/.claude/settings.json` 또는 프로젝트별 `.claude/settings.local.json`
+
+```jsonc
+{
+  "mcpServers": {
+    // Claude Code에서 사용할 MCP 서버 정의
+    "docst": {
+      // SSE transport 직접 연결 (Supergateway 불필요)
+      "type": "sse",
+      "url": "http://localhost:8342/sse",
+      "headers": {
+        "X-API-Key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+#### 방법 C: Supergateway 사용 (Legacy)
+
+SSE 직접 연결이 불가능한 환경에서만 사용:
 
 ```jsonc
 {
@@ -107,6 +159,9 @@ npm install -g supergateway
   }
 }
 ```
+
+> **권장**: 방법 A(CLI 한 줄 명령어) 또는 방법 B(SSE 직접 연결)를 사용하세요.
+> Supergateway는 추가 의존성이 필요하고 프로세스 오버헤드가 있습니다.
 
 ---
 
