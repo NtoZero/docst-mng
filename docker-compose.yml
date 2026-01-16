@@ -65,13 +65,21 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
 
-      # Git & Auth
+      # Application
+      DOCST_BASE_URL: ${DOCST_BASE_URL:-http://localhost:8342}
       DOCST_GIT_ROOT: /data/git
-      DOCST_AUTH_MODE: local
+      DOCST_AUTH_MODE: ${DOCST_AUTH_MODE:-local}
 
-      # Embedding (Ollama)
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+      # JWT & Security
+      JWT_SECRET: ${JWT_SECRET:-docst-dev-secret-key-change-in-production-must-be-256-bits}
+      DOCST_ENCRYPTION_KEY: ${DOCST_ENCRYPTION_KEY:-}
+
+      # GitHub OAuth (optional)
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:8342/api/auth/github/callback}
+      GITHUB_FRONTEND_CALLBACK_URL: ${GITHUB_FRONTEND_CALLBACK_URL:-http://localhost:3000/auth/callback}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
 
       # Admin Initialization (for dev/testing)
       DOCST_ADMIN_AUTO_INIT: ${DOCST_ADMIN_AUTO_INIT:-false}
@@ -87,23 +95,6 @@ services:
       DOCST_CORS_ALLOW_CREDENTIALS: ${DOCST_CORS_ALLOW_CREDENTIALS:-true}
       DOCST_CORS_MAX_AGE: ${DOCST_CORS_MAX_AGE:-3600}
       DOCST_CORS_EXPOSED_HEADERS: ${DOCST_CORS_EXPOSED_HEADERS:-Authorization}
-
-      # JWT & Security
-      JWT_SECRET: ${JWT_SECRET:-docst-dev-secret-key-change-in-production-must-be-256-bits}
-
-      # OpenAI (if used instead of Ollama)
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_EMBEDDING_ENABLED: ${OPENAI_EMBEDDING_ENABLED:-false}
-
-      # Neo4j (Graph RAG - Phase 4)
-      NEO4J_URI: ${NEO4J_URI:-bolt://neo4j:7697}
-      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-password}
-
-      # RAG Configuration (UI 중심 설계)
-      DOCST_RAG_DEFAULT_MODE: ${DOCST_RAG_DEFAULT_MODE:-auto}
-      DOCST_RAG_NEO4J_ENABLED: ${DOCST_RAG_NEO4J_ENABLED:-false}
-      DOCST_RAG_HYBRID_ENABLED: ${DOCST_RAG_HYBRID_ENABLED:-true}
 
     volumes:
       - gitdata:/data/git
