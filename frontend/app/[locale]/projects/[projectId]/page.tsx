@@ -17,11 +17,13 @@ import {
   Settings,
   History,
   ArrowRightLeft,
+  MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { SyncModeDialog } from '@/components/sync-mode-dialog';
 import { CommitHistoryDialog } from '@/components/commit-history-dialog';
 import { MoveRepositoryDialog } from '@/components/move-repository-dialog';
@@ -157,14 +159,15 @@ function RepositoryCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 w-full md:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSync}
               disabled={isActive}
               title="Sync documents and generate embeddings for semantic search"
+              className="w-full sm:w-auto"
             >
               {isActive ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -178,60 +181,114 @@ function RepositoryCard({
               size="sm"
               onClick={() => setShowCommitHistory(true)}
               disabled={isActive}
+              className="w-full sm:w-auto"
             >
               <History className="mr-2 h-4 w-4" />
               History
             </Button>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild className="w-full sm:w-auto hidden lg:flex">
               <Link href={`/projects/${projectId}/repositories/${repo.id}/documents`}>
                 <FileText className="mr-2 h-4 w-4" />
                 Documents
               </Link>
             </Button>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-end gap-2 w-full md:w-auto">
+            {/* Credential Badge - lg and above only */}
             {currentCredential && (
-              <Badge variant="outline" className="gap-1">
+              <Badge variant="outline" className="hidden lg:flex gap-1">
                 <Key className="h-3 w-3" />
-                {currentCredential.name}
+                <span className="max-w-[80px] truncate">{currentCredential.name}</span>
               </Badge>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowMoveDialog(true)}
-              className="h-8 w-8"
-              title="Move to another project"
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-            </Button>
+
+            {/* Settings - always visible */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setShowSettings(!showSettings)}
               className="h-8 w-8"
+              title="Settings"
             >
               <Settings className="h-4 w-4" />
             </Button>
+
+            {/* External Link - lg and above only */}
             {repo.cloneUrl && (
-              <Button variant="ghost" size="icon" asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="hidden lg:flex h-8 w-8"
+                title="Open repository"
+              >
                 <a href={repo.cloneUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </Button>
             )}
+
+            {/* More Actions Popover - below lg only */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8" title="More actions">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="end">
+                <div className="space-y-1">
+                  {/* Credential info */}
+                  {currentCredential && (
+                    <div className="px-2 py-1.5 text-sm border-b mb-2">
+                      <div className="flex items-center gap-2">
+                        <Key className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium truncate">{currentCredential.name}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Documents Link */}
+                  <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                    <Link href={`/projects/${projectId}/repositories/${repo.id}/documents`}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Documents
+                    </Link>
+                  </Button>
+
+                  {/* Move button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => setShowMoveDialog(true)}
+                  >
+                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                    Move to Project
+                  </Button>
+
+                  {/* External Link */}
+                  {repo.cloneUrl && (
+                    <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                      <a href={repo.cloneUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Open Repository
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Progress Toggle - conditional */}
             {(isActive || showProgress) && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowProgress(!showProgress)}
                 className="h-8 w-8"
+                title={showProgress ? 'Hide progress' : 'Show progress'}
               >
-                {showProgress ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
+                {showProgress ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             )}
           </div>

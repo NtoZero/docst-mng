@@ -20,7 +20,8 @@
       "Bash(./gradlew clean:*)",
       "Bash(npm run lint)",
       "Bash(docker ps:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "Bash(git log:*)"
     ]
   }
 }

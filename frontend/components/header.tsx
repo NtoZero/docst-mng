@@ -26,7 +26,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4">
-        <Button variant="ghost" size="icon" className="mr-2 lg:hidden" onClick={toggleSidebar}>
+        <Button variant="ghost" size="icon" className="mr-2 xl:hidden" onClick={toggleSidebar}>
           <Menu className="h-5 w-5" />
           <span className="sr-only">{t('toggleSidebar')}</span>
         </Button>
