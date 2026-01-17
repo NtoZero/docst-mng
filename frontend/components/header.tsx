@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
 import { Menu, Search, LogOut, User } from 'lucide-react';
@@ -9,15 +10,35 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { useAuthStore, useUIStore } from '@/lib/store';
 import { useLogout } from '@/hooks/use-api';
 
+const XL_BREAKPOINT = 1280;
+
 export function Header() {
   const t = useTranslations('header');
   const tCommon = useTranslations('common');
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
+  const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
   const logout = useLogout();
 
   const isLoginPage = pathname === '/login';
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= XL_BREAKPOINT) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    // Listen to window resize
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [setSidebarOpen]);
 
   if (isLoginPage) {
     return null;
