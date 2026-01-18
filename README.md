@@ -242,10 +242,10 @@ Claude Code CLI는 SSE transport를 직접 지원합니다:
 
 ```bash
 # 기본 설정 (현재 프로젝트에서만 사용, 개인용)
-claude mcp add --transport sse --header "X-API-Key: YOUR_API_KEY" docst http://localhost:8342/sse
+claude mcp add --transport sse docst http://localhost:8342/sse --header "X-API-Key: YOUR_API_KEY"
 
 # 글로벌 설정 (모든 프로젝트에서 사용)
-claude mcp add --scope user --transport sse --header "X-API-Key: YOUR_API_KEY" docst http://localhost:8342/sse
+claude mcp add --transport sse --scope user docst http://localhost:8342/sse --header "X-API-Key: YOUR_API_KEY"
 
 # 등록된 서버 확인
 claude mcp list
