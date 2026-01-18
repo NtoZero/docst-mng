@@ -249,6 +249,13 @@ claude mcp add --transport sse --scope user docst http://localhost:8342/sse --he
 
 # 등록된 서버 확인
 claude mcp list
+
+# 서버 제거
+claude mcp remove docst
+
+# 특정 scope의 서버 제거
+claude mcp remove docst --scope local   # 현재 프로젝트에서만 제거
+claude mcp remove docst --scope user    # 글로벌 설정에서 제거
 ```
 
 #### Claude Desktop 연동
