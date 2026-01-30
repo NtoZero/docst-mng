@@ -30,6 +30,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/prompt-log.js",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }

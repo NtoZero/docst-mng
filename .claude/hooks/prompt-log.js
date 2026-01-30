@@ -61,31 +61,48 @@ function main() {
     }
 
     const hookEvent = input.hook_event_name;
-
-    // Only handle UserPromptSubmit
-    if (hookEvent !== 'UserPromptSubmit') {
-      process.exit(0);
-    }
-
     const timestamp = new Date().toISOString();
     const sessionId = input.session_id || 'unknown';
-    const prompt = input.prompt || '';
 
-    // Skip empty prompts
-    if (!prompt.trim()) {
+    if (hookEvent === 'UserPromptSubmit') {
+      const prompt = input.prompt || '';
+
+      // Skip empty prompts
+      if (!prompt.trim()) {
+        process.exit(0);
+      }
+
+      writeLog({
+        timestamp,
+        session_id: sessionId,
+        type: 'user_prompt',
+        prompt,
+        prompt_length: prompt.length,
+        is_slash_command: prompt.startsWith('/')
+      });
+
+      console.log(`[PROMPT] ${truncate(prompt)}`);
+
+    } else if (hookEvent === 'Stop') {
+      const result = input.result || '';
+
+      if (!result.trim()) {
+        process.exit(0);
+      }
+
+      writeLog({
+        timestamp,
+        session_id: sessionId,
+        type: 'llm_response',
+        response: result,
+        response_length: result.length
+      });
+
+      console.log(`[RESPONSE] ${truncate(result)}`);
+
+    } else {
       process.exit(0);
     }
-
-    // Log all prompts
-    writeLog({
-      timestamp,
-      session_id: sessionId,
-      prompt,
-      prompt_length: prompt.length,
-      is_slash_command: prompt.startsWith('/')
-    });
-
-    console.log(`[PROMPT] ${truncate(prompt)}`);
 
     process.exit(0);
   } catch (err) {
