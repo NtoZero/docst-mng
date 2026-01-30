@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -92,7 +93,8 @@ public class McpDocumentTools {
         if (repoId != null) {
             documents = documentService.findByRepositoryId(repoId, pathPrefix, type);
         } else if (projId != null) {
-            documents = documentService.findByProjectId(projId);
+            // pathPrefix, type 필터 적용
+            documents = documentService.findByProjectId(projId, pathPrefix, type);
         } else {
             throw new IllegalArgumentException("Either repositoryId or projectId is required");
         }
@@ -278,16 +280,30 @@ public class McpDocumentTools {
             default -> searchService.searchByKeyword(projId, query, limit);
         };
 
+        // 검색 결과에서 documentId 추출하여 Document 일괄 조회 (N+1 방지)
+        List<UUID> docIds = results.stream()
+            .map(r -> r.documentId())
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+
+        Map<UUID, Document> docMap = documentService.findByIds(docIds).stream()
+            .collect(Collectors.toMap(Document::getId, d -> d));
+
         var hits = results.stream()
-            .map(r -> new SearchHit(
-                r.documentId(),
-                r.path(),
-                null,  // title
-                r.headingPath(),
-                r.score(),
-                r.snippet(),
-                null   // content
-            ))
+            .map(r -> {
+                Document doc = docMap.get(r.documentId());
+                String title = doc != null ? doc.getTitle() : null;
+                return new SearchHit(
+                    r.documentId(),
+                    r.path(),
+                    title,
+                    r.headingPath(),
+                    r.score(),
+                    r.snippet(),
+                    null
+                );
+            })
             .toList();
 
         long elapsed = System.currentTimeMillis() - startTime;

@@ -63,6 +63,33 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     List<Document> findByProjectId(@Param("projectId") UUID projectId);
 
     /**
+     * 프로젝트의 문서를 필터링하여 조회한다.
+     * pathPrefix는 '%'가 포함된 LIKE 패턴으로 전달되어야 함 (예: "docs/%")
+     *
+     * @param projectId 프로젝트 ID
+     * @param pathPattern 경로 패턴 (null이면 전체, '%' 포함된 LIKE 패턴)
+     * @param docType 문서 타입 (null이면 전체)
+     * @return 문서 목록 (경로순)
+     */
+    @Query("SELECT d FROM Document d JOIN d.repository r " +
+           "WHERE r.project.id = :projectId AND d.deleted = false " +
+           "AND (:pathPattern IS NULL OR d.path LIKE :pathPattern ESCAPE '!') " +
+           "AND (:docType IS NULL OR d.docType = :docType) " +
+           "ORDER BY d.path")
+    List<Document> findByProjectIdWithFilters(
+            @Param("projectId") UUID projectId,
+            @Param("pathPattern") String pathPattern,
+            @Param("docType") DocType docType);
+
+    /**
+     * ID 목록으로 문서를 일괄 조회한다.
+     *
+     * @param ids 문서 ID 목록
+     * @return 문서 목록
+     */
+    List<Document> findByIdIn(List<UUID> ids);
+
+    /**
      * 특정 경로의 문서가 레포지토리에 존재하는지 확인한다.
      *
      * @param repositoryId 레포지토리 ID

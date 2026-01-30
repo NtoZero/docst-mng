@@ -78,6 +78,36 @@ public class DocumentService {
     }
 
     /**
+     * 프로젝트의 문서를 필터링하여 조회한다.
+     *
+     * @param projectId 프로젝트 ID
+     * @param pathPrefix 경로 접두사 (null이면 전체)
+     * @param docType 문서 타입 문자열 (null이면 전체)
+     * @return 문서 목록
+     */
+    public List<Document> findByProjectId(UUID projectId, String pathPrefix, String docType) {
+        DocType type = docType != null ? DocType.valueOf(docType.toUpperCase()) : null;
+        String pathPattern = null;
+        if (pathPrefix != null && !pathPrefix.isBlank()) {
+            pathPattern = escapeLikePattern(pathPrefix) + "%";
+        }
+        return documentRepository.findByProjectIdWithFilters(projectId, pathPattern, type);
+    }
+
+    /**
+     * ID 목록으로 문서를 일괄 조회한다.
+     *
+     * @param ids 문서 ID 목록
+     * @return 문서 목록
+     */
+    public List<Document> findByIds(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return documentRepository.findByIdIn(ids);
+    }
+
+    /**
      * ID로 문서를 조회한다.
      *
      * @param id 문서 ID
