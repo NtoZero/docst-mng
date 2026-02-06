@@ -36,13 +36,12 @@ public interface DocumentVersionRepository extends JpaRepository<DocumentVersion
 
     /**
      * 문서의 최신 버전을 조회한다.
+     * committed_at 기준 가장 최근 버전을 반환한다.
      *
      * @param documentId 문서 ID
      * @return 최신 버전 (존재하지 않으면 empty)
      */
-    @Query("SELECT dv FROM DocumentVersion dv WHERE dv.document.id = :docId " +
-           "AND dv.commitSha = (SELECT d.latestCommitSha FROM Document d WHERE d.id = :docId)")
-    Optional<DocumentVersion> findLatestByDocumentId(@Param("docId") UUID documentId);
+    Optional<DocumentVersion> findFirstByDocumentIdOrderByCommittedAtDesc(UUID documentId);
 
     /**
      * 프로젝트 내에서 키워드로 문서를 검색한다.

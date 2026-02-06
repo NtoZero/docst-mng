@@ -124,7 +124,7 @@ public class DocumentService {
      * @return 최신 버전 (존재하지 않으면 empty)
      */
     public Optional<DocumentVersion> findLatestVersion(UUID documentId) {
-        return documentVersionRepository.findLatestByDocumentId(documentId);
+        return documentVersionRepository.findFirstByDocumentIdOrderByCommittedAtDesc(documentId);
     }
 
     /**
