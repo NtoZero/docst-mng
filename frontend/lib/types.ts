@@ -730,3 +730,45 @@ export interface FolderTreeResponse {
   folders: FolderTreeItem[];
   extensions: string[];
 }
+
+// ===== Glossary (Phase 17) =====
+
+export interface GlossaryTerm {
+  id: string;
+  projectId: string;
+  name: string;
+  definition: string;
+  synonyms: string[] | null;
+  category: string | null;
+  abbreviation: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GlossaryTermDetail extends GlossaryTerm {
+  relatedTerms: string[] | null;
+  createdBy: string | null;
+}
+
+export interface CreateGlossaryTermRequest {
+  name: string;
+  definition: string;
+  synonyms?: string[];
+  category?: string;
+  abbreviation?: string;
+  relatedTerms?: string[];
+}
+
+export interface UpdateGlossaryTermRequest {
+  name: string;
+  definition: string;
+  synonyms?: string[];
+  category?: string;
+  abbreviation?: string;
+  relatedTerms?: string[];
+}
+
+export interface GlossarySearchResult {
+  term: GlossaryTerm;
+  score: number;
+}

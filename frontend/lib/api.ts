@@ -46,6 +46,11 @@ import type {
   RepositorySyncConfig,
   UpdateRepositorySyncConfigRequest,
   FolderTreeResponse,
+  GlossaryTerm,
+  GlossaryTermDetail,
+  CreateGlossaryTermRequest,
+  UpdateGlossaryTermRequest,
+  GlossarySearchResult,
 } from './types';
 import { getAuthTokenAsync } from './auth-utils';
 
@@ -365,6 +370,46 @@ export const ragConfigApi = {
 
   getReEmbedStatus: (projectId: string): Promise<ReEmbeddingStatusResponse> =>
     request(`/api/projects/${projectId}/rag-config/re-embed/status`),
+};
+
+// ===== Glossary API (Phase 17) =====
+export const glossaryApi = {
+  list: (projectId: string, category?: string): Promise<GlossaryTerm[]> => {
+    const params = category ? `?category=${encodeURIComponent(category)}` : '';
+    return request(`/api/projects/${projectId}/glossary${params}`);
+  },
+
+  get: (projectId: string, termId: string): Promise<GlossaryTermDetail> =>
+    request(`/api/projects/${projectId}/glossary/${termId}`),
+
+  create: (projectId: string, data: CreateGlossaryTermRequest): Promise<GlossaryTermDetail> =>
+    request(`/api/projects/${projectId}/glossary`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (projectId: string, termId: string, data: UpdateGlossaryTermRequest): Promise<GlossaryTermDetail> =>
+    request(`/api/projects/${projectId}/glossary/${termId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (projectId: string, termId: string): Promise<void> =>
+    request(`/api/projects/${projectId}/glossary/${termId}`, {
+      method: 'DELETE',
+    }),
+
+  search: (projectId: string, query: string, mode: 'keyword' | 'semantic' = 'keyword', topK: number = 10): Promise<GlossarySearchResult[]> => {
+    const params = new URLSearchParams({
+      q: query,
+      mode,
+      topK: String(topK),
+    });
+    return request(`/api/projects/${projectId}/glossary/search?${params.toString()}`);
+  },
+
+  getCategories: (projectId: string): Promise<string[]> =>
+    request(`/api/projects/${projectId}/glossary/categories`),
 };
 
 export { ApiError };

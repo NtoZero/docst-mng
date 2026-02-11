@@ -25,6 +25,7 @@
     "settings": "Settings",
     "adminSettings": "System Admin",
     "projectSettings": "Project Settings",
+    "glossary": "Glossary",
     "ragSettings": "RAG Settings"
   },
   "dashboard": {

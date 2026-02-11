@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
  * @see McpDocumentTools
  * @see McpGitTools
  * @see McpProjectTools
+ * @see McpGlossaryTools
  */
 @Configuration
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class McpServerConfig {
     private final McpDocumentTools documentTools;
     private final McpGitTools gitTools;
     private final McpProjectTools projectTools;
+    private final McpGlossaryTools glossaryTools;
 
     /**
      * MCP Server에 등록할 Tool 콜백 제공자.
@@ -35,9 +37,9 @@ public class McpServerConfig {
      */
     @Bean
     public ToolCallbackProvider mcpToolCallbackProvider() {
-        log.info("Registering MCP tools: DocumentTools, GitTools, ProjectTools");
+        log.info("Registering MCP tools: DocumentTools, GitTools, ProjectTools, GlossaryTools");
         return MethodToolCallbackProvider.builder()
-            .toolObjects(documentTools, gitTools, projectTools)
+            .toolObjects(documentTools, gitTools, projectTools, glossaryTools)
             .build();
     }
 }

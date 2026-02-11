@@ -25,6 +25,7 @@
     "settings": "설정",
     "adminSettings": "시스템 관리",
     "projectSettings": "프로젝트 설정",
+    "glossary": "용어 사전",
     "ragSettings": "RAG 설정"
   },
   "dashboard": {
