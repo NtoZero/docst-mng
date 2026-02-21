@@ -50,6 +50,11 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  # MVC Async Configuration (SSE timeout)
+  mvc:
+    async:
+      request-timeout: 300000  # 5분 (SSE 타임아웃)
+
   # Spring AI Configuration
   # NOTE: All AI configs (Chat, Embedding, Vector Store) are managed dynamically per-project
   # using dm_system_config and dm_credential tables (Phase 4-E, Phase 6).
