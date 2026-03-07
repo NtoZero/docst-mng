@@ -1,5 +1,6 @@
 services:
   postgres:
+    restart: unless-stopped
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_PASSWORD: postgres
@@ -16,6 +17,7 @@ services:
       retries: 5
 
   ollama:
+    restart: unless-stopped
     image: ollama/ollama:latest
     ports:
       - "11434:11434"
@@ -36,6 +38,7 @@ services:
     #           capabilities: [gpu]
 
   neo4j:
+    restart: unless-stopped
     image: neo4j:5.15-community
     environment:
       NEO4J_AUTH: neo4j/password
@@ -56,6 +59,7 @@ services:
       retries: 5
 
   backend:
+    restart: unless-stopped
     build: ./backend
     environment:
       # Database
@@ -109,6 +113,7 @@ services:
         condition: service_healthy
 
   frontend:
+    restart: unless-stopped
     build: ./frontend
     environment:
       NEXT_PUBLIC_API_BASE: http://localhost:8342
