@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +44,25 @@ public class CommitService {
      */
     public List<GitCommitWalker.CommitInfo> listCommits(UUID repositoryId, String branch,
                                                           int page, int size) {
+        return listCommits(repositoryId, branch, page, size, null, null, null);
+    }
+
+    /**
+     * 커밋 목록을 필터링하여 조회한다.
+     *
+     * @param repositoryId 레포지토리 ID
+     * @param branch 브랜치명 (null이면 기본 브랜치 사용)
+     * @param page 페이지 번호 (0부터 시작)
+     * @param size 페이지 크기
+     * @param sinceCommitSha 이 커밋 이후의 커밋만 조회 (exclusive, null이면 무시)
+     * @param since 이 시각 이후의 커밋만 조회 (null이면 무시)
+     * @param until 이 시각 이전의 커밋만 조회 (null이면 무시)
+     * @return 커밋 정보 목록
+     */
+    public List<GitCommitWalker.CommitInfo> listCommits(UUID repositoryId, String branch,
+                                                          int page, int size,
+                                                          String sinceCommitSha,
+                                                          Instant since, Instant until) {
         Repository repo = repositoryRepository.findById(repositoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repositoryId));
 
@@ -51,10 +71,10 @@ public class CommitService {
 
         try (Git git = gitService.cloneOrOpen(repo)) {
             List<GitCommitWalker.CommitInfo> commits = gitCommitWalker.listCommits(
-                    git, targetBranch, skip, size);
+                    git, targetBranch, skip, size, sinceCommitSha, since, until);
 
-            log.info("Listed {} commits from repository {} (branch={}, page={}, size={})",
-                    commits.size(), repo.getFullName(), targetBranch, page, size);
+            log.info("Listed {} commits from repository {} (branch={}, page={}, size={}, sinceCommit={}, since={}, until={})",
+                    commits.size(), repo.getFullName(), targetBranch, page, size, sinceCommitSha, since, until);
             return commits;
 
         } catch (IOException e) {

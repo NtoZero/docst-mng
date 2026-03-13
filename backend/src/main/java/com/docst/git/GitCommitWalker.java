@@ -10,6 +10,9 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.revwalk.filter.AndRevFilter;
+import org.eclipse.jgit.revwalk.filter.CommitTimeRevFilter;
+import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
@@ -39,6 +42,24 @@ public class GitCommitWalker {
      * @throws IOException I/O 오류 발생 시
      */
     public List<CommitInfo> listCommits(Git git, String branch, int skip, int limit) throws IOException {
+        return listCommits(git, branch, skip, limit, null, null, null);
+    }
+
+    /**
+     * 커밋 목록을 필터링하여 조회한다.
+     *
+     * @param git Git 인스턴스
+     * @param branch 브랜치명
+     * @param skip 건너뛸 커밋 수
+     * @param limit 조회할 최대 커밋 수
+     * @param sinceCommitSha 이 커밋 이후의 커밋만 조회 (exclusive, null이면 무시)
+     * @param since 이 시각 이후의 커밋만 조회 (inclusive, null이면 무시)
+     * @param until 이 시각 이전의 커밋만 조회 (inclusive, null이면 무시)
+     * @return 커밋 정보 목록
+     * @throws IOException I/O 오류 발생 시
+     */
+    public List<CommitInfo> listCommits(Git git, String branch, int skip, int limit,
+                                        String sinceCommitSha, Instant since, Instant until) throws IOException {
         List<CommitInfo> commits = new ArrayList<>();
         Repository repo = git.getRepository();
 
@@ -55,6 +76,31 @@ public class GitCommitWalker {
 
             RevCommit start = revWalk.parseCommit(ref.getObjectId());
             revWalk.markStart(start);
+
+            // sinceCommitSha: 해당 커밋 이후의 커밋만 조회
+            if (sinceCommitSha != null) {
+                ObjectId sinceId = repo.resolve(sinceCommitSha);
+                if (sinceId != null) {
+                    RevCommit sinceCommit = revWalk.parseCommit(sinceId);
+                    revWalk.markUninteresting(sinceCommit);
+                } else {
+                    log.warn("sinceCommitSha not found: {}", sinceCommitSha);
+                }
+            }
+
+            // since/until: 날짜 범위 필터
+            List<RevFilter> filters = new ArrayList<>();
+            if (since != null) {
+                filters.add(CommitTimeRevFilter.after(since.toEpochMilli()));
+            }
+            if (until != null) {
+                filters.add(CommitTimeRevFilter.before(until.toEpochMilli()));
+            }
+            if (!filters.isEmpty()) {
+                revWalk.setRevFilter(filters.size() == 1
+                    ? filters.get(0)
+                    : AndRevFilter.create(filters));
+            }
 
             // skip 적용
             int skipped = 0;
@@ -75,7 +121,8 @@ public class GitCommitWalker {
             throw new IOException("Failed to list commits", e);
         }
 
-        log.info("Listed {} commits from branch {} (skip={}, limit={})", commits.size(), branch, skip, limit);
+        log.info("Listed {} commits from branch {} (skip={}, limit={}, sinceCommit={}, since={}, until={})",
+            commits.size(), branch, skip, limit, sinceCommitSha, since, until);
         return commits;
     }
 

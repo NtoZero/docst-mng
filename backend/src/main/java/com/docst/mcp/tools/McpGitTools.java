@@ -13,6 +13,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,7 +44,9 @@ public class McpGitTools {
      */
     @Tool(name = "list_commits", description = "List recent commits in a repository. " +
           "Returns commit history with SHA, author, timestamp, and message. " +
-          "Use this to find specific commits, then use list_changed_documents to see what changed.")
+          "Use this to find specific commits, then use list_changed_documents to see what changed. " +
+          "Supports filtering by sinceCommitSha (commits after a specific commit) " +
+          "and since/until (commits within a date range, ISO-8601 format).")
     public ListCommitsResult listCommits(
         @ToolParam(description = "Repository ID (UUID format)")
         String repositoryId,
@@ -52,17 +55,26 @@ public class McpGitTools {
         @ToolParam(description = "Page number, starting from 0 (default: 0)", required = false)
         Integer page,
         @ToolParam(description = "Number of commits per page, max 100 (default: 20)", required = false)
-        Integer size
+        Integer size,
+        @ToolParam(description = "Show only commits after this commit SHA (exclusive). " +
+            "Useful for finding what changed since a known commit.", required = false)
+        String sinceCommitSha,
+        @ToolParam(description = "Show only commits after this date (inclusive, ISO-8601 format, e.g. '2025-01-01T00:00:00Z')", required = false)
+        String since,
+        @ToolParam(description = "Show only commits before this date (inclusive, ISO-8601 format, e.g. '2025-12-31T23:59:59Z')", required = false)
+        String until
     ) {
-        log.info("MCP Tool: listCommits - repositoryId={}, branch={}, page={}, size={}",
-            repositoryId, branch, page, size);
+        log.info("MCP Tool: listCommits - repositoryId={}, branch={}, page={}, size={}, sinceCommit={}, since={}, until={}",
+            repositoryId, branch, page, size, sinceCommitSha, since, until);
 
         UUID repoId = UUID.fromString(repositoryId);
         int pageNum = page != null && page >= 0 ? page : 0;
         int pageSize = size != null && size > 0 ? Math.min(size, 100) : 20;
+        Instant sinceInstant = since != null ? Instant.parse(since) : null;
+        Instant untilInstant = until != null ? Instant.parse(until) : null;
 
         List<GitCommitWalker.CommitInfo> commits = commitService.listCommits(
-            repoId, branch, pageNum, pageSize);
+            repoId, branch, pageNum, pageSize, sinceCommitSha, sinceInstant, untilInstant);
 
         var summaries = commits.stream()
             .map(c -> new CommitSummary(
