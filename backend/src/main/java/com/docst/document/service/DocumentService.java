@@ -1,13 +1,16 @@
 package com.docst.document.service;
 
+import com.docst.chunking.ChunkingService;
 import com.docst.document.Document;
 import com.docst.document.Document.DocType;
 import com.docst.document.DocumentVersion;
 import com.docst.document.repository.DocumentRepository;
 import com.docst.document.repository.DocumentVersionRepository;
+import com.docst.embedding.DocstEmbeddingService;
 import com.docst.gitrepo.Repository;
 import com.docst.gitrepo.repository.RepositoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,11 +30,14 @@ import java.util.UUID;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
     private final DocumentVersionRepository documentVersionRepository;
     private final RepositoryRepository repositoryRepository;
+    private final DocstEmbeddingService embeddingService;
+    private final ChunkingService chunkingService;
 
     /**
      * 레포지토리의 문서를 필터링하여 조회한다.
@@ -115,6 +121,17 @@ public class DocumentService {
      */
     public Optional<Document> findById(UUID id) {
         return documentRepository.findById(id);
+    }
+
+    /**
+     * ID로 삭제되지 않은 문서를 조회한다.
+     * API/MCP/LLM 등 외부 노출 용도로 사용한다.
+     *
+     * @param id 문서 ID
+     * @return 문서 (삭제되었거나 존재하지 않으면 empty)
+     */
+    public Optional<Document> findActiveById(UUID id) {
+        return documentRepository.findByIdAndDeletedFalse(id);
     }
 
     /**
@@ -226,7 +243,30 @@ public class DocumentService {
                 .ifPresent(doc -> {
                     doc.setDeleted(true);
                     documentRepository.save(doc);
+                    cleanupDocumentData(doc);
                 });
+    }
+
+    /**
+     * 삭제된 문서의 벡터/청크 데이터를 정리한다.
+     * 순서: 임베딩 삭제 → 청크 삭제 (임베딩이 청크 ID를 참조하므로)
+     * 각 단계는 개별 try-catch로 감싸 실패 시에도 sync 중단을 방지한다.
+     */
+    private void cleanupDocumentData(Document doc) {
+        for (DocumentVersion version : doc.getVersions()) {
+            try {
+                embeddingService.deleteEmbeddings(version.getId());
+            } catch (Exception e) {
+                log.error("Failed to delete embeddings for version {}: {}",
+                    version.getId(), e.getMessage());
+            }
+            try {
+                chunkingService.deleteChunksByDocumentVersion(version.getId());
+            } catch (Exception e) {
+                log.error("Failed to delete chunks for version {}: {}",
+                    version.getId(), e.getMessage());
+            }
+        }
     }
 
     /**

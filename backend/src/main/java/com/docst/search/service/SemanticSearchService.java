@@ -157,8 +157,14 @@ public class SemanticSearchService {
                 continue;
             }
 
-            // 프로젝트 필터링 (TODO: Filter Expression으로 대체)
+            // Soft-delete 필터링
             Document doc = chunk.getDocumentVersion().getDocument();
+            if (doc.isDeleted()) {
+                log.debug("Chunk {} filtered out: document is deleted", chunkId);
+                continue;
+            }
+
+            // 프로젝트 필터링 (TODO: Filter Expression으로 대체)
             UUID docProjectId = doc.getRepository().getProject().getId();
             if (!docProjectId.equals(projectId)) {
                 log.debug("Chunk {} filtered out: docProjectId={} != projectId={}",

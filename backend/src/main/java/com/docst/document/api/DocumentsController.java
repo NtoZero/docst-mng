@@ -71,7 +71,7 @@ public class DocumentsController {
     @GetMapping("/documents/{docId}")
     public ResponseEntity<DocumentDetailResponse> getDocument(
             @Parameter(description = "문서 ID") @PathVariable UUID docId) {
-        Optional<Document> docOpt = documentService.findById(docId);
+        Optional<Document> docOpt = documentService.findActiveById(docId);
         if (docOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -120,8 +120,8 @@ public class DocumentsController {
             return ResponseEntity.status(401).build();
         }
 
-        // 문서 존재 확인
-        Optional<Document> docOpt = documentService.findById(docId);
+        // 문서 존재 확인 (삭제된 문서 제외)
+        Optional<Document> docOpt = documentService.findActiveById(docId);
         if (docOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }

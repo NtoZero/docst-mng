@@ -89,6 +89,10 @@ public class Neo4jSearchStrategy implements RagSearchStrategy {
                 }
 
                 DocChunk chunk = chunkOpt.get();
+                if (chunk.getDocumentVersion().getDocument().isDeleted()) {
+                    log.debug("Chunk {} filtered out: document is deleted", chunkId);
+                    continue;
+                }
                 DocumentVersion docVersion = chunk.getDocumentVersion();
 
                 searchResults.add(new SearchResult(

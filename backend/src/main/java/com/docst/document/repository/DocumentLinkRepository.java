@@ -98,7 +98,9 @@ public interface DocumentLinkRepository extends JpaRepository<DocumentLink, UUID
     @Query("SELECT dl FROM DocumentLink dl " +
             "WHERE dl.sourceDocument.repository.id = :repositoryId " +
             "AND (dl.linkType = 'INTERNAL' OR dl.linkType = 'WIKI') " +
-            "AND dl.broken = false")
+            "AND dl.broken = false " +
+            "AND dl.sourceDocument.deleted = false " +
+            "AND (dl.targetDocument IS NULL OR dl.targetDocument.deleted = false)")
     List<DocumentLink> findInternalLinksByRepositoryId(@Param("repositoryId") UUID repositoryId);
 
     /**
@@ -110,6 +112,8 @@ public interface DocumentLinkRepository extends JpaRepository<DocumentLink, UUID
     @Query("SELECT dl FROM DocumentLink dl " +
             "WHERE dl.sourceDocument.repository.project.id = :projectId " +
             "AND (dl.linkType = 'INTERNAL' OR dl.linkType = 'WIKI') " +
-            "AND dl.broken = false")
+            "AND dl.broken = false " +
+            "AND dl.sourceDocument.deleted = false " +
+            "AND (dl.targetDocument IS NULL OR dl.targetDocument.deleted = false)")
     List<DocumentLink> findInternalLinksByProjectId(@Param("projectId") UUID projectId);
 }

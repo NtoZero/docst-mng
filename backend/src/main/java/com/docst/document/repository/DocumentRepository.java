@@ -99,6 +99,14 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     boolean existsByRepositoryIdAndPath(UUID repositoryId, String path);
 
     /**
+     * 삭제되지 않은 문서를 ID로 조회한다.
+     *
+     * @param id 문서 ID
+     * @return 문서 (삭제되었거나 존재하지 않으면 empty)
+     */
+    Optional<Document> findByIdAndDeletedFalse(UUID id);
+
+    /**
      * 삭제되지 않은 문서의 총 개수를 조회한다.
      *
      * @return 문서 개수

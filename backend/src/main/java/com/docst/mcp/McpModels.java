@@ -192,6 +192,40 @@ public final class McpModels {
         }
     }
 
+    // ===== list_commits =====
+
+    /**
+     * list_commits 도구 결과.
+     *
+     * @param commits 커밋 요약 목록
+     * @param page 현재 페이지 번호
+     * @param size 페이지 크기
+     */
+    public record ListCommitsResult(
+            List<CommitSummary> commits,
+            int page,
+            int size
+    ) {}
+
+    /**
+     * 커밋 요약 정보.
+     *
+     * @param sha 커밋 SHA (전체)
+     * @param shortSha 커밋 SHA (짧은 형태)
+     * @param authorName 작성자 이름
+     * @param authorEmail 작성자 이메일
+     * @param committedAt 커밋 시각
+     * @param message 커밋 메시지 (짧은 형태)
+     */
+    public record CommitSummary(
+            String sha,
+            String shortSha,
+            String authorName,
+            String authorEmail,
+            Instant committedAt,
+            String message
+    ) {}
+
     // ===== sync_repository =====
 
     /**
@@ -293,5 +327,37 @@ public final class McpModels {
             String branch,
             boolean success,
             String message
+    ) {}
+
+    // ===== list_changed_documents =====
+
+    /**
+     * list_changed_documents 도구 결과.
+     *
+     * @param commitSha 조회한 커밋 SHA
+     * @param totalFiles 전체 변경 파일 수
+     * @param documentFiles 문서 파일 수
+     * @param files 변경된 파일 목록
+     */
+    public record ListChangedDocumentsResult(
+            String commitSha,
+            int totalFiles,
+            int documentFiles,
+            List<ChangedDocumentInfo> files
+    ) {}
+
+    /**
+     * 변경된 파일 정보.
+     *
+     * @param path 파일 경로
+     * @param changeType 변경 타입 (ADDED, MODIFIED, DELETED, RENAMED, COPIED)
+     * @param oldPath 이전 경로 (RENAMED인 경우)
+     * @param isDocument Docst 관리 대상 문서 파일 여부
+     */
+    public record ChangedDocumentInfo(
+            String path,
+            String changeType,
+            String oldPath,
+            boolean isDocument
     ) {}
 }

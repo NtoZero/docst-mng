@@ -126,8 +126,8 @@ public class GraphService {
             Document sourceDoc = link.getSourceDocument();
             Document targetDoc = link.getTargetDocument();
 
-            if (targetDoc == null) {
-                continue; // 깨진 링크는 제외
+            if (targetDoc == null || sourceDoc.isDeleted() || targetDoc.isDeleted()) {
+                continue; // 깨진 링크 또는 삭제된 문서는 제외
             }
 
             // Source 노드 추가

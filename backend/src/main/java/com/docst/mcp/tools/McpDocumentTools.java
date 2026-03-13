@@ -128,7 +128,7 @@ public class McpDocumentTools {
         log.info("MCP Tool: getDocument - documentId={}, commitSha={}", documentId, commitSha);
 
         UUID docId = UUID.fromString(documentId);
-        var doc = documentService.findById(docId)
+        var doc = documentService.findActiveById(docId)
             .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentId));
 
         var version = commitSha != null

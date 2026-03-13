@@ -62,7 +62,7 @@ public interface DocChunkRepository extends JpaRepository<DocChunk, UUID> {
         JOIN c.documentVersion dv
         JOIN dv.document d
         JOIN d.repository r
-        WHERE r.project.id = :projectId
+        WHERE r.project.id = :projectId AND d.deleted = false
         """)
     List<DocChunk> findByProjectId(@Param("projectId") UUID projectId);
 }

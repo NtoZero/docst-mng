@@ -132,7 +132,7 @@ public class DocumentTools {
         log.info("Tool: getDocument - documentId={}", documentId);
 
         UUID docId = UUID.fromString(documentId);
-        Document doc = documentService.findById(docId)
+        Document doc = documentService.findActiveById(docId)
             .orElseThrow(() -> new RuntimeException("Document not found: " + documentId));
 
         DocumentVersion latestVersion = documentService.findLatestVersion(docId)

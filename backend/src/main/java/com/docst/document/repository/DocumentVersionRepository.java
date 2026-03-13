@@ -56,6 +56,7 @@ public interface DocumentVersionRepository extends JpaRepository<DocumentVersion
         JOIN dm_document d ON d.id = dv.document_id
         JOIN dm_repository r ON r.id = d.repository_id
         WHERE r.project_id = :projectId
+          AND d.deleted = false
           AND dv.content ILIKE '%' || :query || '%'
         ORDER BY dv.committed_at DESC
         LIMIT :limit
@@ -84,7 +85,7 @@ public interface DocumentVersionRepository extends JpaRepository<DocumentVersion
         SELECT dv FROM DocumentVersion dv
         JOIN dv.document d
         JOIN d.repository r
-        WHERE r.project.id = :projectId
+        WHERE r.project.id = :projectId AND d.deleted = false
         ORDER BY dv.committedAt DESC
         """)
     List<DocumentVersion> findByProjectId(@Param("projectId") UUID projectId);
