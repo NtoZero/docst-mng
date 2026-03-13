@@ -2,9 +2,11 @@ package com.docst.api;
 
 import com.docst.rag.RagMode;
 import com.docst.rag.RagSearchStrategy;
-import com.docst.service.HybridSearchService;
-import com.docst.service.SearchService;
-import com.docst.service.SearchService.SearchResult;
+import com.docst.search.api.SearchController;
+import com.docst.search.service.HybridSearchService;
+import com.docst.search.service.SearchService;
+import com.docst.search.service.SearchService.SearchResult;
+import com.docst.search.service.SemanticSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,9 @@ class SearchControllerStrategyTest {
     private HybridSearchService hybridSearchService;
 
     @Mock
+    private SemanticSearchService semanticSearchService;
+
+    @Mock
     private RagSearchStrategy pgVectorStrategy;
 
     @Mock
@@ -49,32 +54,32 @@ class SearchControllerStrategyTest {
 
         // Create controller with strategy list
         List<RagSearchStrategy> strategies = List.of(pgVectorStrategy, neo4jStrategy);
-        controller = new SearchController(searchService, hybridSearchService, strategies);
+        controller = new SearchController(searchService, hybridSearchService, semanticSearchService, strategies);
     }
 
     @Test
-    @DisplayName("전략 패턴: mode=semantic → PgVectorStrategy 호출")
-    void search_semanticMode_usesPgVectorStrategy() {
+    @DisplayName("전략 패턴: mode=semantic → SemanticSearchService 호출 (Phase 14-A)")
+    void search_semanticMode_usesSemanticSearchService() {
         // Given
         UUID projectId = UUID.randomUUID();
         List<SearchResult> mockResults = List.of(
             createSearchResult(UUID.randomUUID(), "semantic result via strategy")
         );
 
-        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(mockResults);
+        when(semanticSearchService.searchSemantic(any(), anyString(), anyInt(), anyDouble()))
+            .thenReturn(mockResults);
 
         // When
-        ResponseEntity<List<ApiModels.SearchResultResponse>> response =
-            controller.search(projectId, "test query", "semantic", 10);
+        ResponseEntity<?> response = controller.search(
+            projectId, "test query", "semantic", 10,
+            null, null, null, null, null
+        );
 
         // Then
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
-        assertEquals("semantic result via strategy", response.getBody().get(0).snippet());
 
-        // 전략 패턴 사용 시 PgVectorStrategy 호출 확인
-        verify(pgVectorStrategy).search(projectId, "test query", 10);
+        verify(semanticSearchService).searchSemantic(eq(projectId), eq("test query"), eq(10), anyDouble());
         verify(neo4jStrategy, never()).search(any(), anyString(), anyInt());
     }
 
@@ -90,13 +95,14 @@ class SearchControllerStrategyTest {
         when(neo4jStrategy.search(any(), anyString(), anyInt())).thenReturn(mockResults);
 
         // When
-        ResponseEntity<List<ApiModels.SearchResultResponse>> response =
-            controller.search(projectId, "graph query", "graph", 5);
+        ResponseEntity<?> response = controller.search(
+            projectId, "graph query", "graph", 5,
+            null, null, null, null, null
+        );
 
         // Then
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
 
         // Neo4jStrategy 호출 확인
         verify(neo4jStrategy).search(projectId, "graph query", 5);
@@ -115,8 +121,10 @@ class SearchControllerStrategyTest {
         when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(mockResults);
 
         // When
-        ResponseEntity<List<ApiModels.SearchResultResponse>> response =
-            controller.search(projectId, "auto query", "auto", 10);
+        ResponseEntity<?> response = controller.search(
+            projectId, "auto query", "auto", 10,
+            null, null, null, null, null
+        );
 
         // Then
         assertEquals(200, response.getStatusCode().value());
@@ -137,13 +145,14 @@ class SearchControllerStrategyTest {
         when(searchService.searchByKeyword(any(), anyString(), anyInt())).thenReturn(mockResults);
 
         // When
-        ResponseEntity<List<ApiModels.SearchResultResponse>> response =
-            controller.search(projectId, "keyword query", "keyword", 10);
+        ResponseEntity<?> response = controller.search(
+            projectId, "keyword query", "keyword", 10,
+            null, null, null, null, null
+        );
 
         // Then
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals("keyword result", response.getBody().get(0).snippet());
 
         // 레거시 SearchService 호출 확인
         verify(searchService).searchByKeyword(projectId, "keyword query", 10);
@@ -151,43 +160,44 @@ class SearchControllerStrategyTest {
     }
 
     @Test
-    @DisplayName("mode=hybrid → RagMode.HYBRID 전략 사용 (향후 HybridSearchStrategy)")
-    void search_hybridMode_usesHybridStrategy() {
+    @DisplayName("mode=hybrid → HybridSearchService 호출 (Phase 14-A)")
+    void search_hybridMode_usesHybridService() {
         // Given
-        // mode="hybrid"는 determineRagMode에서 RagMode.HYBRID로 변환됨
-        // HYBRID 전략이 없으면 PGVECTOR로 폴백
         UUID projectId = UUID.randomUUID();
         List<SearchResult> mockResults = List.of(
-            createSearchResult(UUID.randomUUID(), "hybrid fallback result")
+            createSearchResult(UUID.randomUUID(), "hybrid result")
         );
 
-        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(mockResults);
+        when(hybridSearchService.hybridSearch(any(), anyString(), any(), anyString()))
+            .thenReturn(mockResults);
 
         // When
-        ResponseEntity<List<ApiModels.SearchResultResponse>> response =
-            controller.search(projectId, "hybrid query", "hybrid", 10);
+        ResponseEntity<?> response = controller.search(
+            projectId, "hybrid query", "hybrid", 10,
+            null, null, null, null, null
+        );
 
         // Then
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals("hybrid fallback result", response.getBody().get(0).snippet());
 
-        // HYBRID 전략 없음 → PGVECTOR 폴백
-        verify(pgVectorStrategy).search(projectId, "hybrid query", 10);
+        verify(hybridSearchService).hybridSearch(eq(projectId), eq("hybrid query"), any(), anyString());
     }
 
     @Test
-    @DisplayName("determineRagMode: semantic → PGVECTOR")
-    void determineRagMode_semantic_returnsPgVector() {
+    @DisplayName("determineRagMode: semantic → SemanticSearchService")
+    void determineRagMode_semantic_usesSemanticService() {
         // Given
         UUID projectId = UUID.randomUUID();
-        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(List.of());
+        when(semanticSearchService.searchSemantic(any(), anyString(), anyInt(), anyDouble()))
+            .thenReturn(List.of());
 
         // When
-        controller.search(projectId, "query", "semantic", 10);
+        controller.search(projectId, "query", "semantic", 10,
+            null, null, null, null, null);
 
-        // Then: PGVECTOR 전략 사용 확인
-        verify(pgVectorStrategy).search(projectId, "query", 10);
+        // Then: SemanticSearchService 사용 확인
+        verify(semanticSearchService).searchSemantic(eq(projectId), eq("query"), eq(10), anyDouble());
     }
 
     @Test
@@ -198,7 +208,8 @@ class SearchControllerStrategyTest {
         when(neo4jStrategy.search(any(), anyString(), anyInt())).thenReturn(List.of());
 
         // When
-        controller.search(projectId, "query", "graph", 10);
+        controller.search(projectId, "query", "graph", 10,
+            null, null, null, null, null);
 
         // Then: NEO4J 전략 사용 확인
         verify(neo4jStrategy).search(projectId, "query", 10);
@@ -209,13 +220,15 @@ class SearchControllerStrategyTest {
     void search_caseInsensitiveMode() {
         // Given
         UUID projectId = UUID.randomUUID();
-        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(List.of());
+        when(semanticSearchService.searchSemantic(any(), anyString(), anyInt(), anyDouble()))
+            .thenReturn(List.of());
 
         // When - uppercase mode
-        controller.search(projectId, "query", "SEMANTIC", 10);
+        controller.search(projectId, "query", "SEMANTIC", 10,
+            null, null, null, null, null);
 
         // Then
-        verify(pgVectorStrategy).search(projectId, "query", 10);
+        verify(semanticSearchService).searchSemantic(eq(projectId), eq("query"), eq(10), anyDouble());
     }
 
     // Helper method

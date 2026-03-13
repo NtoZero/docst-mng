@@ -11,6 +11,10 @@ import com.docst.gitrepo.Repository;
 import com.docst.gitrepo.repository.RepositoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,6 +102,37 @@ public class DocumentService {
             pathPattern = escapeLikePattern(pathPrefix) + "%";
         }
         return documentRepository.findByProjectIdWithFilters(projectId, pathPattern, type);
+    }
+
+    /**
+     * 레포지토리의 문서를 페이지네이션으로 조회한다.
+     */
+    public Page<Document> findByRepositoryId(UUID repositoryId, String pathPrefix, String docType, int page, int size) {
+        DocType type = docType != null ? DocType.valueOf(docType.toUpperCase()) : null;
+        String pathPattern = pathPrefix != null ? escapeLikePattern(pathPrefix) + "%" : null;
+        Pageable pageable = PageRequest.of(page, size, Sort.by("path").ascending());
+        return documentRepository.findByRepositoryIdWithFilters(repositoryId, pathPattern, type, pageable);
+    }
+
+    /**
+     * 프로젝트의 문서를 페이지네이션으로 조회한다.
+     */
+    public Page<Document> findByProjectId(UUID projectId, String pathPrefix, String docType, int page, int size) {
+        DocType type = docType != null ? DocType.valueOf(docType.toUpperCase()) : null;
+        String pathPattern = null;
+        if (pathPrefix != null && !pathPrefix.isBlank()) {
+            pathPattern = escapeLikePattern(pathPrefix) + "%";
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by("path").ascending());
+        return documentRepository.findByProjectIdWithFilters(projectId, pathPattern, type, pageable);
+    }
+
+    /**
+     * 문서의 버전을 페이지네이션으로 조회한다 (최신순).
+     */
+    public Page<DocumentVersion> findVersions(UUID documentId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return documentVersionRepository.findByDocumentIdOrderByCommittedAtDesc(documentId, pageable);
     }
 
     /**

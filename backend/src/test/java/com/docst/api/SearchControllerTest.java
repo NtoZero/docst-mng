@@ -2,8 +2,10 @@ package com.docst.api;
 
 import com.docst.rag.RagMode;
 import com.docst.rag.RagSearchStrategy;
-import com.docst.service.HybridSearchService;
-import com.docst.service.SearchService;
+import com.docst.search.api.SearchController;
+import com.docst.search.service.HybridSearchService;
+import com.docst.search.service.SearchService;
+import com.docst.search.service.SemanticSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,9 @@ class SearchControllerTest {
     private HybridSearchService hybridSearchService;
 
     @Mock
+    private SemanticSearchService semanticSearchService;
+
+    @Mock
     private RagSearchStrategy pgVectorStrategy;
 
     @Mock
@@ -50,7 +55,9 @@ class SearchControllerTest {
 
         // Create controller with properly configured strategies
         List<RagSearchStrategy> strategies = List.of(pgVectorStrategy, hybridStrategy);
-        SearchController controller = new SearchController(searchService, hybridSearchService, strategies);
+        SearchController controller = new SearchController(
+            searchService, hybridSearchService, semanticSearchService, strategies
+        );
 
         // Setup MockMvc with standalone configuration
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
@@ -73,24 +80,24 @@ class SearchControllerTest {
                 .param("mode", "keyword")
                 .param("topK", "10"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$[0].snippet").value("keyword result"));
+            .andExpect(jsonPath("$.results").isArray())
+            .andExpect(jsonPath("$.results[0].snippet").value("keyword result"));
 
         verify(searchService).searchByKeyword(projectId, "test query", 10);
         verify(hybridSearchService, never()).hybridSearch(any(), anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("검색 모드=semantic → RagSearchStrategy.search 호출 (Phase 4)")
-    void search_withSemanticMode_callsRagSearchStrategy() throws Exception {
+    @DisplayName("검색 모드=semantic → SemanticSearchService 호출 (Phase 14-A)")
+    void search_withSemanticMode_callsSemanticSearchService() throws Exception {
         // Given
         UUID projectId = UUID.randomUUID();
         List<SearchService.SearchResult> mockResults = List.of(
             createSearchResult(UUID.randomUUID(), "semantic result")
         );
 
-        // Phase 4: semantic 모드는 PgVectorSearchStrategy를 사용
-        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(mockResults);
+        when(semanticSearchService.searchSemantic(any(), anyString(), anyInt(), anyDouble()))
+            .thenReturn(mockResults);
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
@@ -98,24 +105,24 @@ class SearchControllerTest {
                 .param("mode", "semantic")
                 .param("topK", "5"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$[0].snippet").value("semantic result"));
+            .andExpect(jsonPath("$.results").isArray())
+            .andExpect(jsonPath("$.results[0].snippet").value("semantic result"));
 
-        verify(pgVectorStrategy).search(projectId, "test query", 5);
+        verify(semanticSearchService).searchSemantic(eq(projectId), eq("test query"), eq(5), anyDouble());
         verify(searchService, never()).searchByKeyword(any(), anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("검색 모드=hybrid → RagSearchStrategy.search 호출 (Phase 4)")
-    void search_withHybridMode_callsRagSearchStrategy() throws Exception {
+    @DisplayName("검색 모드=hybrid → HybridSearchService 호출 (Phase 14-A)")
+    void search_withHybridMode_callsHybridSearchService() throws Exception {
         // Given
         UUID projectId = UUID.randomUUID();
         List<SearchService.SearchResult> mockResults = List.of(
             createSearchResult(UUID.randomUUID(), "hybrid result")
         );
 
-        // Phase 4: hybrid 모드는 HybridSearchStrategy를 사용 (PgVector + Neo4j)
-        when(hybridStrategy.search(any(), anyString(), anyInt())).thenReturn(mockResults);
+        when(hybridSearchService.hybridSearch(any(), anyString(), any(), anyString()))
+            .thenReturn(mockResults);
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
@@ -123,31 +130,32 @@ class SearchControllerTest {
                 .param("mode", "hybrid")
                 .param("topK", "15"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$[0].snippet").value("hybrid result"));
+            .andExpect(jsonPath("$.results").isArray())
+            .andExpect(jsonPath("$.results[0].snippet").value("hybrid result"));
 
-        verify(hybridStrategy).search(projectId, "test query", 15);
+        verify(hybridSearchService).hybridSearch(eq(projectId), eq("test query"), any(), anyString());
         verify(searchService, never()).searchByKeyword(any(), anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("mode 파라미터 없음 → 기본값 keyword 검색")
-    void search_withoutModeParameter_defaultsToKeyword() throws Exception {
+    @DisplayName("mode 파라미터 없음 → 기본값 semantic 검색")
+    void search_withoutModeParameter_defaultsToSemantic() throws Exception {
         // Given
         UUID projectId = UUID.randomUUID();
         List<SearchService.SearchResult> mockResults = List.of(
             createSearchResult(UUID.randomUUID(), "default result")
         );
 
-        when(searchService.searchByKeyword(any(), anyString(), anyInt())).thenReturn(mockResults);
+        when(semanticSearchService.searchSemantic(any(), anyString(), anyInt(), anyDouble()))
+            .thenReturn(mockResults);
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
                 .param("q", "test query"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+            .andExpect(jsonPath("$.results").isArray());
 
-        verify(searchService).searchByKeyword(eq(projectId), eq("test query"), eq(10)); // default topK=10
+        verify(semanticSearchService).searchSemantic(eq(projectId), eq("test query"), eq(10), anyDouble());
     }
 
     @Test
@@ -192,10 +200,11 @@ class SearchControllerTest {
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
-                .param("q", "nonexistent query"))
+                .param("q", "nonexistent query")
+                .param("mode", "keyword"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$").isEmpty());
+            .andExpect(jsonPath("$.results").isArray())
+            .andExpect(jsonPath("$.results").isEmpty());
     }
 
     @Test
@@ -213,13 +222,14 @@ class SearchControllerTest {
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
-                .param("q", "test query"))
+                .param("q", "test query")
+                .param("mode", "keyword"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$.length()").value(3))
-            .andExpect(jsonPath("$[0].snippet").value("result 1"))
-            .andExpect(jsonPath("$[1].snippet").value("result 2"))
-            .andExpect(jsonPath("$[2].snippet").value("result 3"));
+            .andExpect(jsonPath("$.results").isArray())
+            .andExpect(jsonPath("$.results.length()").value(3))
+            .andExpect(jsonPath("$.results[0].snippet").value("result 1"))
+            .andExpect(jsonPath("$.results[1].snippet").value("result 2"))
+            .andExpect(jsonPath("$.results[2].snippet").value("result 3"));
     }
 
     @Test
@@ -247,21 +257,23 @@ class SearchControllerTest {
 
         // When & Then
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
-                .param("q", "test query"))
+                .param("q", "test query")
+                .param("mode", "keyword"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].headingPath").value("# Main > ## Section"))
-            .andExpect(jsonPath("$[0].chunkId").value(chunkId.toString()))
-            .andExpect(jsonPath("$[0].score").value(0.95))
-            .andExpect(jsonPath("$[0].snippet").value("snippet content"))
-            .andExpect(jsonPath("$[0].highlightedSnippet").value("highlighted snippet"));
+            .andExpect(jsonPath("$.results[0].headingPath").value("# Main > ## Section"))
+            .andExpect(jsonPath("$.results[0].chunkId").value(chunkId.toString()))
+            .andExpect(jsonPath("$.results[0].score").value(0.95))
+            .andExpect(jsonPath("$.results[0].snippet").value("snippet content"))
+            .andExpect(jsonPath("$.results[0].highlightedSnippet").value("highlighted snippet"));
     }
 
     @Test
-    @DisplayName("mode 대소문자 무관 처리 (SEMANTIC → semantic) (Phase 4)")
+    @DisplayName("mode 대소문자 무관 처리 (SEMANTIC → semantic) (Phase 14-A)")
     void search_caseSensitiveMode_handledCorrectly() throws Exception {
         // Given
         UUID projectId = UUID.randomUUID();
-        when(pgVectorStrategy.search(any(), anyString(), anyInt())).thenReturn(List.of());
+        when(semanticSearchService.searchSemantic(any(), anyString(), anyInt(), anyDouble()))
+            .thenReturn(List.of());
 
         // When & Then - uppercase mode
         mockMvc.perform(get("/api/projects/{projectId}/search", projectId)
@@ -269,8 +281,7 @@ class SearchControllerTest {
                 .param("mode", "SEMANTIC"))
             .andExpect(status().isOk());
 
-        // Phase 4: SEMANTIC 모드는 PgVectorSearchStrategy 사용
-        verify(pgVectorStrategy).search(projectId, "test", 10);
+        verify(semanticSearchService).searchSemantic(eq(projectId), eq("test"), eq(10), anyDouble());
     }
 
     // Helper method

@@ -2,6 +2,8 @@ package com.docst.document.repository;
 
 import com.docst.document.Document;
 import com.docst.document.Document.DocType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -112,4 +114,29 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
      * @return 문서 개수
      */
     long countByDeletedFalse();
+
+    /**
+     * 레포지토리의 문서를 필터링하여 페이지네이션 조회한다.
+     */
+    @Query("SELECT d FROM Document d WHERE d.repository.id = :repoId AND d.deleted = false " +
+           "AND (:pathPattern IS NULL OR d.path LIKE :pathPattern ESCAPE '!') " +
+           "AND (:docType IS NULL OR d.docType = :docType)")
+    Page<Document> findByRepositoryIdWithFilters(
+            @Param("repoId") UUID repositoryId,
+            @Param("pathPattern") String pathPattern,
+            @Param("docType") DocType docType,
+            Pageable pageable);
+
+    /**
+     * 프로젝트의 문서를 필터링하여 페이지네이션 조회한다.
+     */
+    @Query("SELECT d FROM Document d JOIN d.repository r " +
+           "WHERE r.project.id = :projectId AND d.deleted = false " +
+           "AND (:pathPattern IS NULL OR d.path LIKE :pathPattern ESCAPE '!') " +
+           "AND (:docType IS NULL OR d.docType = :docType)")
+    Page<Document> findByProjectIdWithFilters(
+            @Param("projectId") UUID projectId,
+            @Param("pathPattern") String pathPattern,
+            @Param("docType") DocType docType,
+            Pageable pageable);
 }

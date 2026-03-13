@@ -215,7 +215,7 @@ public class McpGitTools {
      * 커밋 SHA로 해당 커밋에서 추가/수정/삭제된 파일을 반환한다.
      * 문서 파일 여부(isDocument)도 함께 제공한다.
      */
-    @Tool(name = "list_changed_documents", description = "List files changed in a specific commit. " +
+    @Tool(name = "list_changed_documents", description = "List files changed in a specific commit with pagination. " +
           "Returns file paths, change types (ADDED, MODIFIED, DELETED, RENAMED, COPIED), " +
           "and whether each file is a document file managed by Docst. " +
           "Use this to understand what was changed in a particular commit.")
@@ -223,14 +223,22 @@ public class McpGitTools {
         @ToolParam(description = "Repository ID (UUID format)")
         String repositoryId,
         @ToolParam(description = "Commit SHA to inspect")
-        String commitSha
+        String commitSha,
+        @ToolParam(description = "Page number, starting from 0 (default: 0)", required = false)
+        Integer page,
+        @ToolParam(description = "Number of files per page, max 100 (default: 20)", required = false)
+        Integer size
     ) {
-        log.info("MCP Tool: listChangedDocuments - repositoryId={}, commitSha={}", repositoryId, commitSha);
+        log.info("MCP Tool: listChangedDocuments - repositoryId={}, commitSha={}, page={}, size={}",
+            repositoryId, commitSha, page, size);
 
         UUID repoId = UUID.fromString(repositoryId);
+        int pageNum = page != null && page >= 0 ? page : 0;
+        int pageSize = size != null && size > 0 ? Math.min(size, 100) : 20;
+
         List<GitCommitWalker.ChangedFile> changedFiles = commitService.getChangedFiles(repoId, commitSha);
 
-        var files = changedFiles.stream()
+        var allFiles = changedFiles.stream()
             .map(f -> new ChangedDocumentInfo(
                 f.path(),
                 f.changeType().name(),
@@ -239,8 +247,14 @@ public class McpGitTools {
             ))
             .toList();
 
-        long docCount = files.stream().filter(ChangedDocumentInfo::isDocument).count();
+        long docCount = allFiles.stream().filter(ChangedDocumentInfo::isDocument).count();
 
-        return new ListChangedDocumentsResult(commitSha, files.size(), (int) docCount, files);
+        // In-memory pagination
+        int fromIndex = Math.min(pageNum * pageSize, allFiles.size());
+        int toIndex = Math.min(fromIndex + pageSize, allFiles.size());
+        var pagedFiles = allFiles.subList(fromIndex, toIndex);
+
+        return new ListChangedDocumentsResult(commitSha, allFiles.size(), (int) docCount,
+            pagedFiles, pageNum, pageSize);
     }
 }

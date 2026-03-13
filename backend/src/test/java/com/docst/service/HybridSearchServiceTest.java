@@ -2,6 +2,9 @@ package com.docst.service;
 
 import com.docst.rag.hybrid.FusionStrategy;
 import com.docst.rag.hybrid.RrfFusionStrategy;
+import com.docst.search.service.HybridSearchService;
+import com.docst.search.service.SearchService;
+import com.docst.search.service.SemanticSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -133,10 +136,6 @@ class HybridSearchServiceTest {
         assertEquals(3, results.size()); // 3 unique documents
 
         // testDocId1 appears in both, so should have highest RRF score
-        // RRF score for testDocId1: 1/(60+0+1) + 1/(60+0+1) = 2/61 ≈ 0.0328
-        // RRF score for testDocId2: 1/(60+1+1) = 1/62 ≈ 0.0161
-        // RRF score for testDocId3: 1/(60+1+1) = 1/62 ≈ 0.0161
-
         assertEquals(testDocId1, results.get(0).documentId()); // Highest RRF score
     }
 

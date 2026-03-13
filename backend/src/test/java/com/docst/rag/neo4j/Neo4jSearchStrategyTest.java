@@ -1,13 +1,16 @@
 package com.docst.rag.neo4j;
 
-import com.docst.domain.*;
+import com.docst.document.*;
+import com.docst.document.Document.DocType;
 import com.docst.embedding.DocstEmbeddingService;
+import com.docst.gitrepo.Repository;
+import com.docst.project.Project;
 import com.docst.rag.RagMode;
 import com.docst.rag.config.RagConfigService;
 import com.docst.rag.config.ResolvedRagConfig;
-import com.docst.repository.DocChunkRepository;
-import com.docst.repository.ProjectRepository;
-import com.docst.service.SearchService.SearchResult;
+import com.docst.document.repository.DocChunkRepository;
+import com.docst.project.repository.ProjectRepository;
+import com.docst.search.service.SearchService.SearchResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -333,8 +336,7 @@ class Neo4jSearchStrategyTest {
         // Given
         DocumentVersion docVersion = createTestDocumentVersion();
         DocChunk chunk1 = createTestChunk();
-        DocChunk chunk2 = createTestChunk();
-        chunk2 = mock(DocChunk.class);
+        DocChunk chunk2 = mock(DocChunk.class);
         when(chunk2.getId()).thenReturn(UUID.randomUUID());
         when(chunk2.getContent()).thenReturn("Second chunk content");
         when(chunk2.getHeadingPath()).thenReturn("# Section 2");
@@ -404,6 +406,7 @@ class Neo4jSearchStrategyTest {
         when(doc.getId()).thenReturn(testDocId);
         when(doc.getPath()).thenReturn("docs/security.md");
         when(doc.getTitle()).thenReturn("Security Guide");
+        when(doc.isDeleted()).thenReturn(false);
 
         Repository repo = mock(Repository.class);
         when(repo.getId()).thenReturn(testRepoId);

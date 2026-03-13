@@ -1,6 +1,8 @@
 package com.docst.document.repository;
 
 import com.docst.document.DocumentVersion;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,6 +26,11 @@ public interface DocumentVersionRepository extends JpaRepository<DocumentVersion
      * @return 버전 목록 (최신순)
      */
     List<DocumentVersion> findByDocumentIdOrderByCommittedAtDesc(UUID documentId);
+
+    /**
+     * 문서의 버전을 페이지네이션으로 조회한다 (최신순).
+     */
+    Page<DocumentVersion> findByDocumentIdOrderByCommittedAtDesc(UUID documentId, Pageable pageable);
 
     /**
      * 문서의 특정 커밋 버전을 조회한다.

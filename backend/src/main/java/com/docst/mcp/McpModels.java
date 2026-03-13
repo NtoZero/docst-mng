@@ -48,8 +48,18 @@ public final class McpModels {
      * list_documents 도구 결과.
      *
      * @param documents 문서 요약 목록
+     * @param page 현재 페이지 번호
+     * @param size 페이지 크기
+     * @param totalElements 전체 문서 수
+     * @param totalPages 전체 페이지 수
      */
-    public record ListDocumentsResult(List<DocumentSummary> documents) {}
+    public record ListDocumentsResult(
+            List<DocumentSummary> documents,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages
+    ) {}
 
     /**
      * 문서 요약 정보.
@@ -103,8 +113,18 @@ public final class McpModels {
      * list_document_versions 도구 결과.
      *
      * @param versions 버전 요약 목록
+     * @param page 현재 페이지 번호
+     * @param size 페이지 크기
+     * @param totalElements 전체 버전 수
+     * @param totalPages 전체 페이지 수
      */
-    public record ListDocumentVersionsResult(List<VersionSummary> versions) {}
+    public record ListDocumentVersionsResult(
+            List<VersionSummary> versions,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages
+    ) {}
 
     /**
      * 버전 요약 정보.
@@ -337,13 +357,17 @@ public final class McpModels {
      * @param commitSha 조회한 커밋 SHA
      * @param totalFiles 전체 변경 파일 수
      * @param documentFiles 문서 파일 수
-     * @param files 변경된 파일 목록
+     * @param files 변경된 파일 목록 (페이지네이션 적용)
+     * @param page 현재 페이지 번호
+     * @param size 페이지 크기
      */
     public record ListChangedDocumentsResult(
             String commitSha,
             int totalFiles,
             int documentFiles,
-            List<ChangedDocumentInfo> files
+            List<ChangedDocumentInfo> files,
+            int page,
+            int size
     ) {}
 
     /**

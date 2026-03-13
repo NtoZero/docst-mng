@@ -1,12 +1,12 @@
 package com.docst.rag.pgvector;
 
-import com.docst.domain.Document;
-import com.docst.domain.DocumentVersion;
-import com.docst.domain.Repository;
+import com.docst.document.Document;
+import com.docst.document.DocumentVersion;
+import com.docst.gitrepo.Repository;
 import com.docst.embedding.DocstEmbeddingService;
 import com.docst.rag.RagMode;
-import com.docst.service.SearchService.SearchResult;
-import com.docst.service.SemanticSearchService;
+import com.docst.search.service.SearchService.SearchResult;
+import com.docst.search.service.SemanticSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -133,7 +133,6 @@ class PgVectorSearchStrategyTest {
 
         // Then
         verify(embeddingService).embedDocumentVersion(docVersion);
-        // 로그는 수동 확인 (실제로는 SLF4J mock을 사용할 수 있음)
     }
 
     @Test

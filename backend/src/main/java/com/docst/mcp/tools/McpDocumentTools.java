@@ -16,6 +16,8 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
+import org.springframework.data.domain.Page;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,9 +72,10 @@ public class McpDocumentTools {
      * 문서 목록 조회.
      * repositoryId 또는 projectId 중 하나 필수.
      */
-    @Tool(name = "list_documents", description = "List documents in a project or repository. " +
+    @Tool(name = "list_documents", description = "List documents in a project or repository with pagination. " +
           "Either repositoryId or projectId is required. " +
-          "Can filter by path prefix (e.g., 'docs/') and document type (MD, ADOC, OPENAPI, ADR).")
+          "Can filter by path prefix (e.g., 'docs/') and document type (MD, ADOC, OPENAPI, ADR). " +
+          "Returns paginated results sorted by file path.")
     public ListDocumentsResult listDocuments(
         @ToolParam(description = "Repository ID to list documents from", required = false)
         String repositoryId,
@@ -81,25 +84,30 @@ public class McpDocumentTools {
         @ToolParam(description = "Path prefix filter (e.g., 'docs/')", required = false)
         String pathPrefix,
         @ToolParam(description = "Document type filter: MD, ADOC, OPENAPI, ADR", required = false)
-        String type
+        String type,
+        @ToolParam(description = "Page number, starting from 0 (default: 0)", required = false)
+        Integer page,
+        @ToolParam(description = "Number of documents per page, max 100 (default: 20)", required = false)
+        Integer size
     ) {
-        log.info("MCP Tool: listDocuments - repositoryId={}, projectId={}, pathPrefix={}, type={}",
-            repositoryId, projectId, pathPrefix, type);
+        log.info("MCP Tool: listDocuments - repositoryId={}, projectId={}, pathPrefix={}, type={}, page={}, size={}",
+            repositoryId, projectId, pathPrefix, type, page, size);
 
         UUID repoId = repositoryId != null ? UUID.fromString(repositoryId) : null;
         UUID projId = projectId != null ? UUID.fromString(projectId) : resolveDefaultProjectId(null);
+        int pageNum = page != null && page >= 0 ? page : 0;
+        int pageSize = size != null && size > 0 ? Math.min(size, 100) : 20;
 
-        List<Document> documents;
+        Page<Document> documentPage;
         if (repoId != null) {
-            documents = documentService.findByRepositoryId(repoId, pathPrefix, type);
+            documentPage = documentService.findByRepositoryId(repoId, pathPrefix, type, pageNum, pageSize);
         } else if (projId != null) {
-            // pathPrefix, type 필터 적용
-            documents = documentService.findByProjectId(projId, pathPrefix, type);
+            documentPage = documentService.findByProjectId(projId, pathPrefix, type, pageNum, pageSize);
         } else {
             throw new IllegalArgumentException("Either repositoryId or projectId is required");
         }
 
-        var summaries = documents.stream()
+        var summaries = documentPage.getContent().stream()
             .map(doc -> new DocumentSummary(
                 doc.getId(),
                 doc.getRepository().getId(),
@@ -110,7 +118,8 @@ public class McpDocumentTools {
             ))
             .toList();
 
-        return new ListDocumentsResult(summaries);
+        return new ListDocumentsResult(summaries, pageNum, pageSize,
+            documentPage.getTotalElements(), documentPage.getTotalPages());
     }
 
     /**
@@ -155,17 +164,24 @@ public class McpDocumentTools {
      * 문서 버전 목록 조회.
      * 최신 버전부터 정렬.
      */
-    @Tool(name = "list_document_versions", description = "List all versions (commits) of a document. " +
+    @Tool(name = "list_document_versions", description = "List versions (commits) of a document with pagination. " +
           "Returns commit history ordered by commit time (newest first).")
     public ListDocumentVersionsResult listDocumentVersions(
-        @ToolParam(description = "Document ID (UUID format)") String documentId
+        @ToolParam(description = "Document ID (UUID format)") String documentId,
+        @ToolParam(description = "Page number, starting from 0 (default: 0)", required = false)
+        Integer page,
+        @ToolParam(description = "Number of versions per page, max 100 (default: 20)", required = false)
+        Integer size
     ) {
-        log.info("MCP Tool: listDocumentVersions - documentId={}", documentId);
+        log.info("MCP Tool: listDocumentVersions - documentId={}, page={}, size={}", documentId, page, size);
 
         UUID docId = UUID.fromString(documentId);
-        var versions = documentService.findVersions(docId);
+        int pageNum = page != null && page >= 0 ? page : 0;
+        int pageSize = size != null && size > 0 ? Math.min(size, 100) : 20;
 
-        var summaries = versions.stream()
+        var versionPage = documentService.findVersions(docId, pageNum, pageSize);
+
+        var summaries = versionPage.getContent().stream()
             .map(v -> new VersionSummary(
                 v.getCommitSha(),
                 v.getAuthorName(),
@@ -175,7 +191,8 @@ public class McpDocumentTools {
             ))
             .toList();
 
-        return new ListDocumentVersionsResult(summaries);
+        return new ListDocumentVersionsResult(summaries, pageNum, pageSize,
+            versionPage.getTotalElements(), versionPage.getTotalPages());
     }
 
     /**

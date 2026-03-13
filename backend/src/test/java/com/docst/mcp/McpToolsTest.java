@@ -2,15 +2,29 @@ package com.docst.mcp;
 
 import com.docst.auth.SecurityUtils;
 import com.docst.auth.UserPrincipal;
-import com.docst.domain.Document;
-import com.docst.domain.Document.DocType;
-import com.docst.domain.DocumentVersion;
-import com.docst.domain.Repository;
+import com.docst.commit.service.CommitService;
+import com.docst.document.Document;
+import com.docst.document.Document.DocType;
+import com.docst.document.DocumentVersion;
+import com.docst.document.service.DocumentService;
+import com.docst.document.service.DocumentWriteService;
+import com.docst.gitrepo.Repository;
 import com.docst.mcp.McpModels.*;
 import com.docst.mcp.tools.McpDocumentTools;
 import com.docst.mcp.tools.McpGitTools;
 import com.docst.mcp.tools.McpProjectTools;
-import com.docst.service.*;
+import com.docst.project.Project;
+import com.docst.project.ProjectMember;
+import com.docst.project.ProjectRole;
+import com.docst.project.service.ProjectService;
+import com.docst.rag.RagSearchStrategy;
+import com.docst.search.service.HybridSearchService;
+import com.docst.search.service.SearchService;
+import com.docst.search.service.SemanticSearchService;
+import com.docst.sync.SyncJob;
+import com.docst.sync.service.SyncService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -61,7 +75,7 @@ class McpToolsTest {
         void setUp() {
             documentTools = new McpDocumentTools(
                 documentService, searchService, semanticSearchService,
-                hybridSearchService, projectService
+                hybridSearchService, projectService, List.of()
             );
         }
 
@@ -71,18 +85,19 @@ class McpToolsTest {
             // Given
             UUID repoId = UUID.randomUUID();
             Document mockDoc = createMockDocument(repoId);
-            when(documentService.findByRepositoryId(eq(repoId), isNull(), isNull()))
-                .thenReturn(List.of(mockDoc));
+            Page<Document> page = new PageImpl<>(List.of(mockDoc));
+            when(documentService.findByRepositoryId(eq(repoId), isNull(), isNull(), eq(0), eq(20)))
+                .thenReturn(page);
 
             // When
             ListDocumentsResult result = documentTools.listDocuments(
-                repoId.toString(), null, null, null
+                repoId.toString(), null, null, null, null, null
             );
 
             // Then
             assertThat(result.documents()).hasSize(1);
             assertThat(result.documents().get(0).path()).isEqualTo("docs/test.md");
-            verify(documentService).findByRepositoryId(repoId, null, null);
+            verify(documentService).findByRepositoryId(repoId, null, null, 0, 20);
         }
 
         @Test
@@ -92,17 +107,18 @@ class McpToolsTest {
             UUID projectId = UUID.randomUUID();
             UUID repoId = UUID.randomUUID();
             Document mockDoc = createMockDocument(repoId);
-            when(documentService.findByProjectId(projectId))
-                .thenReturn(List.of(mockDoc));
+            Page<Document> page = new PageImpl<>(List.of(mockDoc));
+            when(documentService.findByProjectId(eq(projectId), isNull(), isNull(), eq(0), eq(20)))
+                .thenReturn(page);
 
             // When
             ListDocumentsResult result = documentTools.listDocuments(
-                null, projectId.toString(), null, null
+                null, projectId.toString(), null, null, null, null
             );
 
             // Then
             assertThat(result.documents()).hasSize(1);
-            verify(documentService).findByProjectId(projectId);
+            verify(documentService).findByProjectId(eq(projectId), isNull(), isNull(), eq(0), eq(20));
         }
 
         @Test
@@ -114,7 +130,7 @@ class McpToolsTest {
             Document mockDoc = createMockDocument(repoId);
             DocumentVersion mockVersion = createMockVersion(mockDoc);
 
-            when(documentService.findById(docId)).thenReturn(Optional.of(mockDoc));
+            when(documentService.findActiveById(docId)).thenReturn(Optional.of(mockDoc));
             when(documentService.findLatestVersion(docId)).thenReturn(Optional.of(mockVersion));
 
             // When
@@ -130,7 +146,7 @@ class McpToolsTest {
         void getDocument_notFound_throwsException() {
             // Given
             UUID docId = UUID.randomUUID();
-            when(documentService.findById(docId)).thenReturn(Optional.empty());
+            when(documentService.findActiveById(docId)).thenReturn(Optional.empty());
 
             // When & Then
             assertThatThrownBy(() -> documentTools.getDocument(docId.toString(), null))
@@ -157,9 +173,16 @@ class McpToolsTest {
             when(searchService.searchByKeyword(eq(projectId), eq("test query"), eq(10)))
                 .thenReturn(List.of(mockResult));
 
+            // Mock document lookup for title resolution
+            Document mockDoc = mock(Document.class);
+            when(mockDoc.getId()).thenReturn(mockResult.documentId());
+            when(mockDoc.getTitle()).thenReturn("Test");
+            when(documentService.findByIds(any())).thenReturn(List.of(mockDoc));
+
             // When
             SearchDocumentsResult result = documentTools.searchDocuments(
-                projectId.toString(), "test query", "keyword", 10
+                projectId.toString(), "test query", "keyword", 10,
+                null, null, null, null
             );
 
             // Then
@@ -173,14 +196,16 @@ class McpToolsTest {
         void searchDocuments_semanticMode_usesSemanticService() {
             // Given
             UUID projectId = UUID.randomUUID();
-            when(semanticSearchService.searchSemantic(eq(projectId), anyString(), anyInt()))
+            when(semanticSearchService.searchSemantic(eq(projectId), anyString(), anyInt(), anyDouble()))
                 .thenReturn(List.of());
+            when(documentService.findByIds(any())).thenReturn(List.of());
 
             // When
-            documentTools.searchDocuments(projectId.toString(), "query", "semantic", 5);
+            documentTools.searchDocuments(projectId.toString(), "query", "semantic", 5,
+                null, null, null, null);
 
             // Then
-            verify(semanticSearchService).searchSemantic(projectId, "query", 5);
+            verify(semanticSearchService).searchSemantic(eq(projectId), eq("query"), eq(5), anyDouble());
             verifyNoInteractions(searchService);
         }
 
@@ -189,14 +214,16 @@ class McpToolsTest {
         void searchDocuments_hybridMode_usesHybridService() {
             // Given
             UUID projectId = UUID.randomUUID();
-            when(hybridSearchService.hybridSearch(eq(projectId), anyString(), anyInt()))
+            when(hybridSearchService.hybridSearch(eq(projectId), anyString(), any(), anyString()))
                 .thenReturn(List.of());
+            when(documentService.findByIds(any())).thenReturn(List.of());
 
             // When
-            documentTools.searchDocuments(projectId.toString(), "query", "hybrid", 5);
+            documentTools.searchDocuments(projectId.toString(), "query", "hybrid", 5,
+                null, null, null, null);
 
             // Then
-            verify(hybridSearchService).hybridSearch(projectId, "query", 5);
+            verify(hybridSearchService).hybridSearch(eq(projectId), eq("query"), any(), anyString());
         }
 
         @Test
@@ -205,7 +232,6 @@ class McpToolsTest {
             // Given
             UUID docId = UUID.randomUUID();
             UUID repoId = UUID.randomUUID();
-            Document mockDoc = createMockDocument(repoId);
 
             DocumentVersion fromVersion = mock(DocumentVersion.class);
             when(fromVersion.getContent()).thenReturn("Line 1\nLine 2");
@@ -277,13 +303,13 @@ class McpToolsTest {
             UUID projectId = UUID.randomUUID();
             UserPrincipal principal = new UserPrincipal(userId, "test@example.com", "Test User", null);
 
-            var mockProject = mock(com.docst.domain.Project.class);
+            var mockProject = mock(Project.class);
             when(mockProject.getId()).thenReturn(projectId);
             when(mockProject.getName()).thenReturn("Test Project");
             when(mockProject.getDescription()).thenReturn("A test project");
 
-            var mockMember = mock(com.docst.domain.ProjectMember.class);
-            when(mockMember.getRole()).thenReturn(com.docst.domain.ProjectRole.OWNER);
+            var mockMember = mock(ProjectMember.class);
+            when(mockMember.getRole()).thenReturn(ProjectRole.OWNER);
 
             when(projectService.findByMemberUserId(userId)).thenReturn(List.of(mockProject));
             when(projectService.findMember(projectId, userId)).thenReturn(Optional.of(mockMember));
@@ -323,12 +349,14 @@ class McpToolsTest {
         private SyncService syncService;
         @Mock
         private DocumentWriteService documentWriteService;
+        @Mock
+        private CommitService commitService;
 
         private McpGitTools gitTools;
 
         @BeforeEach
         void setUp() {
-            gitTools = new McpGitTools(syncService, documentWriteService);
+            gitTools = new McpGitTools(syncService, documentWriteService, commitService);
         }
 
         @Test
@@ -336,9 +364,9 @@ class McpToolsTest {
         void syncRepository_startsSync() {
             // Given
             UUID repoId = UUID.randomUUID();
-            var mockJob = mock(com.docst.domain.SyncJob.class);
+            var mockJob = mock(SyncJob.class);
             when(mockJob.getId()).thenReturn(UUID.randomUUID());
-            when(mockJob.getStatus()).thenReturn(com.docst.domain.SyncJob.SyncStatus.RUNNING);
+            when(mockJob.getStatus()).thenReturn(SyncJob.SyncStatus.RUNNING);
             when(syncService.startSync(repoId, "main")).thenReturn(mockJob);
 
             // When

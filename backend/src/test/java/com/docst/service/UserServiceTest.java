@@ -1,10 +1,10 @@
 package com.docst.service;
 
 import com.docst.auth.PasswordValidator;
-import com.docst.domain.User;
-import com.docst.domain.User.AuthProvider;
-import com.docst.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.docst.user.User;
+import com.docst.user.User.AuthProvider;
+import com.docst.user.repository.UserRepository;
+import com.docst.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
