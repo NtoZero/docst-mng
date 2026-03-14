@@ -42,6 +42,15 @@ public interface DocumentVersionRepository extends JpaRepository<DocumentVersion
     Optional<DocumentVersion> findByDocumentIdAndCommitSha(UUID documentId, String commitSha);
 
     /**
+     * 문서의 특정 커밋 버전을 prefix 매칭으로 조회한다 (short SHA 지원).
+     *
+     * @param documentId 문서 ID
+     * @param commitShaPrefix 커밋 SHA prefix (7자 이상 권장)
+     * @return 매칭되는 버전 목록 (복수 매칭 가능)
+     */
+    List<DocumentVersion> findByDocumentIdAndCommitShaStartingWith(UUID documentId, String commitShaPrefix);
+
+    /**
      * 문서의 최신 버전을 조회한다.
      * committed_at 기준 가장 최근 버전을 반환한다.
      *

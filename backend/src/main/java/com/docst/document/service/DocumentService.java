@@ -197,7 +197,26 @@ public class DocumentService {
      * @return 버전 (존재하지 않으면 empty)
      */
     public Optional<DocumentVersion> findVersion(UUID documentId, String commitSha) {
-        return documentVersionRepository.findByDocumentIdAndCommitSha(documentId, commitSha);
+        // 1차: 정확 매칭 시도 (full SHA)
+        Optional<DocumentVersion> result = documentVersionRepository.findByDocumentIdAndCommitSha(documentId, commitSha);
+        if (result.isPresent()) {
+            return result;
+        }
+
+        // 2차: short SHA인 경우 prefix 매칭
+        if (commitSha != null && commitSha.length() < 40) {
+            List<DocumentVersion> matches = documentVersionRepository
+                .findByDocumentIdAndCommitShaStartingWith(documentId, commitSha);
+            if (matches.size() == 1) {
+                return Optional.of(matches.get(0));
+            }
+            if (matches.size() > 1) {
+                throw new IllegalArgumentException(
+                    "Ambiguous short SHA '" + commitSha + "': matches " + matches.size() + " versions. Use a longer SHA prefix.");
+            }
+        }
+
+        return Optional.empty();
     }
 
     /**

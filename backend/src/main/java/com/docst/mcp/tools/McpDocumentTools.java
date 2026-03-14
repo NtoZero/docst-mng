@@ -128,7 +128,7 @@ public class McpDocumentTools {
      */
     @Tool(name = "get_document", description = "Get document content by ID. " +
           "Returns the full content of the document. " +
-          "Optionally specify a commit SHA to get a specific version (defaults to latest).")
+          "Optionally specify a commit SHA (full or abbreviated) to get a specific version (defaults to latest).")
     public GetDocumentResult getDocument(
         @ToolParam(description = "Document ID (UUID format)") String documentId,
         @ToolParam(description = "Specific commit SHA to retrieve (optional, defaults to latest)", required = false)
@@ -199,7 +199,8 @@ public class McpDocumentTools {
      * 두 버전 비교 (diff).
      */
     @Tool(name = "diff_document", description = "Compare two versions of a document and return the diff. " +
-          "Shows line-by-line changes between fromCommitSha and toCommitSha.")
+          "Shows line-by-line changes between fromCommitSha and toCommitSha. " +
+          "Both full and abbreviated commit SHAs are supported.")
     public DiffDocumentResult diffDocument(
         @ToolParam(description = "Document ID (UUID format)") String documentId,
         @ToolParam(description = "Starting commit SHA for comparison") String fromCommitSha,
